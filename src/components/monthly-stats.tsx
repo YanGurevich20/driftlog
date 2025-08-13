@@ -5,8 +5,9 @@ import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/fire
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import { startOfMonth, endOfMonth } from 'date-fns';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 import { formatCurrency, formatCurrencyWithSign } from '@/lib/currency-utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { MonthlyStats } from '@/types';
 
 export function MonthlyStats() {
@@ -84,14 +85,16 @@ export function MonthlyStats() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-card border rounded-lg p-6">
-        <h3 className="font-semibold mb-4">This Month</h3>
-        
-        <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>This Month</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground">Balance</p>
-            <p className={`text-3xl font-bold ${netAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
-              {formatCurrencyWithSign(Math.abs(netAmount), baseCurrency, netAmount >= 0)}
+            <p className={`text-3xl font-bold ${netAmount >= 0 ? 'text-primary' : ''}`}>
+              {netAmount < 0 ? '-' : ''}{formatCurrency(Math.abs(netAmount), baseCurrency)}
             </p>
             <p className="text-xs text-muted-foreground">{baseCurrency}</p>
           </div>
@@ -99,21 +102,21 @@ export function MonthlyStats() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <TrendingUp className="h-3 w-3" />
-                Income
+                <ArrowDown className="h-3 w-3" />
+                Expenses
               </div>
-              <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
-                {formatCurrency(stats.totalIncome, baseCurrency)}
+              <p className="text-lg font-semibold">
+                {formatCurrency(stats.totalExpenses, baseCurrency)}
               </p>
             </div>
             
             <div>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <TrendingDown className="h-3 w-3" />
-                Spent
+                <ArrowUp className="h-3 w-3 text-primary" />
+                Income
               </div>
-              <p className="text-lg font-semibold">
-                {formatCurrency(stats.totalExpenses, baseCurrency)}
+              <p className="text-lg font-semibold text-primary">
+                {formatCurrency(stats.totalIncome, baseCurrency)}
               </p>
             </div>
           </div>
@@ -123,13 +126,16 @@ export function MonthlyStats() {
               {stats.entryCount} {stats.entryCount === 1 ? 'entry' : 'entries'}
             </p>
           </div>
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="bg-card border rounded-lg p-6">
-        <h3 className="font-semibold mb-4">Top Categories</h3>
-        
-        {stats.topCategories.length > 0 ? (
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Categories</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {stats.topCategories.length > 0 ? (
           <div className="space-y-3">
             {stats.topCategories.map((cat, index) => (
               <div key={cat.category} className="flex justify-between items-center">
@@ -147,10 +153,11 @@ export function MonthlyStats() {
               </div>
             ))}
           </div>
-        ) : (
-          <p className="text-muted-foreground text-sm">No expenses yet</p>
-        )}
-      </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">No expenses yet</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

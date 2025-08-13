@@ -2,42 +2,40 @@
 
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { SpacesManager } from '@/components/spaces-manager';
-import { AppLayout } from '@/components/app-layout';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft } from 'lucide-react';
 
 export default function Settings() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/');
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse">Loading...</div>
-      </div>
-    );
-  }
+  if (!user) return null;
 
   return (
-    <AppLayout title="Settings">
-      <div className="space-y-8">
-          <div>
-            <p className="text-muted-foreground">
-              Manage your spaces and account preferences
-            </p>
-          </div>
+    <>
+      <div className="mb-8">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push('/dashboard')}
+            className="h-10 w-10"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">Settings</h1>
+        </div>
+      </div>
 
-          <div className="bg-card border rounded-lg p-6">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold">Account Information</h3>
-            </div>
+      <div className="space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Information</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-2">
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-muted-foreground">Email</span>
@@ -50,12 +48,14 @@ export default function Settings() {
                 </div>
               )}
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="bg-card border rounded-lg p-6">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold">Appearance</h3>
-            </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="flex items-center justify-between py-2">
               <div>
                 <span className="text-sm font-medium">Theme</span>
@@ -63,12 +63,15 @@ export default function Settings() {
               </div>
               <ThemeToggle />
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="bg-card border rounded-lg p-6">
+        <Card>
+          <CardContent className="pt-6">
             <SpacesManager />
-          </div>
-        </div>
-    </AppLayout>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 }

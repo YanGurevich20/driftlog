@@ -18,20 +18,20 @@ Mobile-first PWA for digital nomads to track expenses across multiple currencies
 ### Transaction Types
 - **Expense**: One-time spending ✅
 - **Income**: Revenue/salary entries ✅
-- **Recurring**: Template-based scheduled transactions (pending)
+- **Recurring**: Template-based scheduled transactions (not implemented)
 
-### Expense Tracking ✅
+### Expense Tracking
 - **Quick Add**: FAB → Modal with type selection ✅
-- **Edit/Delete**: Dropdown menu on each entry ✅
+- **Edit**: Dropdown menu on each entry ✅
+- **Delete**: UI exists, handler not implemented 🚧
 - **Fields**:
   - Amount (required) ✅
   - Currency (default: last used, preference-based) ✅
   - Category (predefined, separate for income/expense) ✅
   - Description ✅
   - Date picker (defaults to today) ✅
-  - Payer (in shared spaces) (pending)
-  - Location (optional geotag) (pending)
-- **Recurring**: Templates with frequency (daily/weekly/monthly) (pending)
+  - Payer (auto-set to current user, no selection UI)
+  - Location (not implemented)
 
 ### Currency Management ✅
 - 30-minute cached exchange rates via ExchangeRate-API (1500 req/month limit) ✅
@@ -49,8 +49,8 @@ Mobile-first PWA for digital nomads to track expenses across multiple currencies
 - Primary view: Monthly breakdown ✅
 - Category analysis (top 3 categories) ✅
 - Net income/expense display ✅
-- Currency exposure (pending)
-- Location-based insights (pending)
+- Currency exposure (not implemented)
+- Location-based insights (not implemented)
 
 ## Tech Stack
 
@@ -68,14 +68,13 @@ Mobile-first PWA for digital nomads to track expenses across multiple currencies
 - **Project**: Google Cloud (drift-log) ✅
 - **Auth**: Firebase Authentication ✅
 - **Database**: Firestore ✅
-- **Functions**: Firebase Functions (recurring generation) (pending)
+- **Functions**: Firebase Functions (not implemented)
 - **APIs**: ExchangeRate-API (with API key) ✅
 
 ### Infrastructure
-- **Hosting**: Vercel (pending) 
-  - Note: Consider Firebase Hosting as alternative - already using Firebase services, simpler setup, integrated deployment
+- **Hosting**: TBD (Vercel or Firebase Hosting)
 - **IaC**: Firebase CLI + version control ✅
-- **CI/CD**: GitHub Actions (pending)
+- **CI/CD**: GitHub Actions (not implemented)
 
 ## Data Models
 
@@ -177,7 +176,7 @@ interface RecurringTemplate extends BaseTransaction {
 4. Auto-convert to space currency using cached rates
 5. Save to Firestore
 
-### Recurring Setup (pending)
+### Recurring Setup (not implemented)
 1. Add Transaction → Select Recurring
 2. Fill transaction details
 3. Set frequency
@@ -214,13 +213,17 @@ interface RecurringTemplate extends BaseTransaction {
 - Toast notifications with Sonner
 - Neutral UI colors for better UX
 
+### 🚧 In Progress
+- Delete entries functionality (UI exists, handler needed)
+
 ### 📋 Next Up
-- Delete entries functionality (menu item exists)
 - Recurring transactions implementation
 - Payer selection in shared spaces
 - Export data functionality
+- Deployment (Vercel or Firebase Hosting)
+- CI/CD with GitHub Actions
 
-### 📋 Future Features
+### 🔮 Future Features
 - Location tracking for transactions
 - Advanced analytics and reports
 - Budget limits and alerts
@@ -228,8 +231,6 @@ interface RecurringTemplate extends BaseTransaction {
 - Receipt photo uploads
 - Offline support with sync
 - Multi-language support
-- Vercel/Firebase hosting deployment
-- CI/CD with GitHub Actions
 
 ## Security Rules ✅
 - Users can only access their spaces
@@ -245,3 +246,11 @@ interface RecurringTemplate extends BaseTransaction {
 - English only interface
 - Transactions stored with both original and converted amounts
 - Exchange rates cached for 30 minutes to optimize API usage
+
+## UX Guidelines
+- **Arrow semantics**: Down arrow for expenses, up arrow for income
+- **Color scheme**: Primary color for income (positive association), default for expenses
+- **Balance display**: Show negative sign for negative balance, no sign for positive
+- **Amount display**: Never show + or - signs on individual entries
+- **Currency format**: Sign (if needed), number, then symbol (e.g., -123.45 USD)
+- **Consistent styling**: No red/green for expenses/income, use primary color for positive

@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import { formatRelativeDate } from '@/lib/date-utils';
 import { formatCurrency, formatCurrencyWithSign } from '@/lib/currency-utils';
-import { ArrowUpRight, ArrowDownRight, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,14 +14,27 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { EntryModal } from '@/components/entry-modal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import type { Entry } from '@/types';
 
 export function EntriesList() {
   const { user } = useAuth();
+  const router = useRouter();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
+  const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!user?.defaultSpaceId) return;
@@ -46,6 +59,22 @@ export function EntriesList() {
 
     return () => unsubscribe();
   }, [user?.defaultSpaceId]);
+
+  const handleDelete = async () => {
+    if (!deletingEntry) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteDoc(doc(db, 'entries', deletingEntry.id));
+      toast.success('Entry deleted successfully');
+      setDeletingEntry(null);
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      toast.error('Failed to delete entry');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -74,15 +103,11 @@ export function EntriesList() {
           className="flex items-center justify-between p-4 bg-card border rounded-lg"
         >
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${
-              entry.type === 'income' 
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                : 'bg-muted'
-            }`}>
+            <div className={`p-2 rounded-full bg-muted`}>
               {entry.type === 'income' ? (
-                <ArrowUpRight className="h-4 w-4" />
+                <ArrowUp className="h-4 w-4 text-primary" />
               ) : (
-                <ArrowDownRight className="h-4 w-4 text-muted-foreground" />
+                <ArrowDown className="h-4 w-4" />
               )}
             </div>
             <div>
@@ -101,14 +126,23 @@ export function EntriesList() {
           </div>
           <div className="flex items-center gap-2">
             <div className="text-right">
-              <p className={`font-semibold ${
-                entry.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : ''
-              }`}>
-                {formatCurrencyWithSign(entry.amount, entry.currency, entry.type === 'income')}
-              </p>
+              {entry.convertedAmount && entry.currency !== entry.baseCurrency && entry.baseCurrency && (
+                <p className={`font-semibold ${
+                  entry.type === 'income' ? 'text-primary' : ''
+                }`}>
+                  {formatCurrencyWithSign(entry.convertedAmount, entry.baseCurrency, false)}
+                </p>
+              )}
+              {(!entry.convertedAmount || entry.currency === entry.baseCurrency) && (
+                <p className={`font-semibold ${
+                  entry.type === 'income' ? 'text-primary' : ''
+                }`}>
+                  {formatCurrencyWithSign(entry.amount, entry.currency, false)}
+                </p>
+              )}
               {entry.convertedAmount && entry.currency !== entry.baseCurrency && entry.baseCurrency && (
                 <p className="text-xs text-muted-foreground">
-                  ≈ {formatCurrency(entry.convertedAmount, entry.baseCurrency)}
+                  {formatCurrency(entry.amount, entry.currency)}
                 </p>
               )}
             </div>
@@ -119,11 +153,14 @@ export function EntriesList() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setEditingEntry(entry)}>
+                <DropdownMenuItem onClick={() => router.push(`/dashboard/entry/${entry.id}`)}>
                   <Edit2 className="h-4 w-4 mr-2" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem 
+                  className="text-destructive"
+                  onClick={() => setDeletingEntry(entry)}
+                >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
                 </DropdownMenuItem>
@@ -133,14 +170,26 @@ export function EntriesList() {
         </div>
       ))}
       
-      {editingEntry && (
-        <EntryModal
-          open={!!editingEntry}
-          onClose={() => setEditingEntry(null)}
-          editEntry={editingEntry}
-          onSuccess={() => setEditingEntry(null)}
-        />
-      )}
+      <AlertDialog open={!!deletingEntry} onOpenChange={() => setDeletingEntry(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Entry</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this {deletingEntry?.type || 'entry'}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

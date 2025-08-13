@@ -27,9 +27,16 @@ export function CurrencyInput({
       <Input
         type="number"
         step="0.01"
+        min="0"
         placeholder={placeholder}
         value={value.amount}
-        onChange={(e) => onChange({ ...value, amount: e.target.value })}
+        onChange={(e) => {
+          // Prevent negative values
+          const newValue = e.target.value;
+          // if (newValue === '' || parseFloat(newValue) >= 0) {
+            onChange({ ...value, amount: newValue });
+          // }
+        }}
         disabled={disabled}
         className="flex-1"
       />

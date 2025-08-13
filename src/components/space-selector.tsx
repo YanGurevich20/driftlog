@@ -117,7 +117,7 @@ export function SpaceSelector() {
             </Button>
           ))}
           <div className="border-t pt-1">
-            <Link href="/settings">
+            <Link href="/dashboard/settings">
               <Button variant="ghost" size="sm" className="w-full justify-start">
                 <Settings className="h-4 w-4 mr-2" />
                 Manage Spaces

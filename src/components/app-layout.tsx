@@ -24,7 +24,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             <span className="text-sm text-muted-foreground">
               {user?.name || user?.displayName || user?.email}
             </span>
-            <Link href="/settings">
+            <Link href="/dashboard/settings">
               <Button variant="ghost" size="sm">
                 <Settings className="h-4 w-4" />
               </Button>

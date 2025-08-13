@@ -1,3 +1,3 @@
 - # Component Styling
   - Let shadcn/ui and theme handle default spacing, sizing, and colors - only add classes when deviating from defaults
-  - Avoid redundant classes: `border-border`, `text-foreground`, `variant="default"`, fixed widths, unnecessary flex/gap
+  - Avoid redundant classes: `border-border`, `text-foreground`, `variant="default"`, fixed widths, unnecessary flex/gap/margin/pad
