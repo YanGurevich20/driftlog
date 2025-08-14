@@ -47,7 +47,7 @@ export default function Onboarding() {
         name: name.trim(),
         displayName: name.trim(),
         photoUrl: user.photoUrl || null,
-        mainCurrency: currency,
+        preferredCurrency: currency,
         defaultSpaceId: spaceId,
         createdAt: serverTimestamp(),
         onboardingCompleted: true,
@@ -114,7 +114,7 @@ export default function Onboarding() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="flex items-center justify-between py-2">
               <Label>Theme Preference</Label>
               <ThemeToggle />
             </div>

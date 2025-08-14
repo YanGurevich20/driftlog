@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 name: firebaseUser.displayName || '',
                 displayName: firebaseUser.displayName || '',
                 photoUrl: firebaseUser.photoURL || undefined,
-                mainCurrency: 'USD',
+                preferredCurrency: 'USD',
                 defaultSpaceId: '',
                 createdAt: new Date(),
               } as User);

@@ -35,7 +35,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Card, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { toDate } from '@/lib/date-utils';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/types';
 import type { Entry } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -81,7 +80,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
       },
       category: entry?.category || 'Food & Dining',
       description: entry?.description || '',
-      date: entry ? toDate(entry.date) : new Date(),
+      date: entry ? entry.date : new Date(),
     },
   });
 

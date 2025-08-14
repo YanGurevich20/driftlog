@@ -1,5 +1,3 @@
-import { Timestamp } from 'firebase/firestore';
-
 // User types
 export interface User {
   id: string;
@@ -7,9 +5,9 @@ export interface User {
   name: string;
   displayName?: string;
   photoUrl?: string;
-  mainCurrency: string;
+  preferredCurrency: string;
   defaultSpaceId: string;
-  createdAt: Date | Timestamp;
+  createdAt: Date;
 }
 
 // Space types
@@ -19,7 +17,7 @@ export interface Space {
   baseCurrency: string;
   ownerId: string;
   memberIds: string[];
-  createdAt: Date | Timestamp;
+  createdAt: Date;
 }
 
 export interface SpaceInvitation {
@@ -30,8 +28,8 @@ export interface SpaceInvitation {
   invitedBy: string;
   inviterName: string;
   status: 'pending' | 'accepted' | 'rejected';
-  createdAt: Date | Timestamp;
-  expiresAt: Date | Timestamp;
+  createdAt: Date;
+  expiresAt: Date;
 }
 
 // Entry types (formerly Event)
@@ -48,10 +46,10 @@ export interface BaseEntry {
   baseCurrency?: string;
   category: string;
   description?: string;
-  date: Date | Timestamp;
+  date: Date;
   createdBy: string;
-  createdAt: Date | Timestamp;
-  updatedAt?: Date | Timestamp;
+  createdAt: Date;
+  updatedAt?: Date;
   updatedBy?: string;
 }
 
@@ -73,10 +71,10 @@ export interface RecurringTemplate {
   id: string;
   entryData: Omit<Entry, 'id' | 'date' | 'createdAt'>;
   frequency: RecurringFrequency;
-  nextRun: Date | Timestamp;
-  endDate?: Date | Timestamp;
+  nextRun: Date;
+  endDate?: Date;
   isActive: boolean;
-  createdAt: Date | Timestamp;
+  createdAt: Date;
 }
 
 // Statistics types
@@ -102,7 +100,7 @@ export interface Currency {
 
 export interface ExchangeRates {
   rates: Record<string, number>;
-  fetchedAt: Date | Timestamp;
+  fetchedAt: Date;
 }
 
 // Form types

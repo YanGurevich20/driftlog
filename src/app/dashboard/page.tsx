@@ -2,10 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
-import { EntriesList } from '@/components/entries-list';
-import { MonthlyStats } from '@/components/monthly-stats';
+import { DailyView } from '@/components/daily-view';
+import { MonthlyView } from '@/components/monthly-view';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -16,21 +15,9 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold">Dashboard</h1>
       </div>
       
-      <div className="grid gap-6 lg:grid-cols-3 pb-20">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Entries</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <EntriesList />
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div>
-          <MonthlyStats />
-        </div>
+      <div className="grid gap-6 lg:grid-cols-2 pb-20">
+        <DailyView />
+        <MonthlyView />
       </div>
 
       <div className="fixed bottom-6 right-6">

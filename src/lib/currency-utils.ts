@@ -6,9 +6,9 @@ export function formatCurrency(amount: number, currencyCode: string): string {
   return `${amount.toFixed(2)} ${symbol}`;
 }
 
-export function formatCurrencyWithSign(amount: number, currencyCode: string, isIncome: boolean): string {
+export function formatCurrencyWithSign(amount: number, currencyCode: string, isNegative: boolean, showPositive: boolean = false): string {
   const currency = getCurrencyByCode(currencyCode);
   const symbol = currency?.symbol || currencyCode;
-  const sign = isIncome ? '+' : '';
+  const sign = isNegative ? '-' : (showPositive ? '+' : '');
   return `${sign}${amount.toFixed(2)} ${symbol}`;
 }

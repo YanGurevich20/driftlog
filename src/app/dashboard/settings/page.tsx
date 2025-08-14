@@ -2,15 +2,38 @@
 
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { SpacesManager } from '@/components/spaces-manager';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { CurrencySelector } from '@/components/currency-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { toast } from 'sonner';
 
 export default function Settings() {
   const { user } = useAuth();
   const router = useRouter();
+  const [isUpdatingCurrency, setIsUpdatingCurrency] = useState(false);
+
+  const handleCurrencyChange = async (newCurrency: string) => {
+    if (!user || newCurrency === user.preferredCurrency) return;
+    
+    setIsUpdatingCurrency(true);
+    try {
+      await updateDoc(doc(db, 'users', user.id), {
+        preferredCurrency: newCurrency
+      });
+      toast.success('Preferred currency updated');
+    } catch (error) {
+      console.error('Error updating currency:', error);
+      toast.error('Failed to update currency');
+    } finally {
+      setIsUpdatingCurrency(false);
+    }
+  };
 
   if (!user) return null;
 
@@ -47,6 +70,17 @@ export default function Settings() {
                   <span className="text-sm font-medium">{user.displayName}</span>
                 </div>
               )}
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <span className="text-sm text-muted-foreground">Preferred Currency</span>
+                  <p className="text-xs text-muted-foreground mt-1">Default currency for new spaces</p>
+                </div>
+                <CurrencySelector
+                  value={user.preferredCurrency}
+                  onChange={handleCurrencyChange}
+                  disabled={isUpdatingCurrency}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import { formatRelativeDate } from '@/lib/date-utils';
 import { formatCurrency, formatCurrencyWithSign } from '@/lib/currency-utils';
+import { convertFirestoreDoc } from '@/lib/firestore-utils';
 import { ArrowUp, ArrowDown, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,10 +49,11 @@ export function EntriesList() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const newEntries: Entry[] = [];
       snapshot.forEach((doc) => {
-        newEntries.push({
+        const data = convertFirestoreDoc<Entry>({
           id: doc.id,
           ...doc.data(),
-        } as Entry);
+        });
+        newEntries.push(data);
       });
       setEntries(newEntries);
       setLoading(false);
@@ -130,14 +132,14 @@ export function EntriesList() {
                 <p className={`font-semibold ${
                   entry.type === 'income' ? 'text-primary' : ''
                 }`}>
-                  {formatCurrencyWithSign(entry.convertedAmount, entry.baseCurrency, false)}
+                  {formatCurrencyWithSign(entry.convertedAmount, entry.baseCurrency, entry.type === 'expense')}
                 </p>
               )}
               {(!entry.convertedAmount || entry.currency === entry.baseCurrency) && (
                 <p className={`font-semibold ${
                   entry.type === 'income' ? 'text-primary' : ''
                 }`}>
-                  {formatCurrencyWithSign(entry.amount, entry.currency, false)}
+                  {formatCurrencyWithSign(entry.amount, entry.currency, entry.type === 'expense')}
                 </p>
               )}
               {entry.convertedAmount && entry.currency !== entry.baseCurrency && entry.baseCurrency && (

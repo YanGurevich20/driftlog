@@ -30,7 +30,7 @@ export function SpacesManager() {
   const [selectedSpaceForInvite, setSelectedSpaceForInvite] = useState<Space | null>(null);
   
   const [newSpaceName, setNewSpaceName] = useState('');
-  const [newSpaceCurrency, setNewSpaceCurrency] = useState('USD');
+  const [newSpaceCurrency, setNewSpaceCurrency] = useState(user?.preferredCurrency || 'USD');
   const [inviteEmail, setInviteEmail] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
@@ -57,6 +57,7 @@ export function SpacesManager() {
   useEffect(() => {
     if (user) {
       loadSpacesAndInvitations();
+      setNewSpaceCurrency(user.preferredCurrency || 'USD');
     }
   }, [user, loadSpacesAndInvitations]);
 
@@ -73,7 +74,7 @@ export function SpacesManager() {
       );
       
       setNewSpaceName('');
-      setNewSpaceCurrency('USD');
+      setNewSpaceCurrency(user?.preferredCurrency || 'USD');
       setCreateDialogOpen(false);
       await loadSpacesAndInvitations();
     } catch (error) {
