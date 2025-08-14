@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, Timestamp, doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency, formatCurrencyWithSign } from '@/lib/currency-utils';
-import { convertFirestoreDoc } from '@/lib/firestore-utils';
+import { useEntries } from '@/hooks/use-entries';
+import { useSpace } from '@/hooks/use-space';
 import { ArrowUp, ArrowDown, ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -19,49 +18,19 @@ import type { Entry } from '@/types';
 export function DailyView() {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [openCategories, setOpenCategories] = useState<string[]>([]);
-  const [spaceBaseCurrency, setSpaceBaseCurrency] = useState('USD');
-
-  useEffect(() => {
-    if (!user?.defaultSpaceId) return;
-
-    // Fetch space base currency
-    const fetchSpaceData = async () => {
-      const spaceDoc = await getDoc(doc(db, 'spaces', user.defaultSpaceId));
-      if (spaceDoc.exists()) {
-        setSpaceBaseCurrency(spaceDoc.data().baseCurrency || 'USD');
-      }
-    };
-    fetchSpaceData();
-
-    const startOfSelectedDay = startOfDay(selectedDate);
-    const endOfSelectedDay = endOfDay(selectedDate);
-
-    const q = query(
-      collection(db, 'entries'),
-      where('spaceId', '==', user.defaultSpaceId),
-      where('date', '>=', Timestamp.fromDate(startOfSelectedDay)),
-      where('date', '<=', Timestamp.fromDate(endOfSelectedDay)),
-      orderBy('date', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newEntries: Entry[] = [];
-      snapshot.forEach((doc) => {
-        const data = convertFirestoreDoc<Entry>({
-          id: doc.id,
-          ...doc.data(),
-        });
-        newEntries.push(data);
-      });
-      setEntries(newEntries);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user?.defaultSpaceId, selectedDate]);
+  
+  const startOfSelectedDay = startOfDay(selectedDate);
+  const endOfSelectedDay = endOfDay(selectedDate);
+  
+  const { entries, loading } = useEntries({
+    spaceId: user?.defaultSpaceId,
+    startDate: startOfSelectedDay,
+    endDate: endOfSelectedDay,
+  });
+  
+  const { space } = useSpace(user?.defaultSpaceId);
+  const spaceBaseCurrency = space?.baseCurrency || 'USD';
 
   const groupedEntries = entries.reduce((acc, entry) => {
     const category = entry.category;

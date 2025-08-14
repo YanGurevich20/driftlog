@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { useState } from 'react';
+import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import { formatRelativeDate } from '@/lib/date-utils';
 import { formatCurrency, formatCurrencyWithSign } from '@/lib/currency-utils';
-import { convertFirestoreDoc } from '@/lib/firestore-utils';
+import { useEntries } from '@/hooks/use-entries';
 import { ArrowUp, ArrowDown, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,35 +32,12 @@ import type { Entry } from '@/types';
 export function EntriesList() {
   const { user } = useAuth();
   const router = useRouter();
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  useEffect(() => {
-    if (!user?.defaultSpaceId) return;
-
-    const q = query(
-      collection(db, 'entries'),
-      where('spaceId', '==', user.defaultSpaceId),
-      orderBy('date', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newEntries: Entry[] = [];
-      snapshot.forEach((doc) => {
-        const data = convertFirestoreDoc<Entry>({
-          id: doc.id,
-          ...doc.data(),
-        });
-        newEntries.push(data);
-      });
-      setEntries(newEntries);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user?.defaultSpaceId]);
+  
+  const { entries, loading } = useEntries({
+    spaceId: user?.defaultSpaceId,
+  });
 
   const handleDelete = async () => {
     if (!deletingEntry) return;

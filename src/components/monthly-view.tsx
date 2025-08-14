@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, Timestamp, doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrencyWithSign } from '@/lib/currency-utils';
-import { convertFirestoreDoc } from '@/lib/firestore-utils';
+import { useEntries } from '@/hooks/use-entries';
+import { useSpace } from '@/hooks/use-space';
 import { ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,48 +17,18 @@ import type { Entry } from '@/types';
 export function MonthlyView() {
   const { user } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [spaceBaseCurrency, setSpaceBaseCurrency] = useState('USD');
-
-  useEffect(() => {
-    if (!user?.defaultSpaceId) return;
-
-    // Fetch space base currency
-    const fetchSpaceData = async () => {
-      const spaceDoc = await getDoc(doc(db, 'spaces', user.defaultSpaceId));
-      if (spaceDoc.exists()) {
-        setSpaceBaseCurrency(spaceDoc.data().baseCurrency || 'USD');
-      }
-    };
-    fetchSpaceData();
-
-    const startOfSelectedMonth = startOfMonth(selectedMonth);
-    const endOfSelectedMonth = endOfMonth(selectedMonth);
-
-    const q = query(
-      collection(db, 'entries'),
-      where('spaceId', '==', user.defaultSpaceId),
-      where('date', '>=', Timestamp.fromDate(startOfSelectedMonth)),
-      where('date', '<=', Timestamp.fromDate(endOfSelectedMonth)),
-      orderBy('date', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newEntries: Entry[] = [];
-      snapshot.forEach((doc) => {
-        const data = convertFirestoreDoc<Entry>({
-          id: doc.id,
-          ...doc.data(),
-        });
-        newEntries.push(data);
-      });
-      setEntries(newEntries);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user?.defaultSpaceId, selectedMonth]);
+  
+  const startOfSelectedMonth = startOfMonth(selectedMonth);
+  const endOfSelectedMonth = endOfMonth(selectedMonth);
+  
+  const { entries, loading } = useEntries({
+    spaceId: user?.defaultSpaceId,
+    startDate: startOfSelectedMonth,
+    endDate: endOfSelectedMonth,
+  });
+  
+  const { space } = useSpace(user?.defaultSpaceId);
+  const spaceBaseCurrency = space?.baseCurrency || 'USD';
 
   const categoryTotals = entries.reduce((acc, entry) => {
     const category = entry.category;
