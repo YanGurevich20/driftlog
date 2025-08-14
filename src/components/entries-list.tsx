@@ -28,6 +28,8 @@ import {
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import type { Entry } from '@/types';
+import { DataState } from '@/components/ui/data-state';
+import { Receipt } from 'lucide-react';
 
 export function EntriesList() {
   const { user } = useAuth();
@@ -35,7 +37,7 @@ export function EntriesList() {
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
-  const { entries, loading } = useEntries({
+  const { entries, loading, error } = useEntries({
     spaceId: user?.defaultSpaceId,
   });
 
@@ -55,27 +57,17 @@ export function EntriesList() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-16 bg-muted/50 rounded-lg animate-pulse" />
-        ))}
-      </div>
-    );
-  }
-
-  if (entries.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        No entries yet. Click the + button to add your first entry!
-      </div>
-    );
-  }
-
-
   return (
-    <div className="space-y-3">
+    <DataState
+      loading={loading}
+      error={error}
+      empty={entries.length === 0}
+      loadingVariant="card"
+      emptyTitle="No entries yet"
+      emptyDescription="Click the + button to add your first entry!"
+      emptyIcon={Receipt}
+    >
+      <div className="space-y-3">
       {entries.map((entry) => (
         <div
           key={entry.id}
@@ -170,5 +162,6 @@ export function EntriesList() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </DataState>
   );
 }

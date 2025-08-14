@@ -5,26 +5,22 @@ import { useAuth } from '@/lib/auth-context';
 import { formatCurrencyWithSign } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useSpace } from '@/hooks/use-space';
-import { ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { MonthPicker } from '@/components/ui/month-picker';
-import { format, startOfMonth, endOfMonth, addMonths, subMonths, isAfter, isSameMonth } from 'date-fns';
-import type { Entry } from '@/types';
+import { DateNavigation } from '@/components/ui/date-navigation';
+import { addMonths, subMonths, isSameMonth } from 'date-fns';
+import { getDateRangeForMonth } from '@/lib/date-range-utils';
 
 export function MonthlyView() {
   const { user } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   
-  const startOfSelectedMonth = startOfMonth(selectedMonth);
-  const endOfSelectedMonth = endOfMonth(selectedMonth);
+  const dateRange = getDateRangeForMonth(selectedMonth);
   
   const { entries, loading } = useEntries({
     spaceId: user?.defaultSpaceId,
-    startDate: startOfSelectedMonth,
-    endDate: endOfSelectedMonth,
+    startDate: dateRange.start,
+    endDate: dateRange.end,
   });
   
   const { space } = useSpace(user?.defaultSpaceId);
@@ -47,11 +43,11 @@ export function MonthlyView() {
   }, 0);
 
   const incomeCategories = Object.entries(categoryTotals)
-    .filter(([_, data]) => data.type === 'income')
+    .filter(([, data]) => data.type === 'income')
     .sort((a, b) => b[1].total - a[1].total);
 
   const expenseCategories = Object.entries(categoryTotals)
-    .filter(([_, data]) => data.type === 'expense')
+    .filter(([, data]) => data.type === 'expense')
     .sort((a, b) => b[1].total - a[1].total);
 
   const handlePreviousMonth = () => {
@@ -63,7 +59,6 @@ export function MonthlyView() {
   };
 
   const canGoNext = !isSameMonth(selectedMonth, new Date());
-  const firstEntry = entries.length > 0 ? entries[entries.length - 1] : null;
   const canGoPrevious = true;
 
   if (loading) {
@@ -87,41 +82,16 @@ export function MonthlyView() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handlePreviousMonth}
-            disabled={!canGoPrevious}
-            className="size-8"
-          >
-            <ChevronLeftIcon />
-          </Button>
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="justify-start text-left font-normal">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(selectedMonth, 'MMMM yyyy')}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="center">
-              <MonthPicker
-                currentMonth={selectedMonth}
-                onMonthChange={(date) => setSelectedMonth(date)}
-              />
-            </PopoverContent>
-          </Popover>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNextMonth}
-            disabled={!canGoNext}
-            className="size-8"
-          >
-            <ChevronRightIcon />
-          </Button>
+        <div className="mb-4">
+          <DateNavigation
+            selectedDate={selectedMonth}
+            onDateChange={setSelectedMonth}
+            onPrevious={handlePreviousMonth}
+            onNext={handleNextMonth}
+            canGoPrevious={canGoPrevious}
+            canGoNext={canGoNext}
+            mode="month"
+          />
         </div>
 
         <div className="text-center">

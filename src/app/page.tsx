@@ -4,11 +4,12 @@ import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
   const { user, loading, signInWithGoogle, needsOnboarding } = useAuth();
   const router = useRouter();
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -43,12 +44,20 @@ export default function Home() {
 
         <div className="space-y-4 pt-8">
           <Button
-            onClick={signInWithGoogle}
+            onClick={async () => {
+              setIsSigningIn(true);
+              try {
+                await signInWithGoogle();
+              } catch (error) {
+                setIsSigningIn(false);
+              }
+            }}
             size="lg"
             className="w-full"
             variant="default"
+            disabled={isSigningIn}
           >
-            Sign in with Google
+            {isSigningIn ? 'Signing in...' : 'Sign in with Google'}
           </Button>
           <p className="text-xs text-muted-foreground">
             By signing in, you agree to our Terms of Service and Privacy Policy

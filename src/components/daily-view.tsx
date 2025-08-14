@@ -5,28 +5,28 @@ import { useAuth } from '@/lib/auth-context';
 import { formatCurrency, formatCurrencyWithSign } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useSpace } from '@/hooks/use-space';
-import { ArrowUp, ArrowDown, ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format, startOfDay, endOfDay, addDays, subDays, isAfter, isBefore, isToday, isSameYear } from 'date-fns';
+import { addDays, subDays, isAfter, isBefore, isToday } from 'date-fns';
+import { getDateRangeForDay } from '@/lib/date-range-utils';
 import type { Entry } from '@/types';
+import { DataState } from '@/components/ui/data-state';
+import { DateNavigation } from '@/components/ui/date-navigation';
+import { CalendarDays } from 'lucide-react';
 
 export function DailyView() {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [openCategories, setOpenCategories] = useState<string[]>([]);
   
-  const startOfSelectedDay = startOfDay(selectedDate);
-  const endOfSelectedDay = endOfDay(selectedDate);
+  const dateRange = getDateRangeForDay(selectedDate);
   
-  const { entries, loading } = useEntries({
+  const { entries, loading, error } = useEntries({
     spaceId: user?.defaultSpaceId,
-    startDate: startOfSelectedDay,
-    endDate: endOfSelectedDay,
+    startDate: dateRange.start,
+    endDate: dateRange.end,
   });
   
   const { space } = useSpace(user?.defaultSpaceId);
@@ -64,75 +64,32 @@ export function DailyView() {
   const firstEntry = entries.length > 0 ? entries[entries.length - 1] : null;
   const canGoPrevious = firstEntry ? isBefore(subDays(selectedDate, 1), firstEntry.date) : true;
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="h-10 bg-muted/50 rounded animate-pulse" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-muted/50 rounded-lg animate-pulse" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handlePreviousDay}
-            disabled={!canGoPrevious}
-            className="size-8"
-          >
-            <ChevronLeftIcon />
-          </Button>
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="justify-start text-left font-normal">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {isSameYear(selectedDate, new Date()) 
-                  ? format(selectedDate, 'EEEE, MMMM d')
-                  : format(selectedDate, 'PPP')
-                }
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="center">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                disabled={(date) => isAfter(date, new Date())}
-              />
-            </PopoverContent>
-          </Popover>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNextDay}
-            disabled={!canGoNext}
-            className="size-8"
-          >
-            <ChevronRightIcon />
-          </Button>
-        </div>
+        <DateNavigation
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          onPrevious={handlePreviousDay}
+          onNext={handleNextDay}
+          canGoPrevious={canGoPrevious}
+          canGoNext={canGoNext}
+          mode="day"
+          disabled={(date) => isAfter(date, new Date())}
+        />
       </CardHeader>
       
       <CardContent>
-        {Object.keys(groupedEntries).length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No entries for this day
-          </div>
-        ) : (
+        <DataState
+          loading={loading}
+          error={error}
+          empty={Object.keys(groupedEntries).length === 0}
+          loadingVariant="skeleton"
+          emptyTitle="No entries for this day"
+          emptyDescription="Add your first entry for this date"
+          emptyIcon={CalendarDays}
+        >
           <Accordion 
             type="multiple" 
             value={openCategories}
@@ -181,7 +138,7 @@ export function DailyView() {
               </AccordionItem>
             ))}
           </Accordion>
-        )}
+        </DataState>
       </CardContent>
 
       {Object.keys(groupedEntries).length > 0 && (

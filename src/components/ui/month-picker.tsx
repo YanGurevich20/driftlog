@@ -5,6 +5,7 @@ import {
 	format,
 	isEqual,
 	isFuture,
+	isSameMonth,
 	parse,
 	startOfMonth,
 	startOfToday,
@@ -35,12 +36,12 @@ export function MonthPicker({ currentMonth, onMonthChange }: MonthPickerProps) {
 	});
 
 	function previousYear() {
-		let firstDayNextYear = add(firstDayCurrentYear, { years: -1 });
+		const firstDayNextYear = add(firstDayCurrentYear, { years: -1 });
 		setCurrentYear(format(firstDayNextYear, 'yyyy'));
 	}
 
 	function nextYear() {
-		let firstDayNextYear = add(firstDayCurrentYear, { years: 1 });
+		const firstDayNextYear = add(firstDayCurrentYear, { years: 1 });
 		setCurrentYear(format(firstDayNextYear, 'yyyy'));
 	}
 
@@ -102,11 +103,10 @@ export function MonthPicker({ currentMonth, onMonthChange }: MonthPickerProps) {
 									name="day"
 									className={cn(
 										'inline-flex h-9 w-16 items-center justify-center rounded-md p-0 text-sm font-normal ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-selected:opacity-100',
-										isEqual(month, currentMonth ?? new Date()) &&
-											'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
-										!isEqual(month, currentMonth ?? new Date()) &&
-											isEqual(month, getStartOfCurrentMonth()) &&
-											'bg-muted text-muted-foreground',
+										currentMonth && isSameMonth(month, currentMonth) ?
+											'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground' :
+											isSameMonth(month, getStartOfCurrentMonth()) ?
+												'bg-muted text-muted-foreground' : '',
 									)}
 									disabled={isFuture(month)}
 									role="gridcell"
