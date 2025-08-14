@@ -12,6 +12,7 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { convertFirestoreDoc } from '@/lib/firestore-utils';
 import type { Space, SpaceInvitation } from '@/types';
 
 export type { Space, SpaceInvitation } from '@/types';
@@ -37,10 +38,13 @@ export class SpacesService {
     );
     
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Space));
+    return snapshot.docs.map(doc => {
+      const data = convertFirestoreDoc<Omit<Space, 'id'>>(doc.data());
+      return {
+        id: doc.id,
+        ...data
+      };
+    });
   }
 
   static async inviteToSpace(
@@ -79,13 +83,15 @@ export class SpacesService {
     const now = Timestamp.now();
     
     return snapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as SpaceInvitation))
+      .map(doc => {
+        const data = convertFirestoreDoc<Omit<SpaceInvitation, 'id'>>(doc.data());
+        return {
+          id: doc.id,
+          ...data
+        };
+      })
       .filter(inv => {
-        const expiresAt = inv.expiresAt instanceof Date ? inv.expiresAt.getTime() : inv.expiresAt.toMillis();
-        return expiresAt > now.toMillis();
+        return inv.expiresAt.getTime() > now.toMillis();
       });
   }
 
@@ -97,17 +103,14 @@ export class SpacesService {
       throw new Error('Invitation not found');
     }
     
-    const invitation = invitationDoc.data() as SpaceInvitation;
+    const invitation = convertFirestoreDoc<SpaceInvitation>(invitationDoc.data()!);
     
     if (invitation.status !== 'pending') {
       throw new Error('Invitation already processed');
     }
     
     const now = Timestamp.now();
-    const expiresAt = invitation.expiresAt instanceof Date 
-      ? invitation.expiresAt.getTime() 
-      : invitation.expiresAt.toMillis();
-    if (expiresAt < now.toMillis()) {
+    if (invitation.expiresAt.getTime() < now.toMillis()) {
       throw new Error('Invitation expired');
     }
 

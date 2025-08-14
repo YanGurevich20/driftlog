@@ -1,18 +1,22 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {logger} from "firebase-functions/v2";
+import {defineSecret} from "firebase-functions/params";
 import * as admin from "firebase-admin";
+import { Timestamp } from "firebase-admin/firestore";
 
 admin.initializeApp();
+
+const exchangeRateApiKey = defineSecret("EXCHANGE_RATE_API_KEY");
 
 const CACHE_DURATION_MINUTES = 30;
 const EXCHANGE_API_URL = "https://v6.exchangerate-api.com/v6";
 
 interface ExchangeRates {
   rates: Record<string, number>;
-  fetchedAt: admin.firestore.Timestamp;
+  fetchedAt: Timestamp;
 }
 
-function isCacheExpired(fetchedAt: admin.firestore.Timestamp): boolean {
+function isCacheExpired(fetchedAt: Timestamp): boolean {
   const now = Date.now();
   const cached = fetchedAt.toMillis();
   const diffMinutes = (now - cached) / (1000 * 60);
@@ -34,11 +38,14 @@ async function fetchFromExchangeAPI(apiKey: string): Promise<ExchangeRates> {
 
   return {
     rates: data.conversion_rates,
-    fetchedAt: admin.firestore.Timestamp.now(),
+    fetchedAt: Timestamp.now(),
   };
 }
 
-export const getExchangeRates = onCall(async (request) => {
+export const getExchangeRates = onCall({
+  region: "us-central1",
+  secrets: [exchangeRateApiKey],
+}, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
@@ -59,7 +66,7 @@ export const getExchangeRates = onCall(async (request) => {
       logger.info("Cache expired, fetching fresh rates");
     }
 
-    const apiKey = process.env.EXCHANGE_RATE_API_KEY;
+    const apiKey = exchangeRateApiKey.value();
     if (!apiKey) {
       throw new HttpsError("failed-precondition", "Exchange rate API key not configured");
     }

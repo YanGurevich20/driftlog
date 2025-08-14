@@ -253,8 +253,8 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
                 {fieldState.error && (
                   <FormMessage>
                     {fieldState.error.message || 
-                     (fieldState.error as any)?.amount?.message || 
-                     (fieldState.error as any)?.currency?.message}
+                     (fieldState.error as Record<string, { message?: string }>)?.amount?.message || 
+                     (fieldState.error as Record<string, { message?: string }>)?.currency?.message}
                   </FormMessage>
                 )}
               </FormItem>

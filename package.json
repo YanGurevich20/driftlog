@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "npm run dev:emulators & pnpm dev:next",
     "dev:next": "next dev --turbopack",
-    "dev:emulators": "dotenv -e functions/.env.local -- firebase emulators:start --only functions,firestore,auth",
+    "dev:emulators": "npm --prefix functions run build && dotenv -e functions/.env.local -- firebase emulators:start --only functions,firestore,auth",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

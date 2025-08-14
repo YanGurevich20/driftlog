@@ -1,5 +1,4 @@
 import { httpsCallable } from 'firebase/functions';
-import { Timestamp } from 'firebase/firestore';
 import { getCurrencyByCode } from '@/lib/currencies';
 import { functions } from '@/lib/firebase';
 

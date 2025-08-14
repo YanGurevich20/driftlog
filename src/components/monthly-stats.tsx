@@ -10,7 +10,7 @@ import { ArrowUp, ArrowDown } from 'lucide-react';
 import { formatCurrency, formatCurrencyWithSign } from '@/lib/currency-utils';
 import { convertFirestoreDoc } from '@/lib/firestore-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { MonthlyStats } from '@/types';
+import type { MonthlyStats, Entry } from '@/types';
 
 export function MonthlyStats() {
   const { user } = useAuth();
@@ -40,7 +40,7 @@ export function MonthlyStats() {
       const categoryMap = new Map<string, { amount: number; count: number }>();
 
       snapshot.forEach((doc) => {
-        const data = convertFirestoreDoc(doc.data());
+        const data = convertFirestoreDoc<Entry>(doc.data());
         
         // Filter for current month
         if (!data.date || data.date < monthStart || data.date > monthEnd) {
