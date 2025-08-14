@@ -84,80 +84,43 @@ export function MonthlyStats() {
   const netAmount = stats.totalIncome - stats.totalExpenses;
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>This Month</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+    <Card>
+      <CardHeader>
+        <CardTitle>This Month</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Balance</p>
+          <p className={`text-3xl font-bold ${netAmount >= 0 ? 'text-primary' : ''}`}>
+            {netAmount < 0 ? '-' : ''}{formatCurrency(Math.abs(netAmount), baseCurrency)}
+          </p>
+          <p className="text-xs text-muted-foreground">{baseCurrency}</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">Balance</p>
-            <p className={`text-3xl font-bold ${netAmount >= 0 ? 'text-primary' : ''}`}>
-              {netAmount < 0 ? '-' : ''}{formatCurrency(Math.abs(netAmount), baseCurrency)}
-            </p>
-            <p className="text-xs text-muted-foreground">{baseCurrency}</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <ArrowDown className="h-3 w-3" />
-                Expenses
-              </div>
-              <p className="text-lg font-semibold">
-                {formatCurrency(stats.totalExpenses, baseCurrency)}
-              </p>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <ArrowDown className="h-3 w-3" />
+              Expenses
             </div>
-            
-            <div>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <ArrowUp className="h-3 w-3 text-primary" />
-                Income
-              </div>
-              <p className="text-lg font-semibold text-primary">
-                {formatCurrency(stats.totalIncome, baseCurrency)}
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t">
-            <p className="text-sm text-muted-foreground">
-              {stats.entryCount} {stats.entryCount === 1 ? 'entry' : 'entries'}
+            <p className="text-lg font-semibold">
+              {formatCurrency(stats.totalExpenses, baseCurrency)}
             </p>
           </div>
+          
+          <div>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <ArrowUp className="h-3 w-3 text-primary" />
+              Income
+            </div>
+            <p className="text-lg font-semibold text-primary">
+              {formatCurrency(stats.totalIncome, baseCurrency)}
+            </p>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Categories</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {stats.topCategories.length > 0 ? (
-          <div className="space-y-3">
-            {stats.topCategories.map((cat, index) => (
-              <div key={cat.category} className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">
-                    {index + 1}. {cat.category}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    ({cat.count})
-                  </span>
-                </div>
-                <span className="text-sm font-semibold">
-                  {formatCurrency(cat.amount, baseCurrency)}
-                </span>
-              </div>
-            ))}
-          </div>
-          ) : (
-            <p className="text-muted-foreground text-sm">No expenses yet</p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
