@@ -5,15 +5,16 @@
 ### Core Configuration
 - `package.json` - Dependencies and build scripts
 - `next.config.ts` - Next.js configuration (needs PWA config)
-- `firebase.json` - Firebase project configuration
+- `firebase.json` - Firebase project configuration with Functions
 - `firestore.rules` - Database security rules
 - `firestore.indexes.json` - Database indexes
+- `functions/src/index.ts` - Firebase Functions (exchange rates API)
 
 ### Environment & Security
 - `.env.local` - Local environment variables (DO NOT COMMIT)
 - `.gitignore` - Ensures env files aren't tracked
 - `src/lib/firebase.ts` - Firebase initialization
-- `src/services/currency.ts:5` - **CRITICAL: Hardcoded API key to extract**
+- `src/services/currency.ts` - Currency service (now uses secure Firebase Function)
 
 ### PWA Files
 - `public/manifest.json` - PWA manifest configuration
@@ -27,7 +28,7 @@
 
 ### Environment Variables Required
 ```bash
-# Firebase Configuration
+# Firebase Configuration (Frontend - .env.local)
 NEXT_PUBLIC_FIREBASE_API_KEY=
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=
@@ -36,18 +37,18 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_MEASUREMENT_ID=
 
-# API Keys (currently hardcoded - needs extraction)
-NEXT_PUBLIC_EXCHANGE_RATE_API_KEY=
+# Firebase Functions Secret (Backend - set via CLI)
+EXCHANGE_RATE_API_KEY=  # Set using: firebase functions:secrets:set EXCHANGE_RATE_API_KEY
 ```
 
 ### Current Issues
-1. **SECURITY RISK**: ExchangeRate API key hardcoded at `src/services/currency.ts:5`
+1. **RESOLVED**: ExchangeRate API key moved to secure Firebase Function
 2. **PWA Config**: `next.config.ts` missing PWA configuration for production
 3. **Build**: No CI/CD pipeline configured
 
 ### Tech Stack Summary
 - **Frontend**: Next.js 15 with Turbopack, TypeScript, Tailwind v4
-- **Backend**: Firebase (Auth, Firestore, potential Functions)
+- **Backend**: Firebase (Auth, Firestore, Functions v2)
 - **State**: Zustand + Firestore real-time listeners
 - **APIs**: ExchangeRate-API (1500 req/month limit)
 - **Package Manager**: pnpm
@@ -60,9 +61,11 @@ NEXT_PUBLIC_EXCHANGE_RATE_API_KEY=
 ## Next Steps
 
 ### Immediate (Pre-Deployment)
-- [ ] **CRITICAL**: Move hardcoded API key from `src/services/currency.ts:5` to environment variable
+- [x] **COMPLETED**: Moved API key to secure Firebase Function
 - [ ] Create `.env.production` file with all required variables
+- [ ] Set Firebase secret for Exchange Rate API: `firebase functions:secrets:set EXCHANGE_RATE_API_KEY`
 - [ ] Test production build locally: `pnpm build && pnpm start`
+- [ ] Test Firebase Functions locally: `cd functions && npm run serve`
 - [ ] Update `next.config.ts` with PWA configuration for production
 - [ ] Review and update Firestore security rules for production
 
@@ -79,7 +82,9 @@ NEXT_PUBLIC_EXCHANGE_RATE_API_KEY=
 - [ ] Add production domain to Firebase Console authorized domains
 - [ ] Deploy Firestore indexes: `firebase deploy --only firestore:indexes`
 - [ ] Deploy Firestore rules: `firebase deploy --only firestore:rules`
-- [ ] Verify ExchangeRate-API key has sufficient quota
+- [ ] Deploy Firebase Functions: `firebase deploy --only functions`
+- [ ] Verify Functions are accessible from production domain
+- [ ] Monitor Functions logs: `firebase functions:log`
 
 ### Post-Deployment
 - [ ] Test authentication flow in production
@@ -101,12 +106,21 @@ NEXT_PUBLIC_EXCHANGE_RATE_API_KEY=
 ## Deployment Commands
 
 ```bash
+# Set up Firebase secret (one-time)
+firebase functions:secrets:set EXCHANGE_RATE_API_KEY
+# Enter your API key: 6149d6eca53d8869f874fc98
+
 # Local testing
 pnpm build
 pnpm start
 
-# Firebase deployment (if using Firebase Hosting)
-firebase deploy
+# Test Functions locally
+cd functions && npm run serve
+
+# Firebase deployment
+firebase deploy --only functions  # Deploy functions
+firebase deploy --only firestore  # Deploy rules and indexes
+firebase deploy  # Deploy everything
 
 # Vercel deployment (automatic via GitHub integration)
 # Manual: vercel --prod

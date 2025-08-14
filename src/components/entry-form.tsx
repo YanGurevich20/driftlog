@@ -140,7 +140,9 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
         );
       } catch (conversionError) {
         console.error('Currency conversion failed:', conversionError);
-        toast.warning('Currency conversion failed. Saving with original amount.');
+        toast.error('Failed to convert currency. Please try again.');
+        setIsSubmitting(false);
+        return;
       }
 
       const entryData = {

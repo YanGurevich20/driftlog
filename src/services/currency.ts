@@ -1,19 +1,17 @@
-import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { Timestamp } from 'firebase/firestore';
 import { getCurrencyByCode } from '@/lib/currencies';
+import { functions } from '@/lib/firebase';
 
-const EXCHANGE_API_KEY = '6149d6eca53d8869f874fc98'; // Your API key
-const EXCHANGE_API_URL = 'https://v6.exchangerate-api.com/v6';
-const CACHE_DURATION_MINUTES = 30; // 1500 req/month = ~50/day = refresh every 30 min
-
-interface ExchangeRates {
+interface ExchangeRatesResponse {
   rates: Record<string, number>;
-  fetchedAt: Timestamp;
+  fetchedAt: number;
 }
 
 export class CurrencyService {
   private static instance: CurrencyService;
-  private memoryCache: ExchangeRates | null = null;
+  private memoryCache: { rates: Record<string, number>; fetchedAt: number } | null = null;
+  private readonly CACHE_DURATION_MINUTES = 30;
 
   private constructor() {}
 
@@ -24,11 +22,10 @@ export class CurrencyService {
     return CurrencyService.instance;
   }
 
-  private isCacheExpired(fetchedAt: Timestamp): boolean {
+  private isCacheExpired(fetchedAt: number): boolean {
     const now = Date.now();
-    const cached = fetchedAt.toMillis();
-    const diffMinutes = (now - cached) / (1000 * 60);
-    return diffMinutes > CACHE_DURATION_MINUTES;
+    const diffMinutes = (now - fetchedAt) / (1000 * 60);
+    return diffMinutes > this.CACHE_DURATION_MINUTES;
   }
 
   async getExchangeRates(): Promise<Record<string, number>> {
@@ -38,45 +35,26 @@ export class CurrencyService {
       return this.memoryCache.rates;
     }
 
-    // Check Firestore cache
-    const ratesDoc = await getDoc(doc(db, 'exchangeRates', 'latest'));
-    if (ratesDoc.exists()) {
-      const data = ratesDoc.data() as ExchangeRates;
-      if (!this.isCacheExpired(data.fetchedAt)) {
-        console.log('Using Firestore cache');
-        this.memoryCache = data;
-        return data.rates;
-      }
-      console.log('Firestore cache expired');
+    // Call Firebase Function to get rates (it handles Firestore caching)
+    console.log('Fetching rates from Firebase Function...');
+    const getExchangeRatesFunction = httpsCallable<void, ExchangeRatesResponse>(
+      functions,
+      'getExchangeRates'
+    );
+    
+    try {
+      const result = await getExchangeRatesFunction();
+      const { rates, fetchedAt } = result.data;
+      
+      // Update memory cache
+      this.memoryCache = { rates, fetchedAt };
+      console.log('Received rates from Firebase Function');
+      
+      return rates;
+    } catch (error) {
+      console.error('Failed to fetch exchange rates:', error);
+      throw new Error('Failed to fetch exchange rates. Please try again later.');
     }
-
-    // Fetch fresh rates from API
-    console.log('Fetching fresh rates from API...');
-    const response = await fetch(`${EXCHANGE_API_URL}/${EXCHANGE_API_KEY}/latest/USD`);
-    
-    if (!response.ok) {
-      throw new Error(`Exchange rate API error: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    if (data.result !== 'success') {
-      throw new Error(`Exchange rate API failed: ${data['error-type'] || 'Unknown error'}`);
-    }
-
-    const exchangeRates: ExchangeRates = {
-      rates: data.conversion_rates,
-      fetchedAt: Timestamp.now(),
-    };
-
-    // Save to Firestore (overwrite the single 'latest' document)
-    await setDoc(doc(db, 'exchangeRates', 'latest'), exchangeRates);
-    console.log('Saved fresh rates to Firestore');
-    
-    // Update memory cache
-    this.memoryCache = exchangeRates;
-    
-    return exchangeRates.rates;
   }
 
   async convert(amount: number, from: string, to: string): Promise<number> {
