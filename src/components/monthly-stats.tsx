@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
+import { useSpaceCurrency } from '@/hooks/use-space-currency';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { formatCurrency, formatCurrencyWithSign } from '@/lib/currency-utils';
@@ -19,17 +20,10 @@ export function MonthlyStats() {
     entryCount: 0,
     topCategories: [],
   });
-  const [baseCurrency, setBaseCurrency] = useState('USD');
+  const { currency: baseCurrency } = useSpaceCurrency(user?.defaultSpaceId);
 
   useEffect(() => {
     if (!user?.defaultSpaceId) return;
-
-    // Get space's base currency
-    getDoc(doc(db, 'spaces', user.defaultSpaceId)).then((spaceDoc) => {
-      if (spaceDoc.exists()) {
-        setBaseCurrency(spaceDoc.data().baseCurrency || 'USD');
-      }
-    });
 
     const now = new Date();
     const monthStart = startOfMonth(now);
@@ -94,7 +88,7 @@ export function MonthlyStats() {
         <div>
           <p className="text-sm text-muted-foreground">Balance</p>
           <p className={`text-3xl font-bold ${netAmount >= 0 ? 'text-primary' : ''}`}>
-            {netAmount < 0 ? '-' : ''}{formatCurrency(Math.abs(netAmount), baseCurrency)}
+            {formatCurrencyWithSign(Math.abs(netAmount), baseCurrency, netAmount < 0)}
           </p>
           <p className="text-xs text-muted-foreground">{baseCurrency}</p>
         </div>

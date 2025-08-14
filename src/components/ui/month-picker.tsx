@@ -3,7 +3,6 @@ import {
 	eachMonthOfInterval,
 	endOfYear,
 	format,
-	isEqual,
 	isFuture,
 	isSameMonth,
 	parse,

@@ -27,6 +27,7 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { CurrencyService } from '@/services/currency';
 import { usePreferences } from '@/store/preferences';
+import { useSpaceCurrency } from '@/hooks/use-space-currency';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, CalendarIcon, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -67,7 +68,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [spaceBaseCurrency, setSpaceBaseCurrency] = useState<string>('USD');
+  const { currency: spaceBaseCurrency } = useSpaceCurrency(user?.defaultSpaceId);
   const { lastUsedCurrency, setLastUsedCurrency, addRecentCurrency } = usePreferences();
 
   const form = useForm<FormValues>({
@@ -84,24 +85,13 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
     },
   });
 
-  // Fetch space's base currency
+  // Set initial currency
   useEffect(() => {
-    const fetchSpaceCurrency = async () => {
-      if (user?.defaultSpaceId) {
-        const spaceDoc = await getDoc(doc(db, 'spaces', user.defaultSpaceId));
-        if (spaceDoc.exists()) {
-          const baseCurrency = spaceDoc.data().baseCurrency || 'USD';
-          setSpaceBaseCurrency(baseCurrency);
-          
-          // If no last used currency, set to space's base currency
-          if (!lastUsedCurrency && !entry) {
-            form.setValue('amountCurrency.currency', baseCurrency);
-          }
-        }
-      }
-    };
-    fetchSpaceCurrency();
-  }, [user?.defaultSpaceId, lastUsedCurrency, form, entry]);
+    // If no last used currency, set to space's base currency
+    if (!lastUsedCurrency && !entry && spaceBaseCurrency) {
+      form.setValue('amountCurrency.currency', spaceBaseCurrency);
+    }
+  }, [spaceBaseCurrency, lastUsedCurrency, form, entry]);
 
   const transactionType = form.watch('type');
 

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency, formatCurrencyWithSign } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
-import { useSpace } from '@/hooks/use-space';
+import { useSpaceCurrency } from '@/hooks/use-space-currency';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -29,8 +29,7 @@ export function DailyView() {
     endDate: dateRange.end,
   });
   
-  const { space } = useSpace(user?.defaultSpaceId);
-  const spaceBaseCurrency = space?.baseCurrency || 'USD';
+  const { currency: spaceBaseCurrency } = useSpaceCurrency(user?.defaultSpaceId);
 
   const groupedEntries = entries.reduce((acc, entry) => {
     const category = entry.category;
@@ -94,13 +93,12 @@ export function DailyView() {
             type="multiple" 
             value={openCategories}
             onValueChange={setOpenCategories}
-            className="space-y-2"
           >
             {Object.entries(groupedEntries).map(([category, group]) => (
-              <AccordionItem key={category} value={category} className="border rounded-lg">
-                <AccordionTrigger className="px-4 hover:no-underline">
+              <AccordionItem key={category} value={category}>
+                <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center justify-between w-full pr-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <div className="p-1.5 rounded-full bg-muted">
                         {group.type === 'income' ? (
                           <ArrowUp className="h-3 w-3 text-primary" />
@@ -121,14 +119,14 @@ export function DailyView() {
                     </span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="px-4 pb-3">
-                  <div className="space-y-2 pt-2">
+                <AccordionContent>
+                  <div className="space-y-2.5 pt-1">
                     {group.entries.map((entry) => (
-                      <div key={entry.id} className="flex justify-between items-start pl-7 text-sm">
-                        <span className="text-muted-foreground">
+                      <div key={entry.id} className="flex justify-between items-start pl-10 pr-1">
+                        <span className="text-muted-foreground text-sm">
                           {entry.description || 'No description'}
                         </span>
-                        <span className={group.type === 'income' ? 'text-primary' : ''}>
+                        <span className={`text-sm ${group.type === 'income' ? 'text-primary' : ''}`}>
                           {formatCurrency(entry.amount, entry.currency)}
                         </span>
                       </div>

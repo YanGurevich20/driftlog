@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrencyWithSign } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
-import { useSpace } from '@/hooks/use-space';
+import { useSpaceCurrency } from '@/hooks/use-space-currency';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { DateNavigation } from '@/components/ui/date-navigation';
+import { DataState } from '@/components/ui/data-state';
 import { addMonths, subMonths, isSameMonth } from 'date-fns';
+import { Receipt } from 'lucide-react';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
 
 export function MonthlyView() {
@@ -23,8 +25,7 @@ export function MonthlyView() {
     endDate: dateRange.end,
   });
   
-  const { space } = useSpace(user?.defaultSpaceId);
-  const spaceBaseCurrency = space?.baseCurrency || 'USD';
+  const { currency: spaceBaseCurrency } = useSpaceCurrency(user?.defaultSpaceId);
 
   const categoryTotals = entries.reduce((acc, entry) => {
     const category = entry.category;
@@ -61,23 +62,6 @@ export function MonthlyView() {
   const canGoNext = !isSameMonth(selectedMonth, new Date());
   const canGoPrevious = true;
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="h-10 bg-muted/50 rounded animate-pulse" />
-          <div className="h-12 bg-muted/50 rounded animate-pulse mt-4" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-10 bg-muted/50 rounded animate-pulse" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card>
@@ -103,11 +87,14 @@ export function MonthlyView() {
       </CardHeader>
       
       <CardContent>
-        {entries.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No entries for this month
-          </div>
-        ) : (
+        <DataState
+          loading={loading}
+          empty={entries.length === 0}
+          loadingVariant="skeleton"
+          emptyTitle="No entries for this month"
+          emptyDescription="Add your first entry for this month"
+          emptyIcon={Receipt}
+        >
           <div className="space-y-4">
             {incomeCategories.length > 0 && (
               <div className="space-y-3">
@@ -141,7 +128,7 @@ export function MonthlyView() {
               </div>
             )}
           </div>
-        )}
+        </DataState>
       </CardContent>
     </Card>
   );

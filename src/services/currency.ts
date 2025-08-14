@@ -1,5 +1,6 @@
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { getCurrencyByCode } from '@/lib/currencies';
 
 const EXCHANGE_API_KEY = '6149d6eca53d8869f874fc98'; // Your API key
 const EXCHANGE_API_URL = 'https://v6.exchangerate-api.com/v6';
@@ -98,35 +99,7 @@ export class CurrencyService {
   }
 
   getCurrencySymbol(code: string): string {
-    const symbols: Record<string, string> = {
-      USD: '$',
-      EUR: '€',
-      GBP: '£',
-      JPY: '¥',
-      THB: '฿',
-      SGD: 'S$',
-      MXN: '$',
-      CAD: 'C$',
-      AUD: 'A$',
-      VND: '₫',
-      IDR: 'Rp',
-      MYR: 'RM',
-      PHP: '₱',
-      INR: '₹',
-      KRW: '₩',
-      HKD: 'HK$',
-      TWD: 'NT$',
-      NZD: 'NZ$',
-      CHF: 'CHF',
-      BRL: 'R$',
-      NOK: 'kr',
-      SEK: 'kr',
-      DKK: 'kr',
-      PLN: 'zł',
-      CZK: 'Kč',
-      HUF: 'Ft',
-      TRY: '₺',
-    };
-    return symbols[code] || code + ' ';
+    const currency = getCurrencyByCode(code);
+    return currency?.symbol || code + ' ';
   }
 }
