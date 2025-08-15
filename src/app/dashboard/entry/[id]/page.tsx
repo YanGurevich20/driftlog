@@ -7,6 +7,7 @@ import { EntryForm } from '@/components/entry-form';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Entry } from '@/types';
+import { convertFirestoreDoc } from '@/lib/firestore-utils';
 
 export default function EditEntryPage({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useAuth();
@@ -24,8 +25,8 @@ export default function EditEntryPage({ params }: { params: Promise<{ id: string
         if (entryDoc.exists()) {
           const entryData = {
             id: entryDoc.id,
-            ...entryDoc.data()
-          } as Entry;
+            ...convertFirestoreDoc<Entry>(entryDoc.data())
+          };
           
           // Check if user has access to this entry
           if (entryData.spaceId === user.defaultSpaceId) {

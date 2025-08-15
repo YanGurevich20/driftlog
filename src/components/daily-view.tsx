@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useSpaceCurrency } from '@/hooks/use-space-currency';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -15,11 +15,34 @@ import type { Entry } from '@/types';
 import { DataState } from '@/components/ui/data-state';
 import { DateNavigation } from '@/components/ui/date-navigation';
 import { CalendarDays } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { deleteEntry } from '@/services/entries';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function DailyView() {
   const { user } = useAuth();
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [openCategories, setOpenCategories] = useState<string[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
   
   const dateRange = getDateRangeForDay(selectedDate);
   
@@ -63,8 +86,26 @@ export function DailyView() {
   const firstEntry = entries.length > 0 ? entries[entries.length - 1] : null;
   const canGoPrevious = firstEntry ? isBefore(subDays(selectedDate, 1), firstEntry.date) : true;
 
+  const handleEdit = (entry: Entry) => {
+    router.push(`/dashboard/entry/${entry.id}`);
+  };
+
+  const handleDelete = async () => {
+    if (!entryToDelete) return;
+    
+    try {
+      await deleteEntry(entryToDelete.id);
+      toast.success('Entry deleted');
+      setDeleteDialogOpen(false);
+      setEntryToDelete(null);
+    } catch {
+      toast.error('Failed to delete entry');
+    }
+  };
+
 
   return (
+    <>
     <Card>
       <CardHeader>
         <h2 className="text-lg font-semibold mb-4 text-primary">Daily View</h2>
@@ -127,9 +168,39 @@ export function DailyView() {
                         <span className="text-muted-foreground text-sm">
                           {entry.description || entry.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                         </span>
-                        <span className={`text-sm whitespace-nowrap ${entry.type === 'income' ? 'text-primary' : ''}`}>
-                          {formatCurrency(entry.amount, entry.currency, entry.type === 'expense')}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm whitespace-nowrap ${entry.type === 'income' ? 'text-primary' : ''}`}>
+                            {formatCurrency(entry.amount, entry.currency, entry.type === 'expense')}
+                          </span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(entry)}>
+                                <Edit2 className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEntryToDelete(entry);
+                                  setDeleteDialogOpen(true);
+                                }}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -154,5 +225,21 @@ export function DailyView() {
         </>
       )}
     </Card>
+
+    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Entry</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete this entry? This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setEntryToDelete(null)}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

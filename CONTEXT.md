@@ -1,4 +1,13 @@
 ## Architecture overview
+
+## Important Code Patterns
+- **Firestore Timestamps**: Always use `convertFirestoreDoc()` from `/lib/firestore-utils` when fetching docs
+- **Categories**: Can have mixed income/expense entries (e.g., "Freelance", "Investment")
+- **Edit/Delete**: Three-dot menu on entries for both mobile/desktop
+- **Currency**: formatCurrency() handles display, negative amounts shown with sign
+- **Cloud Functions v2**: Uses onCall (CORS handled automatically), check docs for v2 patterns
+- **Daily Budget**: Separate BudgetView component, calculates (net before today + today's income) / remaining days
+
 ## Important files
 ## Questions
 - [ ] why does src/services/spaces.ts use spreading and overriding on id?
@@ -20,9 +29,9 @@
 
 ## App Tasks
 - [V] Add names to month/day views in cards
-- [ ] Return edit/delete functionality on entired (swipe gestures?)
-- [ ] Add remaining daily budget
-- [ ] pre-fill amount in entry form with last entered amount (cache)
+- [V] Return edit/delete functionality on entries (three-dot menu)
+- [V] Add remaining daily budget (BudgetView component)
+- [X] pre-fill amount in entry form with last entered amount (decided better ux without)
 - [ ] Improve space management
 - [ ] Custom categories. Perhaps per space? and let edit in space managemnet
 

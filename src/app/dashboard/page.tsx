@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { DailyView } from '@/components/daily-view';
 import { MonthlyView } from '@/components/monthly-view';
+import { BudgetView } from '@/components/budget-view';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -12,7 +13,10 @@ export default function Dashboard() {
   return (
     <>
       <div className="grid gap-6 lg:grid-cols-2 pb-20">
-        <DailyView />
+        <div className="space-y-6">
+          <BudgetView />
+          <DailyView />
+        </div>
         <MonthlyView />
       </div>
 

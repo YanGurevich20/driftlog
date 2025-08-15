@@ -1,3 +1,4 @@
-  - Let shadcn/ui and theme handle default spacing, sizing, and colors - only add classes when deviating from defaults
-  - Avoid redundant classes: `border-border`, `text-foreground`, `variant="default"`, fixed widths, unnecessary flex/gap/margin/pad
+- Let shadcn/ui and theme handle default spacing, sizing, and colors - only add classes when deviating from defaults
+- Avoid redundant classes: `border-border`, `text-foreground`, `variant="default"`, fixed widths, unnecessary flex/gap/margin/pad
 - when working with cloud functions, always read online about cloud functions v2 implementation since it is very new.
+- When working with shadcn components, always make sure to look up reference in shadcn, for example - https://ui.shadcn.com/docs/components/context-menu
