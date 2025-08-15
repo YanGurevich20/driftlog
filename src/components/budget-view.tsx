@@ -10,6 +10,7 @@ import { getDaysInMonth } from 'date-fns';
 import { getDateRangeForDay, getDateRangeForMonth } from '@/lib/date-range-utils';
 import { DataState } from '@/components/ui/data-state';
 import { Wallet } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 export function BudgetView() {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ export function BudgetView() {
     };
   };
   
-  const { dailyBudget, todaysExpenses, remainingDays, availableNet } = calculateBudget();
+  const { dailyBudget, todaysExpenses } = calculateBudget();
   const loading = todayLoading || monthLoading;
   const percentUsed = dailyBudget > 0 ? (todaysExpenses / dailyBudget) * 100 : 0;
   
@@ -102,15 +103,12 @@ export function BudgetView() {
               </span>
             </div>
             
-            {/* Progress bar */}
-            <div className="w-full bg-secondary rounded-full h-2">
-              <div 
-                className={`h-2 rounded-full transition-all ${
-                  percentUsed > 100 ? 'bg-destructive' : percentUsed > 80 ? 'bg-yellow-500' : 'bg-primary'
-                }`}
-                style={{ width: `${Math.min(percentUsed, 100)}%` }}
-              />
-            </div>
+            <Progress 
+              value={Math.min(percentUsed, 100)} 
+              className={`h-2 ${
+                percentUsed > 100 ? '[&>*]:bg-destructive' : percentUsed > 80 ? '[&>*]:bg-yellow-500' : ''
+              }`}
+            />
           </div>
         </DataState>
       </CardContent>
