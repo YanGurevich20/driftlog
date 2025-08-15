@@ -14,7 +14,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
   const { user, logout } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/dashboard" className="text-2xl font-bold hover:opacity-80">

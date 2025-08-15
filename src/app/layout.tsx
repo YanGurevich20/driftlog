@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { Toaster } from "@/components/ui/sonner";
+import { TopologyBackground } from "@/components/ui/topology-background";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -34,6 +35,7 @@ export default function RootLayout({
         className={`${poppins.variable} font-sans antialiased`}
       >
         <Providers>
+          <TopologyBackground />
           {children}
           <Toaster />
         </Providers>

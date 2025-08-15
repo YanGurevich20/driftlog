@@ -40,6 +40,9 @@
 - [V] Rename entry fields for clarity: `amount` -> `originalAmount`, keep `convertedAmount` as is
 - [ ] Improve space management
 - [ ] Custom categories. Perhaps per space? and let edit in space managemnet
+- [ ] Budget headroom setting
+- [ ] Recurring transaction
+- [ ] Avatars
 
 ## Brainstorming
 - Perhaps we can add future expenses (just selecting a future date)
