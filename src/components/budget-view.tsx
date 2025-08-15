@@ -83,7 +83,7 @@ export function BudgetView() {
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-lg font-semibold text-primary">Today's Budget</h2>
+        <h2 className="text-lg font-semibold text-primary">Today&apos;s Budget</h2>
       </CardHeader>
       
       <CardContent>
@@ -97,7 +97,7 @@ export function BudgetView() {
         >
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Today's Spending</span>
+              <span className="text-sm text-muted-foreground">Today&apos;s Spending</span>
               <span className="text-sm font-medium">
                 {formatCurrency(todaysExpenses, spaceBaseCurrency, false)} / {formatCurrency(dailyBudget, spaceBaseCurrency, false)}
               </span>

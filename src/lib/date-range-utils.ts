@@ -1,4 +1,5 @@
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths, subYears } from 'date-fns';
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths, subYears } from 'date-fns';
+import { getUTCStartOfDay, getUTCEndOfDay } from './date-utils';
 
 export type DateRangePreset = 
   | 'today'
@@ -21,81 +22,83 @@ export function getDateRange(preset: DateRangePreset, referenceDate: Date = new 
   switch (preset) {
     case 'today':
       return {
-        start: startOfDay(referenceDate),
-        end: endOfDay(referenceDate),
+        start: getUTCStartOfDay(referenceDate),
+        end: getUTCEndOfDay(referenceDate),
       };
     
     case 'yesterday':
       const yesterday = subDays(referenceDate, 1);
       return {
-        start: startOfDay(yesterday),
-        end: endOfDay(yesterday),
+        start: getUTCStartOfDay(yesterday),
+        end: getUTCEndOfDay(yesterday),
       };
     
     case 'last7days':
       return {
-        start: startOfDay(subDays(referenceDate, 6)),
-        end: endOfDay(referenceDate),
+        start: getUTCStartOfDay(subDays(referenceDate, 6)),
+        end: getUTCEndOfDay(referenceDate),
       };
     
     case 'last30days':
       return {
-        start: startOfDay(subDays(referenceDate, 29)),
-        end: endOfDay(referenceDate),
+        start: getUTCStartOfDay(subDays(referenceDate, 29)),
+        end: getUTCEndOfDay(referenceDate),
       };
     
     case 'thisWeek':
       return {
-        start: startOfWeek(referenceDate, { weekStartsOn: 1 }),
-        end: endOfWeek(referenceDate, { weekStartsOn: 1 }),
+        start: getUTCStartOfDay(startOfWeek(referenceDate, { weekStartsOn: 1 })),
+        end: getUTCEndOfDay(endOfWeek(referenceDate, { weekStartsOn: 1 })),
       };
     
     case 'lastWeek':
       const lastWeek = subWeeks(referenceDate, 1);
       return {
-        start: startOfWeek(lastWeek, { weekStartsOn: 1 }),
-        end: endOfWeek(lastWeek, { weekStartsOn: 1 }),
+        start: getUTCStartOfDay(startOfWeek(lastWeek, { weekStartsOn: 1 })),
+        end: getUTCEndOfDay(endOfWeek(lastWeek, { weekStartsOn: 1 })),
       };
     
     case 'thisMonth':
       return {
-        start: startOfMonth(referenceDate),
-        end: endOfMonth(referenceDate),
+        start: getUTCStartOfDay(startOfMonth(referenceDate)),
+        end: getUTCEndOfDay(endOfMonth(referenceDate)),
       };
     
     case 'lastMonth':
       const lastMonth = subMonths(referenceDate, 1);
       return {
-        start: startOfMonth(lastMonth),
-        end: endOfMonth(lastMonth),
+        start: getUTCStartOfDay(startOfMonth(lastMonth)),
+        end: getUTCEndOfDay(endOfMonth(lastMonth)),
       };
     
     case 'thisYear':
       return {
-        start: startOfYear(referenceDate),
-        end: endOfYear(referenceDate),
+        start: getUTCStartOfDay(startOfYear(referenceDate)),
+        end: getUTCEndOfDay(endOfYear(referenceDate)),
       };
     
     case 'lastYear':
       const lastYear = subYears(referenceDate, 1);
       return {
-        start: startOfYear(lastYear),
-        end: endOfYear(lastYear),
+        start: getUTCStartOfDay(startOfYear(lastYear)),
+        end: getUTCEndOfDay(endOfYear(lastYear)),
       };
   }
 }
 
 export function getDateRangeForDay(date: Date): DateRange {
   return {
-    start: startOfDay(date),
-    end: endOfDay(date),
+    start: getUTCStartOfDay(date),
+    end: getUTCEndOfDay(date),
   };
 }
 
 export function getDateRangeForMonth(date: Date): DateRange {
+  const start = startOfMonth(date);
+  const end = endOfMonth(date);
   return {
-    start: startOfMonth(date),
-    end: endOfMonth(date),
+    start: getUTCStartOfDay(start),
+    end: getUTCEndOfDay(end),
   };
 }
 

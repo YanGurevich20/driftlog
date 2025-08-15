@@ -166,7 +166,7 @@ export function DailyView() {
                     {group.entries.map((entry) => (
                       <div key={entry.id} className="flex justify-between items-start gap-2 pl-10 pr-1">
                         <span className="text-muted-foreground text-sm">
-                          {entry.description || entry.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          {entry.description || 'No description'}
                         </span>
                         <div className="flex items-center gap-2">
                           <span className={`text-sm whitespace-nowrap ${entry.type === 'income' ? 'text-primary' : ''}`}>

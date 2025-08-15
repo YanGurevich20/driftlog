@@ -36,6 +36,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Card, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { toUTCMidnight, fromUTCMidnight } from '@/lib/date-utils';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/types';
 import type { Entry } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -81,7 +82,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
       },
       category: entry?.category || 'Food & Dining',
       description: entry?.description || '',
-      date: entry ? entry.date : new Date(),
+      date: entry ? fromUTCMidnight(entry.date) : new Date(),
     },
   });
 
@@ -154,7 +155,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
         category: values.category,
         description: values.description || '',
         spaceId: user.defaultSpaceId,
-        date: values.date || new Date(),
+        date: toUTCMidnight(values.date || new Date()),
         ...(entry ? {
           updatedBy: user.id,
           updatedAt: serverTimestamp(),

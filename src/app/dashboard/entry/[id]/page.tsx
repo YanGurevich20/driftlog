@@ -24,8 +24,8 @@ export default function EditEntryPage({ params }: { params: Promise<{ id: string
         const entryDoc = await getDoc(doc(db, 'entries', id));
         if (entryDoc.exists()) {
           const entryData = {
-            id: entryDoc.id,
-            ...convertFirestoreDoc<Entry>(entryDoc.data())
+            ...convertFirestoreDoc<Entry>(entryDoc.data()),
+            id: entryDoc.id
           };
           
           // Check if user has access to this entry

@@ -2,6 +2,9 @@
 
 ## Important Code Patterns
 - **Firestore Timestamps**: Always use `convertFirestoreDoc()` from `/lib/firestore-utils` when fetching docs
+- **Date Storage**: Dates stored at UTC midnight for timezone consistency. Use `toUTCMidnight()` when saving, `fromUTCMidnight()` when displaying
+- **Date Queries**: All date ranges use UTC boundaries via `getUTCStartOfDay()` and `getUTCEndOfDay()` from `/lib/date-utils`
+- **Entry Display**: Entries without descriptions show "No description" in daily view
 - **Categories**: Can have mixed income/expense entries (e.g., "Freelance", "Investment")
 - **Edit/Delete**: Three-dot menu on entries for both mobile/desktop
 - **Currency**: formatCurrency() handles display, negative amounts shown with sign
@@ -32,6 +35,7 @@
 - [V] Return edit/delete functionality on entries (three-dot menu)
 - [V] Add remaining daily budget (BudgetView component)
 - [X] pre-fill amount in entry form with last entered amount (decided better ux without)
+- [V] Implement timezone-agnostic date storage (UTC midnight)
 - [ ] Improve space management
 - [ ] Custom categories. Perhaps per space? and let edit in space managemnet
 
