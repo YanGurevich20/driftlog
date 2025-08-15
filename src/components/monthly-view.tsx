@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatCurrencyWithSign } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useSpaceCurrency } from '@/hooks/use-space-currency';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { DateNavigation } from '@/components/ui/date-navigation';
 import { DataState } from '@/components/ui/data-state';
@@ -66,24 +66,16 @@ export function MonthlyView() {
   return (
     <Card>
       <CardHeader>
-        <div className="mb-4">
-          <DateNavigation
-            selectedDate={selectedMonth}
-            onDateChange={setSelectedMonth}
-            onPrevious={handlePreviousMonth}
-            onNext={handleNextMonth}
-            canGoPrevious={canGoPrevious}
-            canGoNext={canGoNext}
-            mode="month"
-          />
-        </div>
-
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground mb-1">Monthly Net</p>
-          <p className={`text-3xl font-bold ${monthlyNet >= 0 ? 'text-primary' : ''}`}>
-            {formatCurrencyWithSign(Math.abs(monthlyNet), spaceBaseCurrency, monthlyNet < 0)}
-          </p>
-        </div>
+        <h2 className="text-lg font-semibold mb-4 text-primary">Monthly View</h2>
+        <DateNavigation
+          selectedDate={selectedMonth}
+          onDateChange={setSelectedMonth}
+          onPrevious={handlePreviousMonth}
+          onNext={handleNextMonth}
+          canGoPrevious={canGoPrevious}
+          canGoNext={canGoNext}
+          mode="month"
+        />
       </CardHeader>
       
       <CardContent>
@@ -130,6 +122,20 @@ export function MonthlyView() {
           </div>
         </DataState>
       </CardContent>
+
+      {entries.length > 0 && (
+        <>
+          <Separator />
+          <CardFooter className="pt-4">
+            <div className="flex justify-between w-full">
+              <span className="font-medium">Monthly Net</span>
+              <span className={`text-lg font-bold ${monthlyNet >= 0 ? 'text-primary' : ''}`}>
+                {formatCurrencyWithSign(Math.abs(monthlyNet), spaceBaseCurrency, monthlyNet < 0)}
+              </span>
+            </div>
+          </CardFooter>
+        </>
+      )}
     </Card>
   );
 }

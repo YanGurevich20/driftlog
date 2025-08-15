@@ -30,12 +30,10 @@ export class CurrencyService {
   async getExchangeRates(): Promise<Record<string, number>> {
     // Check memory cache first
     if (this.memoryCache && !this.isCacheExpired(this.memoryCache.fetchedAt)) {
-      console.log('Using memory cache');
       return this.memoryCache.rates;
     }
 
     // Call Firebase Function to get rates (it handles Firestore caching)
-    console.log('Fetching rates from Firebase Function...');
     const getExchangeRatesFunction = httpsCallable<void, ExchangeRatesResponse>(
       functions,
       'getExchangeRates'
@@ -47,7 +45,6 @@ export class CurrencyService {
       
       // Update memory cache
       this.memoryCache = { rates, fetchedAt };
-      console.log('Received rates from Firebase Function');
       
       return rates;
     } catch (error) {

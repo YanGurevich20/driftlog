@@ -67,6 +67,7 @@ export function DailyView() {
   return (
     <Card>
       <CardHeader>
+        <h2 className="text-lg font-semibold mb-4 text-primary">Daily View</h2>
         <DateNavigation
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
@@ -122,11 +123,11 @@ export function DailyView() {
                 <AccordionContent>
                   <div className="space-y-2.5 pt-1">
                     {group.entries.map((entry) => (
-                      <div key={entry.id} className="flex justify-between items-start pl-10 pr-1">
+                      <div key={entry.id} className="flex justify-between items-start gap-2 pl-10 pr-1">
                         <span className="text-muted-foreground text-sm">
                           {entry.description || 'No description'}
                         </span>
-                        <span className={`text-sm ${group.type === 'income' ? 'text-primary' : ''}`}>
+                        <span className={`text-sm whitespace-nowrap ${group.type === 'income' ? 'text-primary' : ''}`}>
                           {formatCurrency(entry.amount, entry.currency)}
                         </span>
                       </div>
