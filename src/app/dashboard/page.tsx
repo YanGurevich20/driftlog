@@ -62,6 +62,14 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2 pb-20">
         <div className="space-y-6">
           <BudgetView />
+          <Button 
+            className="w-full rounded-full" 
+            size="lg"
+            onClick={() => router.push('/dashboard/entry')}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Entry
+          </Button>
           <DailyView />
         </div>
         <MonthlyView />

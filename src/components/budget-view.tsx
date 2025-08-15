@@ -104,7 +104,7 @@ export function BudgetView() {
             <Progress 
               value={Math.min(percentUsed, 100)} 
               className={`h-2 ${
-                percentUsed > 100 ? '[&>*]:bg-destructive' : percentUsed > 80 ? '[&>*]:bg-yellow-500' : ''
+                percentUsed > 100 ? '[&>*]:bg-orange-400' : percentUsed > 80 ? '[&>*]:bg-yellow-500' : ''
               }`}
             />
           </div>
