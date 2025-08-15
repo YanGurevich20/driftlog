@@ -118,6 +118,7 @@ export interface EntryFormData {
 // Categories
 export const EXPENSE_CATEGORIES = [
   'Food & Dining',
+  'Freelance',
   'Transportation',
   'Accommodation',
   'Entertainment',
@@ -125,6 +126,7 @@ export const EXPENSE_CATEGORIES = [
   'Health & Medical',
   'Utilities',
   'Work & Business',
+  'Investment',
   'Other',
 ] as const;
 

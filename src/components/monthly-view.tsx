@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { formatCurrencyWithSign } from '@/lib/currency-utils';
+import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useSpaceCurrency } from '@/hooks/use-space-currency';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -95,7 +95,7 @@ export function MonthlyView() {
                   <div key={category} className="flex justify-between items-center">
                     <span className="text-sm">{category}</span>
                     <span className="font-semibold text-primary">
-                      {formatCurrencyWithSign(data.total, spaceBaseCurrency, false, true)}
+                      {formatCurrency(data.total, spaceBaseCurrency, false, true)}
                     </span>
                   </div>
                 ))}
@@ -113,7 +113,7 @@ export function MonthlyView() {
                   <div key={category} className="flex justify-between items-center">
                     <span className="text-sm">{category}</span>
                     <span className="font-semibold">
-                      {formatCurrencyWithSign(data.total, spaceBaseCurrency, true)}
+                      {formatCurrency(data.total, spaceBaseCurrency, true)}
                     </span>
                   </div>
                 ))}
@@ -130,7 +130,7 @@ export function MonthlyView() {
             <div className="flex justify-between w-full">
               <span className="font-medium">Monthly Net</span>
               <span className={`text-lg font-bold ${monthlyNet >= 0 ? 'text-primary' : ''}`}>
-                {formatCurrencyWithSign(Math.abs(monthlyNet), spaceBaseCurrency, monthlyNet < 0)}
+                {formatCurrency(Math.abs(monthlyNet), spaceBaseCurrency, monthlyNet < 0)}
               </span>
             </div>
           </CardFooter>

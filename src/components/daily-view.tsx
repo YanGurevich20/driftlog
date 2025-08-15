@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { formatCurrency, formatCurrencyWithSign } from '@/lib/currency-utils';
+import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useSpaceCurrency } from '@/hooks/use-space-currency';
 import { ArrowUp, ArrowDown } from 'lucide-react';
@@ -36,18 +36,18 @@ export function DailyView() {
     if (!acc[category]) {
       acc[category] = {
         entries: [],
-        total: 0,
-        type: entry.type,
+        net: 0,
       };
     }
     acc[category].entries.push(entry);
     const amount = entry.convertedAmount || entry.amount;
-    acc[category].total += amount;
+    // Add as positive for income, negative for expense
+    acc[category].net += entry.type === 'income' ? amount : -amount;
     return acc;
-  }, {} as Record<string, { entries: Entry[]; total: number; type: 'income' | 'expense' }>);
+  }, {} as Record<string, { entries: Entry[]; net: number }>);
 
   const dailyNet = Object.values(groupedEntries).reduce((sum, group) => {
-    return sum + (group.type === 'income' ? group.total : -group.total);
+    return sum + group.net;
   }, 0);
 
   const handlePreviousDay = () => {
@@ -101,7 +101,7 @@ export function DailyView() {
                   <div className="flex items-center justify-between w-full pr-2">
                     <div className="flex items-center gap-3">
                       <div className="p-1.5 rounded-full bg-muted">
-                        {group.type === 'income' ? (
+                        {group.net >= 0 ? (
                           <ArrowUp className="h-3 w-3 text-primary" />
                         ) : (
                           <ArrowDown className="h-3 w-3" />
@@ -110,12 +110,12 @@ export function DailyView() {
                       <span className="font-medium">{category}</span>
                     </div>
                     <span className={`font-semibold ${
-                      group.type === 'income' ? 'text-primary' : ''
+                      group.net >= 0 ? 'text-primary' : ''
                     }`}>
-                      {formatCurrencyWithSign(
-                        group.total,
+                      {formatCurrency(
+                        Math.abs(group.net),
                         spaceBaseCurrency,
-                        group.type === 'expense'
+                        group.net < 0
                       )}
                     </span>
                   </div>
@@ -125,10 +125,10 @@ export function DailyView() {
                     {group.entries.map((entry) => (
                       <div key={entry.id} className="flex justify-between items-start gap-2 pl-10 pr-1">
                         <span className="text-muted-foreground text-sm">
-                          {entry.description || 'No description'}
+                          {entry.description || entry.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                         </span>
-                        <span className={`text-sm whitespace-nowrap ${group.type === 'income' ? 'text-primary' : ''}`}>
-                          {formatCurrency(entry.amount, entry.currency)}
+                        <span className={`text-sm whitespace-nowrap ${entry.type === 'income' ? 'text-primary' : ''}`}>
+                          {formatCurrency(entry.amount, entry.currency, entry.type === 'expense')}
                         </span>
                       </div>
                     ))}
@@ -147,7 +147,7 @@ export function DailyView() {
             <div className="flex justify-between w-full">
               <span className="font-medium">Daily Net</span>
               <span className={`text-lg font-bold ${dailyNet >= 0 ? 'text-primary' : ''}`}>
-                {formatCurrencyWithSign(Math.abs(dailyNet), spaceBaseCurrency, dailyNet < 0)}
+                {formatCurrency(Math.abs(dailyNet), spaceBaseCurrency, dailyNet < 0)}
               </span>
             </div>
           </CardFooter>
