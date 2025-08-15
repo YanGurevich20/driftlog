@@ -8,6 +8,7 @@
 - **Categories**: Can have mixed income/expense entries (e.g., "Freelance", "Investment")
 - **Edit/Delete**: Three-dot menu on entries for both mobile/desktop
 - **Currency**: formatCurrency() handles display, negative amounts shown with sign
+- **Entry Amounts**: ALWAYS use `convertedAmount` for calculations - it's the unified value in space's base currency. The `amount` field is only the original amount in the entry's currency
 - **Cloud Functions v2**: Uses onCall (CORS handled automatically), check docs for v2 patterns
 - **Daily Budget**: Separate BudgetView component, calculates (net before today + today's income) / remaining days
 
@@ -36,6 +37,7 @@
 - [V] Add remaining daily budget (BudgetView component)
 - [X] pre-fill amount in entry form with last entered amount (decided better ux without)
 - [V] Implement timezone-agnostic date storage (UTC midnight)
+- [ ] Rename entry fields for clarity: `amount` -> `originalAmount`, keep `convertedAmount` as is
 - [ ] Improve space management
 - [ ] Custom categories. Perhaps per space? and let edit in space managemnet
 

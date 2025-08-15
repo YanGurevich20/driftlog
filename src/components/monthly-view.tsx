@@ -9,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator';
 import { DateNavigation } from '@/components/ui/date-navigation';
 import { DataState } from '@/components/ui/data-state';
-import { addMonths, subMonths, isSameMonth } from 'date-fns';
+import { addMonths, subMonths } from 'date-fns';
 import { Receipt } from 'lucide-react';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
 
@@ -35,7 +35,7 @@ export function MonthlyView() {
         type: entry.type,
       };
     }
-    acc[category].total += entry.convertedAmount || entry.amount;
+    acc[category].total += entry.convertedAmount;
     return acc;
   }, {} as Record<string, { total: number; type: 'income' | 'expense' }>);
 
@@ -59,10 +59,6 @@ export function MonthlyView() {
     setSelectedMonth(addMonths(selectedMonth, 1));
   };
 
-  const canGoNext = !isSameMonth(selectedMonth, new Date());
-  const canGoPrevious = true;
-
-
   return (
     <Card>
       <CardHeader>
@@ -72,8 +68,8 @@ export function MonthlyView() {
           onDateChange={setSelectedMonth}
           onPrevious={handlePreviousMonth}
           onNext={handleNextMonth}
-          canGoPrevious={canGoPrevious}
-          canGoNext={canGoNext}
+          canGoPrevious={true}
+          canGoNext={true}
           mode="month"
         />
       </CardHeader>

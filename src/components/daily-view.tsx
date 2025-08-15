@@ -9,7 +9,7 @@ import { ArrowUp, ArrowDown, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { addDays, subDays, isAfter, isBefore, isToday } from 'date-fns';
+import { addDays, subDays, isBefore } from 'date-fns';
 import { getDateRangeForDay } from '@/lib/date-range-utils';
 import type { Entry } from '@/types';
 import { DataState } from '@/components/ui/data-state';
@@ -63,7 +63,7 @@ export function DailyView() {
       };
     }
     acc[category].entries.push(entry);
-    const amount = entry.convertedAmount || entry.amount;
+    const amount = entry.convertedAmount;
     // Add as positive for income, negative for expense
     acc[category].net += entry.type === 'income' ? amount : -amount;
     return acc;
@@ -81,8 +81,6 @@ export function DailyView() {
     setSelectedDate(addDays(selectedDate, 1));
   };
 
-  const canGoNext = !isToday(selectedDate) && !isAfter(selectedDate, new Date());
-  
   const firstEntry = entries.length > 0 ? entries[entries.length - 1] : null;
   const canGoPrevious = firstEntry ? isBefore(subDays(selectedDate, 1), firstEntry.date) : true;
 
@@ -114,10 +112,9 @@ export function DailyView() {
           onDateChange={setSelectedDate}
           onPrevious={handlePreviousDay}
           onNext={handleNextDay}
-          canGoPrevious={canGoPrevious}
-          canGoNext={canGoNext}
+          canGoPrevious={true}
+          canGoNext={true}
           mode="day"
-          disabled={(date) => isAfter(date, new Date())}
         />
       </CardHeader>
       

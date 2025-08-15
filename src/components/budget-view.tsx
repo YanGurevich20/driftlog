@@ -37,36 +37,34 @@ export function BudgetView() {
   
   // Calculate daily budget
   const calculateBudget = () => {
-    const todayStart = dateRange.start;
-    
-    // All income minus expenses before today
-    const monthNetBeforeToday = monthEntries
-      .filter(e => e.date < todayStart)
+    // All income for the month (including today and future)
+    const monthlyIncome = monthEntries
+      .filter(e => e.type === 'income')
       .reduce((sum, entry) => {
-        const amount = entry.convertedAmount || entry.amount;
-        return sum + (entry.type === 'income' ? amount : -amount);
+        return sum + entry.convertedAmount;
       }, 0);
     
-    // Add today's income to available budget
-    const todaysIncome = todayEntries
-      .filter(e => e.type === 'income')
-      .reduce((sum, e) => sum + (e.convertedAmount || e.amount), 0);
+    // All expenses for the month (including today and future)
+    const monthlyExpenses = monthEntries
+      .filter(e => e.type === 'expense')
+      .reduce((sum, entry) => {
+        return sum + entry.convertedAmount;
+      }, 0);
     
-    // Total available to spend
-    const availableNet = monthNetBeforeToday + todaysIncome;
-    
+    // Calculate today's spending (expenses only)
+    const todaysExpenses = todayEntries
+      .filter(e => e.type === 'expense')
+      .reduce((sum, e) => sum + e.convertedAmount, 0);
+    const monthlyExpensesWithoutToday = monthlyExpenses - todaysExpenses;
     // Calculate remaining days in month (including today)
     const today = selectedDate.getDate();
     const totalDaysInMonth = getDaysInMonth(selectedDate);
     const remainingDays = totalDaysInMonth - today + 1;
     
-    // Calculate daily budget
+    // Calculate daily budget: (all income - all expenses without today) / remaining days
+    const availableNet = monthlyIncome - monthlyExpensesWithoutToday;
     const dailyBudget = availableNet > 0 ? availableNet / remainingDays : 0;
     
-    // Calculate today's spending (expenses only)
-    const todaysExpenses = todayEntries
-      .filter(e => e.type === 'expense')
-      .reduce((sum, e) => sum + (e.convertedAmount || e.amount), 0);
     
     return { 
       dailyBudget, 

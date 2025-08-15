@@ -80,7 +80,6 @@ export function MonthPicker({ currentMonth, onMonthChange }: MonthPickerProps) {
 									'absolute right-1',
 								)}
 								type="button"
-								disabled={isFuture(add(firstDayCurrentYear, { years: 1 }))}
 								onClick={nextYear}
 							>
 								<ChevronRight className="h-4 w-4" />
@@ -107,7 +106,7 @@ export function MonthPicker({ currentMonth, onMonthChange }: MonthPickerProps) {
 											isSameMonth(month, getStartOfCurrentMonth()) ?
 												'bg-muted text-muted-foreground' : '',
 									)}
-									disabled={isFuture(month)}
+									// Allow selecting future months
 									role="gridcell"
 									tabIndex={-1}
 									type="button"

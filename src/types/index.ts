@@ -42,8 +42,8 @@ export interface BaseEntry {
   spaceId: string;
   amount: number;
   currency: string;
-  convertedAmount?: number;
-  baseCurrency?: string;
+  convertedAmount: number;
+  baseCurrency: string;
   category: string;
   description?: string;
   date: Date;
