@@ -77,7 +77,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
     defaultValues: {
       type: entry?.type || 'expense',
       amountCurrency: {
-        amount: entry ? entry.amount.toString() : '',
+        amount: entry ? entry.originalAmount.toString() : '',
         currency: entry?.currency || lastUsedCurrency || 'USD',
       },
       category: entry?.category || 'Food & Dining',
@@ -148,7 +148,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
 
       const entryData = {
         type: values.type,
-        amount,
+        originalAmount: amount,
         currency,
         convertedAmount,
         baseCurrency,

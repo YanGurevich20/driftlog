@@ -167,7 +167,7 @@ export function DailyView() {
                         </span>
                         <div className="flex items-center gap-2">
                           <span className={`text-sm whitespace-nowrap ${entry.type === 'income' ? 'text-primary' : ''}`}>
-                            {formatCurrency(entry.amount, entry.currency, entry.type === 'expense')}
+                            {formatCurrency(entry.originalAmount, entry.currency, entry.type === 'expense')}
                           </span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

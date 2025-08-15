@@ -40,7 +40,7 @@ export interface BaseEntry {
   id: string;
   type: EntryType;
   spaceId: string;
-  amount: number;
+  originalAmount: number;
   currency: string;
   convertedAmount: number;
   baseCurrency: string;
