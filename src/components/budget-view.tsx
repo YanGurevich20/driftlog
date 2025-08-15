@@ -82,7 +82,7 @@ export function BudgetView() {
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-lg font-semibold mb-4 text-primary">Today's Budget</h2>
+        <h2 className="text-lg font-semibold text-primary">Today's Budget</h2>
       </CardHeader>
       
       <CardContent>
@@ -94,42 +94,22 @@ export function BudgetView() {
           emptyDescription="Add income to see your daily budget"
           emptyIcon={Wallet}
         >
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Today's Spending</span>
-                <span className="text-sm font-medium">
-                  {formatCurrency(todaysExpenses, spaceBaseCurrency, false)} / {formatCurrency(dailyBudget, spaceBaseCurrency, false)}
-                </span>
-              </div>
-              
-              {/* Progress bar */}
-              <div className="w-full bg-secondary rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all ${
-                    percentUsed > 100 ? 'bg-destructive' : percentUsed > 80 ? 'bg-yellow-500' : 'bg-primary'
-                  }`}
-                  style={{ width: `${Math.min(percentUsed, 100)}%` }}
-                />
-              </div>
-              
-              <p className="text-xs text-muted-foreground text-center">
-                {percentUsed > 100 
-                  ? `Overspent by ${formatCurrency(todaysExpenses - dailyBudget, spaceBaseCurrency, false)}`
-                  : `${formatCurrency(dailyBudget - todaysExpenses, spaceBaseCurrency, false)} remaining today`
-                }
-              </p>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Today's Spending</span>
+              <span className="text-sm font-medium">
+                {formatCurrency(todaysExpenses, spaceBaseCurrency, false)} / {formatCurrency(dailyBudget, spaceBaseCurrency, false)}
+              </span>
             </div>
             
-            <div className="pt-2 border-t space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Available Balance</span>
-                <span>{formatCurrency(availableNet, spaceBaseCurrency, false)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Days Remaining</span>
-                <span>{remainingDays} days</span>
-              </div>
+            {/* Progress bar */}
+            <div className="w-full bg-secondary rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all ${
+                  percentUsed > 100 ? 'bg-destructive' : percentUsed > 80 ? 'bg-yellow-500' : 'bg-primary'
+                }`}
+                style={{ width: `${Math.min(percentUsed, 100)}%` }}
+              />
             </div>
           </div>
         </DataState>
