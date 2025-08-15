@@ -8,13 +8,13 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { CurrencySelector } from '@/components/currency-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, LogOut } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const [isUpdatingCurrency, setIsUpdatingCurrency] = useState(false);
 
@@ -56,7 +56,12 @@ export default function Settings() {
       <div className="space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Account Information</CardTitle>
+            <div className="flex items-center justify-between w-full">
+              <CardTitle>Account</CardTitle>
+              <Button variant="ghost" size="icon" className="h-4 w-4" onClick={logout}>
+                <LogOut />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -70,10 +75,27 @@ export default function Settings() {
                   <span className="text-sm font-medium">{user.displayName}</span>
                 </div>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Preferences</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <span className="text-sm text-muted-foreground">Preferred Currency</span>
-                  <p className="text-xs text-muted-foreground mt-1">Default currency for new spaces</p>
+                  <span className="text-sm font-medium">Theme</span>
+                  <p className="text-xs text-muted-foreground">Choose your preferred color scheme</p>
+                </div>
+                <ThemeToggle />
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <span className="text-sm font-medium">Preferred Currency</span>
+                  <p className="text-xs text-muted-foreground">Default currency for new spaces</p>
                 </div>
                 <CurrencySelector
                   value={user.preferredCurrency}
@@ -87,21 +109,9 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Appearance</CardTitle>
+            <CardTitle>Spaces</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <span className="text-sm font-medium">Theme</span>
-                <p className="text-xs text-muted-foreground">Choose your preferred color scheme</p>
-              </div>
-              <ThemeToggle />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
             <SpacesManager />
           </CardContent>
         </Card>

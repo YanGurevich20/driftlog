@@ -151,8 +151,7 @@ export function SpacesManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Spaces</h3>
+      <div className="flex items-center justify-end">
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm">

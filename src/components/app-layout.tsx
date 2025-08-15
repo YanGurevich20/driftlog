@@ -20,23 +20,15 @@ export function AppLayout({ children, title }: AppLayoutProps) {
           <Link href="/dashboard" className="text-2xl font-bold hover:opacity-80">
             DriftLog
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              {user?.name || user?.displayName || user?.email}
-            </span>
-            <Link href="/dashboard/settings">
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Button onClick={logout} variant="ghost" size="sm">
-              <LogOut className="h-4 w-4" />
+          <Link href="/dashboard/settings">
+            <Button variant="ghost" size="sm">
+              <Settings className="h-4 w-4" />
             </Button>
-          </div>
+          </Link>
         </div>
       </header>
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6">
         {title && (
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">{title}</h1>

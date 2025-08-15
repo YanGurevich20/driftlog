@@ -5,15 +5,17 @@ import { useAuth } from '@/lib/auth-context';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useSpaceCurrency } from '@/hooks/use-space-currency';
-import { ArrowUp, ArrowDown, MoreVertical, Edit2, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { MoreVertical, Edit2, Trash2, CalendarIcon } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { addDays, subDays, isBefore } from 'date-fns';
+import { format } from 'date-fns';
 import { getDateRangeForDay } from '@/lib/date-range-utils';
 import type { Entry } from '@/types';
+import { cn } from '@/lib/utils';
 import { DataState } from '@/components/ui/data-state';
-import { DateNavigation } from '@/components/ui/date-navigation';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarDays } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { deleteEntry } from '@/services/entries';
@@ -73,17 +75,6 @@ export function DailyView() {
     return sum + group.net;
   }, 0);
 
-  const handlePreviousDay = () => {
-    setSelectedDate(subDays(selectedDate, 1));
-  };
-
-  const handleNextDay = () => {
-    setSelectedDate(addDays(selectedDate, 1));
-  };
-
-  const firstEntry = entries.length > 0 ? entries[entries.length - 1] : null;
-  const canGoPrevious = firstEntry ? isBefore(subDays(selectedDate, 1), firstEntry.date) : true;
-
   const handleEdit = (entry: Entry) => {
     router.push(`/dashboard/entry/${entry.id}`);
   };
@@ -106,16 +97,25 @@ export function DailyView() {
     <>
     <Card>
       <CardHeader>
-        <h2 className="text-lg font-semibold mb-4 text-primary">Daily View</h2>
-        <DateNavigation
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-          onPrevious={handlePreviousDay}
-          onNext={handleNextDay}
-          canGoPrevious={true}
-          canGoNext={true}
-          mode="day"
-        />
+        <div className="flex items-center justify-between w-full">
+          <CardTitle className="text-primary">
+            {format(selectedDate, 'EEEE, MMMM d')}
+          </CardTitle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-4 w-4">
+                <CalendarIcon />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </CardHeader>
       
       <CardContent>
@@ -133,20 +133,15 @@ export function DailyView() {
             value={openCategories}
             onValueChange={setOpenCategories}
           >
-            {Object.entries(groupedEntries).map(([category, group]) => (
+            {Object.entries(groupedEntries).map(([category, group], index, array) => (
               <AccordionItem key={category} value={category}>
-                <AccordionTrigger className="hover:no-underline">
+                <AccordionTrigger className={cn(
+                  "hover:no-underline",
+                  index === 0 && "pt-0",
+                  index === array.length - 1 && "pb-0"
+                )}>
                   <div className="flex items-center justify-between w-full pr-2">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-full bg-muted">
-                        {group.net >= 0 ? (
-                          <ArrowUp className="h-3 w-3 text-primary" />
-                        ) : (
-                          <ArrowDown className="h-3 w-3" />
-                        )}
-                      </div>
-                      <span className="font-medium">{category}</span>
-                    </div>
+                    <span className="font-medium">{category}</span>
                     <span className={`font-semibold ${
                       group.net >= 0 ? 'text-primary' : ''
                     }`}>
@@ -210,7 +205,6 @@ export function DailyView() {
 
       {Object.keys(groupedEntries).length > 0 && (
         <>
-          <Separator />
           <CardFooter className="pt-4">
             <div className="flex justify-between w-full">
               <span className="font-medium">Daily Net</span>

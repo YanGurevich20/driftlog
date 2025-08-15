@@ -28,7 +28,7 @@ export const functions = getFunctions(app, 'us-central1');
 // Use the Functions emulator in development
 if (process.env.NODE_ENV === 'development') {
   connectFunctionsEmulator(functions, 'localhost', 5001);
-  connectAuthEmulator(auth, 'http://localhost:9099');
+  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
   connectFirestoreEmulator(db, 'localhost', 8080);
 }
 

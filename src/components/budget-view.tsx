@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useSpaceCurrency } from '@/hooks/use-space-currency';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getDaysInMonth } from 'date-fns';
 import { getDateRangeForDay, getDateRangeForMonth } from '@/lib/date-range-utils';
 import { DataState } from '@/components/ui/data-state';
@@ -81,7 +81,7 @@ export function BudgetView() {
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-lg font-semibold text-primary">Today&apos;s Budget</h2>
+        <CardTitle className="text-primary">Today&apos;s Budget</CardTitle>
       </CardHeader>
       
       <CardContent>
@@ -95,7 +95,7 @@ export function BudgetView() {
         >
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Today&apos;s Spending</span>
+              <span className="text-sm text-muted-foreground">Spent:</span>
               <span className="text-sm font-medium">
                 {formatCurrency(todaysExpenses, spaceBaseCurrency, false)} / {formatCurrency(dailyBudget, spaceBaseCurrency, false)}
               </span>
