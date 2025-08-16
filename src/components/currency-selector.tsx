@@ -10,6 +10,7 @@ import { ChevronDown } from 'lucide-react';
 import { CURRENCIES, getCurrencyByCode, getPopularCurrencies } from '@/lib/currencies';
 import { usePreferences } from '@/store/preferences';
 import { useAuth } from '@/lib/auth-context';
+import { cn } from '@/lib/utils';
 
 interface CurrencySelectorProps {
   value: string;
@@ -33,10 +34,10 @@ export function CurrencySelector({
 
   const trigger = (
     <Button
-      variant="outline"
+      variant="ghost"
       role="combobox"
       aria-expanded={open}
-      className={triggerClassName || "w-full justify-between"}
+      className={cn("bg-transparent dark:bg-input/30 shadow-xs h-9 px-3", triggerClassName || "w-full justify-between")}
       disabled={disabled}
     >
       <span className="flex items-center gap-2">
@@ -156,7 +157,6 @@ function CurrencyList({
         placeholder="Search currencies..." 
         value={search}
         onValueChange={setSearch}
-        autoFocus
       />
       <CommandList>
         <CommandEmpty>No currency found.</CommandEmpty>

@@ -65,23 +65,22 @@ export function ConnectedUsersInviteButton() {
             They&apos;ll be able to see all your expenses and you&apos;ll see theirs
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="invite-email">Email Address</Label>
+        <div className="grid gap-2">
+          <Label htmlFor="invite-email">Email Address</Label>
+          <div className="flex gap-2">
             <Input
               id="invite-email"
               type="email"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
               placeholder="friend@example.com"
+              className="flex-1"
             />
-          </div>
-          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleInviteUser} disabled={isInviting}>
-              {isInviting ? 'Sending...' : 'Send Invitation'}
+              {isInviting ? 'Sending...' : 'Send'}
             </Button>
           </div>
         </div>
@@ -198,7 +197,7 @@ export function ConnectedUsers() {
       emptyDescription="Click the + icon above to invite someone"
       emptyIcon={Users}
     >
-      <div className="space-y-2">
+      <div className="grid gap-3">
         {/* Pending Invitations */}
         {invitations.map((invitation) => (
           <div

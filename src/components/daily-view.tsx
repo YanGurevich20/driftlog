@@ -7,7 +7,6 @@ import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { MoreVertical, Edit2, Trash2, CalendarIcon } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { format } from 'date-fns';
 import { getDateRangeForDay } from '@/lib/date-range-utils';
@@ -141,9 +140,9 @@ export function DailyView() {
             {Object.entries(groupedEntries).map(([category, group], index, array) => (
               <AccordionItem key={category} value={category}>
                 <AccordionTrigger className={cn(
-                  "hover:no-underline",
-                  index === 0 && "pt-0",
-                  index === array.length - 1 && "pb-0"
+                  // "hover:no-underline",
+                  // index === 0 && "pt-0",
+                  // index === array.length - 1 && !openCategories.includes(category) && "pb-0"
                 )}>
                   <div className="flex items-center justify-between w-full pr-2">
                     <span className="font-medium">{category}</span>

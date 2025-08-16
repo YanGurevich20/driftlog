@@ -12,13 +12,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { CategorySelector } from '@/components/category-selector';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -243,20 +237,14 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="max-h-[300px]">
-                    {(transactionType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <CategorySelector
+                    value={field.value}
+                    onChange={field.onChange}
+                    categories={transactionType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES}
+                    placeholder="Select a category"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -273,9 +261,9 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal h-9 px-3 bg-transparent dark:bg-input/30 shadow-xs",
                           !field.value && "text-muted-foreground"
                         )}
                       >
@@ -311,10 +299,10 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Description (Optional)</FormLabel>
+                <FormLabel>Description</FormLabel>
                 <FormControl>
                   <Textarea 
-                    placeholder="Add a note..." 
+                    placeholder="Add an optional note..." 
                     className="resize-none h-20"
                     {...field}
                   />

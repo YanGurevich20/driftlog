@@ -59,17 +59,19 @@ export default function Dashboard() {
       <div className="mb-6">
         <h1 className="text-xl pl-2 font-light">{greetingMessage}</h1>
       </div>
-      <div className="grid gap-6 lg:grid-cols-2 pb-20">
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start pb-20">
         <div className="space-y-6">
           <BudgetView />
-          <Button 
-            className="w-full rounded-full" 
-            size="lg"
-            onClick={() => router.push('/dashboard/entry')}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Entry
-          </Button>
+          <div className="px-2">
+            <Button 
+              className="w-full rounded-full" 
+              size="lg"
+              onClick={() => router.push('/dashboard/entry')}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Entry
+            </Button>
+          </div>
           <DailyView />
         </div>
         <MonthlyView />

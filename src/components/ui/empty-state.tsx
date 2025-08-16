@@ -18,7 +18,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className={cn(
-      "flex items-center gap-3 py-6",
+      "flex items-center gap-3",
       className
     )}>
       {Icon && (
