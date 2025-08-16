@@ -107,7 +107,7 @@ export function DailyView() {
           </CardTitle>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-4 w-4">
+              <Button variant="ghost" size="icon">
                 <CalendarIcon />
               </Button>
             </PopoverTrigger>
@@ -137,7 +137,7 @@ export function DailyView() {
             value={openCategories}
             onValueChange={setOpenCategories}
           >
-            {Object.entries(groupedEntries).map(([category, group], index, array) => (
+            {Object.entries(groupedEntries).map(([category, group]) => (
               <AccordionItem key={category} value={category}>
                 <AccordionTrigger className={cn(
                   // "hover:no-underline",

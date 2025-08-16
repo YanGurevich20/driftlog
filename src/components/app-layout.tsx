@@ -1,17 +1,19 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Settings } from 'lucide-react';
+import { Settings, Home } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { CurrencyService } from '@/services/currency';
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  title?: string;
 }
 
-export function AppLayout({ children, title }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
+  const pathname = usePathname();
+  const isSettingsPage = pathname?.includes('/settings');
 
   // Pre-fetch exchange rates on app load
   useEffect(() => {
@@ -28,20 +30,15 @@ export function AppLayout({ children, title }: AppLayoutProps) {
           <Link href="/dashboard" className="text-2xl font-bold hover:opacity-80">
             DriftLog
           </Link>
-          <Link href="/dashboard/settings">
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4" />
+          <Link href={isSettingsPage ? "/dashboard" : "/dashboard/settings"}>
+            <Button variant="ghost" size="icon">
+              {isSettingsPage ? <Home /> : <Settings />}
             </Button>
           </Link>
         </div>
       </header>
       
       <main className="container mx-auto px-4 py-6">
-        {title && (
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">{title}</h1>
-          </div>
-        )}
         {children}
       </main>
     </div>

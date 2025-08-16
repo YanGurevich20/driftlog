@@ -18,8 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
-import { CurrencyService } from '@/services/currency';
+import { collection, addDoc, updateDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { usePreferences } from '@/store/preferences';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, CalendarIcon, ArrowUp, ArrowDown } from 'lucide-react';
@@ -178,7 +177,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
       </div>
       
       <Card>
-        <CardContent className="pt-6">
+        <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Transaction Type Tabs */}
@@ -263,7 +262,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
                       <Button
                         variant="ghost"
                         className={cn(
-                          "w-full justify-start text-left font-normal h-9 px-3 bg-transparent dark:bg-input/30 shadow-xs",
+                          "w-full justify-start text-left font-normal h-8 px-3 bg-transparent dark:bg-input/30 shadow-xs",
                           !field.value && "text-muted-foreground"
                         )}
                       >

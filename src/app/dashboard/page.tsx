@@ -68,7 +68,7 @@ export default function Dashboard() {
               size="lg"
               onClick={() => router.push('/dashboard/entry')}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2" />
               Add Entry
             </Button>
           </div>

@@ -9,12 +9,11 @@ import {
   updateDoc,
   serverTimestamp,
   Timestamp,
-  orderBy,
-  limit
+  orderBy
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { convertFirestoreDoc } from '@/lib/firestore-utils';
-import type { Entry, User, UserGroup } from '@/types';
+import type { Entry } from '@/types';
 
 export async function deleteEntry(entryId: string): Promise<void> {
   await deleteDoc(doc(db, 'entries', entryId));

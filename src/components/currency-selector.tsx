@@ -6,17 +6,14 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
-import { ChevronDown } from 'lucide-react';
 import { CURRENCIES, getCurrencyByCode, getPopularCurrencies } from '@/lib/currencies';
 import { usePreferences } from '@/store/preferences';
 import { useAuth } from '@/lib/auth-context';
-import { cn } from '@/lib/utils';
 
 interface CurrencySelectorProps {
   value: string;
   onChange: (value: string) => void;
   className?: string;
-  triggerClassName?: string;
   disabled?: boolean;
 }
 
@@ -24,7 +21,6 @@ export function CurrencySelector({
   value,
   onChange,
   className,
-  triggerClassName,
   disabled
 }: CurrencySelectorProps) {
   const [open, setOpen] = React.useState(false);
@@ -34,17 +30,13 @@ export function CurrencySelector({
 
   const trigger = (
     <Button
-      variant="ghost"
+      variant="outline"
       role="combobox"
       aria-expanded={open}
-      className={cn("bg-transparent dark:bg-input/30 shadow-xs h-9 px-3", triggerClassName || "w-full justify-between")}
+      size='icon'
       disabled={disabled}
     >
-      <span className="flex items-center gap-2">
-        <span className="font-medium">{selectedCurrency.code}</span>
-        <span className="text-muted-foreground">{selectedCurrency.symbol}</span>
-      </span>
-      <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+      <span className="font-medium">{selectedCurrency.symbol}</span>
     </Button>
   );
 

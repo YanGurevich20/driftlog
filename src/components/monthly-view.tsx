@@ -71,7 +71,7 @@ export function MonthlyView() {
           </CardTitle>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-4 w-4">
+              <Button variant="ghost" size="icon">
                 <CalendarIcon />
               </Button>
             </PopoverTrigger>

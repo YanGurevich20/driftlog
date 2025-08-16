@@ -51,7 +51,7 @@ export function useSentInvitations() {
     );
 
     return () => unsubscribe();
-  }, [user?.id]);
+  }, [user?.id, user]);
 
   return { sentInvitations, loading, error };
 }

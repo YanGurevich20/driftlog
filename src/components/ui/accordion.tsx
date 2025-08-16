@@ -19,8 +19,7 @@ function AccordionItem({
   return (
     <AccordionPrimitive.Item
       data-slot="accordion-item"
-      // changed last:border-b-0 to first:border-t to define accordion shape
-      className={cn("border-b first:border-t ", className)}
+      className={cn("border-b last:border-b-0 ", className)}
       {...props}
     />
   )

@@ -20,6 +20,9 @@ export function useEntries(options: UseEntriesOptions = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const startTime = startDate?.getTime();
+  const endTime = endDate?.getTime();
+
   useEffect(() => {
     const fetchEntries = async () => {
       try {
@@ -106,7 +109,7 @@ export function useEntries(options: UseEntriesOptions = {}) {
     } else {
       setLoading(false);
     }
-  }, [userId, groupId, user?.id, startDate?.getTime(), endDate?.getTime(), limit]);
+  }, [userId, groupId, user?.id, user, startTime, endTime, limit, startDate, endDate]);
 
   return { entries, loading, error };
 }

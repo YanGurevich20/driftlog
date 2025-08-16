@@ -38,7 +38,7 @@ export function CategorySelector({
       variant="ghost"
       role="combobox"
       aria-expanded={open}
-      className={cn("bg-transparent dark:bg-input/30 dark:hover:bg-input/50 shadow-xs h-9 px-3", triggerClassName || "w-full justify-between")}
+      className={cn("bg-transparent dark:bg-input/30 dark:hover:bg-input/50 shadow-xs h-8 px-3", triggerClassName || "w-full justify-between")}
       disabled={disabled}
     >
       <span className="flex items-center gap-2">

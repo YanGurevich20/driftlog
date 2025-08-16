@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +13,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { UserPlus, Users, LogOut, Check, X, Mail, Send } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { UserGroupsService } from '@/services/user-groups';
@@ -30,6 +41,12 @@ export function ConnectedUsersInviteButton() {
 
   const handleInviteUser = async () => {
     if (!user || !inviteEmail.trim()) return;
+    
+    // Prevent self-invitation
+    if (inviteEmail.toLowerCase() === user.email?.toLowerCase()) {
+      toast.error('You cannot invite yourself to the group');
+      return;
+    }
     
     setIsInviting(true);
     try {
@@ -54,7 +71,7 @@ export function ConnectedUsersInviteButton() {
   return (
     <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-4 w-4">
+        <Button variant="ghost" size="icon">
           <UserPlus />
         </Button>
       </DialogTrigger>
@@ -117,8 +134,7 @@ export function ConnectedUsersLeaveButton() {
   return (
     <Button 
       variant="ghost" 
-      size="icon" 
-      className="h-4 w-4"
+      size="icon"
       onClick={handleLeaveGroup}
       title="Leave group"
     >
@@ -132,6 +148,9 @@ export function ConnectedUsers() {
   const { connectedUsers, loading: usersLoading, error: usersError } = useConnectedUsers();
   const { invitations, loading: invitationsLoading, error: invitationsError } = useInvitations();
   const { sentInvitations, loading: sentLoading, error: sentError } = useSentInvitations();
+  
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingInvitation, setPendingInvitation] = useState<GroupInvitation | null>(null);
 
   if (usersError) {
     console.error('Error loading connected users:', usersError);
@@ -149,21 +168,39 @@ export function ConnectedUsers() {
     if (!user) return;
     
     if (connectedUsers.length > 0) {
-      const confirmMessage = `You are currently connected with ${connectedUsers.length} ${connectedUsers.length === 1 ? 'person' : 'people'}. ` +
-        `Accepting this invitation will disconnect you from them. Continue?`;
-      
-      if (!confirm(confirmMessage)) {
-        return;
-      }
+      // Show confirmation dialog first
+      setPendingInvitation(invitation);
+      setConfirmDialogOpen(true);
+      return;
     }
+    
+    // Proceed directly if no existing connections
+    await proceedWithAcceptInvitation(invitation);
+  };
+
+  const proceedWithAcceptInvitation = async (invitation: GroupInvitation) => {
+    if (!user) return;
     
     try {
       await UserGroupsService.acceptInvitation(invitation.id, user.id);
       toast.success(`Joined group with ${invitation.inviterName}`);
+      setConfirmDialogOpen(false);
+      setPendingInvitation(null);
     } catch (error) {
       console.error('Error accepting invitation:', error);
       toast.error('Failed to accept invitation');
     }
+  };
+
+  const handleConfirmAccept = () => {
+    if (pendingInvitation) {
+      proceedWithAcceptInvitation(pendingInvitation);
+    }
+  };
+
+  const handleCancelAccept = () => {
+    setConfirmDialogOpen(false);
+    setPendingInvitation(null);
   };
 
   const handleRejectInvitation = async (invitation: GroupInvitation) => {
@@ -189,11 +226,12 @@ export function ConnectedUsers() {
   const hasContent = connectedUsers.length > 0 || invitations.length > 0 || sentInvitations.length > 0;
 
   return (
-    <DataState
+    <>
+      <DataState
       loading={loading}
       empty={!hasContent}
       loadingVariant="skeleton"
-      emptyTitle="No connections yet"
+      emptyTitle="No connections"
       emptyDescription="Click the + icon above to invite someone"
       emptyIcon={Users}
     >
@@ -223,14 +261,14 @@ export function ConnectedUsers() {
                 variant="ghost"
                 onClick={() => handleAcceptInvitation(invitation)}
               >
-                <Check className="h-4 w-4" />
+                <Check />
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => handleRejectInvitation(invitation)}
               >
-                <X className="h-4 w-4" />
+                <X />
               </Button>
             </div>
           </div>
@@ -261,7 +299,7 @@ export function ConnectedUsers() {
               onClick={() => handleCancelInvitation(invitation)}
               title="Cancel invitation"
             >
-              <X className="h-4 w-4" />
+              <X />
             </Button>
           </div>
         ))}
@@ -274,10 +312,12 @@ export function ConnectedUsers() {
             >
               <div className="flex items-center gap-3">
                 {connectedUser.photoUrl ? (
-                  <img 
+                  <Image 
                     src={connectedUser.photoUrl} 
-                    alt={connectedUser.displayName || connectedUser.name}
-                    className="w-10 h-10 rounded-full"
+                    alt={connectedUser.displayName || connectedUser.name || ''}
+                    width={40}
+                    height={40}
+                    className="rounded-full"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
@@ -299,6 +339,23 @@ export function ConnectedUsers() {
             </div>
         ))}
       </div>
-    </DataState>
+      </DataState>
+
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave Current Group?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are currently connected with {connectedUsers.length} {connectedUsers.length === 1 ? 'person' : 'people'}. 
+              Accepting this invitation will disconnect you from them and join {pendingInvitation?.inviterName}&apos;s group instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelAccept}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAccept}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

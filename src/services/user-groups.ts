@@ -84,6 +84,15 @@ export class UserGroupsService {
       invitedEmail
     });
     
+    // Check if user is trying to invite themselves
+    const inviterDoc = await getDoc(doc(db, 'users', inviterUserId));
+    if (inviterDoc.exists()) {
+      const inviterData = inviterDoc.data();
+      if (inviterData.email?.toLowerCase() === invitedEmail.toLowerCase()) {
+        throw new Error('You cannot invite yourself to the group');
+      }
+    }
+    
     // Check if invitation already exists
     try {
       const existingInvitations = await getDocs(

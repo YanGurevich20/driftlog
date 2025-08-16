@@ -45,7 +45,6 @@ export default function Settings() {
             variant="ghost"
             size="icon"
             onClick={() => router.push('/dashboard')}
-            className="h-10 w-10"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -59,7 +58,7 @@ export default function Settings() {
           <CardHeader>
             <div className="flex items-center justify-between w-full">
               <CardTitle>Account</CardTitle>
-              <Button variant="ghost" size="icon" className="h-4 w-4" onClick={logout}>
+              <Button variant="ghost" size="icon" onClick={logout}>
                 <LogOut />
               </Button>
             </div>
