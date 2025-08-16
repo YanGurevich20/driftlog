@@ -3,7 +3,7 @@
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { SpacesManager } from '@/components/spaces-manager';
+import { ConnectedUsers, ConnectedUsersInviteButton, ConnectedUsersLeaveButton } from '@/components/connected-users';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { CurrencySelector } from '@/components/currency-selector';
 import { Button } from '@/components/ui/button';
@@ -19,14 +19,14 @@ export default function Settings() {
   const [isUpdatingCurrency, setIsUpdatingCurrency] = useState(false);
 
   const handleCurrencyChange = async (newCurrency: string) => {
-    if (!user || newCurrency === user.preferredCurrency) return;
+    if (!user || newCurrency === user.displayCurrency) return;
     
     setIsUpdatingCurrency(true);
     try {
       await updateDoc(doc(db, 'users', user.id), {
-        preferredCurrency: newCurrency
+        displayCurrency: newCurrency
       });
-      toast.success('Preferred currency updated');
+      toast.success('Display currency updated');
     } catch (error) {
       console.error('Error updating currency:', error);
       toast.error('Failed to update currency');
@@ -54,6 +54,7 @@ export default function Settings() {
       </div>
 
       <div className="space-y-8">
+        
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between w-full">
@@ -94,11 +95,11 @@ export default function Settings() {
               </div>
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <span className="text-sm font-medium">Preferred Currency</span>
-                  <p className="text-xs text-muted-foreground">Default currency for new spaces</p>
+                  <span className="text-sm font-medium">Display Currency</span>
+                  <p className="text-xs text-muted-foreground">All amounts will be shown in this currency</p>
                 </div>
                 <CurrencySelector
-                  value={user.preferredCurrency}
+                  value={user.displayCurrency}
                   onChange={handleCurrencyChange}
                   disabled={isUpdatingCurrency}
                 />
@@ -109,10 +110,16 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Spaces</CardTitle>
+            <div className="flex items-center justify-between w-full">
+              <CardTitle>Connected Users</CardTitle>
+              <div className="flex items-center gap-3">
+                <ConnectedUsersInviteButton />
+                <ConnectedUsersLeaveButton />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <SpacesManager />
+            <ConnectedUsers />
           </CardContent>
         </Card>
       </div>

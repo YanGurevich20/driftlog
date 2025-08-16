@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
-import { useSpaceCurrency } from '@/hooks/use-space-currency';
+import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { MonthPicker } from '@/components/ui/month-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -22,12 +22,12 @@ export function MonthlyView() {
   const dateRange = getDateRangeForMonth(selectedMonth);
   
   const { entries, loading } = useEntries({
-    spaceId: user?.defaultSpaceId,
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
   
-  const { currency: spaceBaseCurrency } = useSpaceCurrency(user?.defaultSpaceId);
+  const displayCurrency = user?.displayCurrency || 'USD';
+  const { convert } = useExchangeRates();
 
   const categoryTotals = entries.reduce((acc, entry) => {
     const category = entry.category;
@@ -37,7 +37,13 @@ export function MonthlyView() {
         type: entry.type,
       };
     }
-    acc[category].total += entry.convertedAmount;
+    // Convert to display currency on the fly
+    const convertedAmount = convert(
+      entry.originalAmount,
+      entry.currency,
+      displayCurrency
+    );
+    acc[category].total += convertedAmount;
     return acc;
   }, {} as Record<string, { total: number; type: 'income' | 'expense' }>);
 
@@ -95,7 +101,7 @@ export function MonthlyView() {
                 <span className={`font-semibold ${item.net >= 0 ? 'text-primary' : ''}`}>
                   {formatCurrency(
                     item.total, 
-                    spaceBaseCurrency, 
+                    displayCurrency, 
                     item.type === 'expense',
                     item.type === 'income'
                   )}
@@ -112,7 +118,7 @@ export function MonthlyView() {
             <div className="flex justify-between w-full">
               <span className="font-medium">Monthly Net</span>
               <span className={`text-lg font-bold ${monthlyNet >= 0 ? 'text-primary' : ''}`}>
-                {formatCurrency(Math.abs(monthlyNet), spaceBaseCurrency, monthlyNet < 0)}
+                {formatCurrency(Math.abs(monthlyNet), displayCurrency, monthlyNet < 0)}
               </span>
             </div>
           </CardFooter>

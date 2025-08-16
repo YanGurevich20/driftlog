@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
-import { useSpaceCurrency } from '@/hooks/use-space-currency';
+import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getDaysInMonth } from 'date-fns';
 import { getDateRangeForDay, getDateRangeForMonth } from '@/lib/date-range-utils';
@@ -21,19 +21,18 @@ export function BudgetView() {
   
   // Fetch today's entries
   const { entries: todayEntries, loading: todayLoading } = useEntries({
-    spaceId: user?.defaultSpaceId,
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
   
   // Fetch all month entries for budget calculation
   const { entries: monthEntries, loading: monthLoading } = useEntries({
-    spaceId: user?.defaultSpaceId,
     startDate: monthRange.start,
     endDate: monthRange.end,
   });
   
-  const { currency: spaceBaseCurrency } = useSpaceCurrency(user?.defaultSpaceId);
+  const displayCurrency = user?.displayCurrency || 'USD';
+  const { convert } = useExchangeRates();
   
   // Calculate daily budget
   const calculateBudget = () => {
@@ -41,20 +40,37 @@ export function BudgetView() {
     const monthlyIncome = monthEntries
       .filter(e => e.type === 'income')
       .reduce((sum, entry) => {
-        return sum + entry.convertedAmount;
+        const converted = convert(
+          entry.originalAmount,
+          entry.currency,
+          displayCurrency
+        );
+        return sum + converted;
       }, 0);
     
     // All expenses for the month (including today and future)
     const monthlyExpenses = monthEntries
       .filter(e => e.type === 'expense')
       .reduce((sum, entry) => {
-        return sum + entry.convertedAmount;
+        const converted = convert(
+          entry.originalAmount,
+          entry.currency,
+          displayCurrency
+        );
+        return sum + converted;
       }, 0);
     
     // Calculate today's spending (expenses only)
     const todaysExpenses = todayEntries
       .filter(e => e.type === 'expense')
-      .reduce((sum, e) => sum + e.convertedAmount, 0);
+      .reduce((sum, e) => {
+        const converted = convert(
+          e.originalAmount,
+          e.currency,
+          displayCurrency
+        );
+        return sum + converted;
+      }, 0);
     const monthlyExpensesWithoutToday = monthlyExpenses - todaysExpenses;
     // Calculate remaining days in month (including today)
     const today = selectedDate.getDate();
@@ -97,7 +113,7 @@ export function BudgetView() {
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Spent:</span>
               <span className="text-sm font-medium">
-                {formatCurrency(todaysExpenses, spaceBaseCurrency, false)} / {formatCurrency(dailyBudget, spaceBaseCurrency, false)}
+                {formatCurrency(todaysExpenses, displayCurrency, false)} / {formatCurrency(dailyBudget, displayCurrency, false)}
               </span>
             </div>
             

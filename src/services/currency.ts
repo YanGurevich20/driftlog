@@ -72,6 +72,30 @@ export class CurrencyService {
     return Math.round(converted * 100) / 100; // Round to 2 decimal places
   }
 
+  convertSync(amount: number, from: string, to: string): number {
+    if (from === to) return amount;
+
+    // Use cached rates if available, otherwise return the original amount
+    if (!this.memoryCache || this.isCacheExpired(this.memoryCache.fetchedAt)) {
+      // If no cache, just return the amount as-is (will need to fetch rates async)
+      console.warn('No cached exchange rates available, returning original amount');
+      return amount;
+    }
+
+    const rates = this.memoryCache.rates;
+    
+    if (!rates[from] || !rates[to]) {
+      console.warn(`Currency ${from} or ${to} not supported, returning original amount`);
+      return amount;
+    }
+    
+    // Convert through USD as base
+    const amountInUSD = from === 'USD' ? amount : amount / rates[from];
+    const converted = to === 'USD' ? amountInUSD : amountInUSD * rates[to];
+    
+    return Math.round(converted * 100) / 100; // Round to 2 decimal places
+  }
+
   getCurrencySymbol(code: string): string {
     const currency = getCurrencyByCode(code);
     return currency?.symbol || code + ' ';

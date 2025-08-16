@@ -27,7 +27,6 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { CurrencyService } from '@/services/currency';
 import { usePreferences } from '@/store/preferences';
-import { useSpaceCurrency } from '@/hooks/use-space-currency';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, CalendarIcon, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -69,7 +68,6 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { currency: spaceBaseCurrency } = useSpaceCurrency(user?.defaultSpaceId);
   const { lastUsedCurrency, setLastUsedCurrency, addRecentCurrency } = usePreferences();
 
   const form = useForm<FormValues>({
@@ -88,11 +86,11 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
 
   // Set initial currency
   useEffect(() => {
-    // If no last used currency, set to space's base currency
-    if (!lastUsedCurrency && !entry && spaceBaseCurrency) {
-      form.setValue('amountCurrency.currency', spaceBaseCurrency);
+    // If no last used currency, set to user's display currency
+    if (!lastUsedCurrency && !entry && user?.displayCurrency) {
+      form.setValue('amountCurrency.currency', user.displayCurrency);
     }
-  }, [spaceBaseCurrency, lastUsedCurrency, form, entry]);
+  }, [user?.displayCurrency, lastUsedCurrency, form, entry]);
 
   const transactionType = form.watch('type');
 
@@ -123,38 +121,16 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
 
     setIsSubmitting(true);
     try {
-      // Get space's base currency
-      const spaceDoc = await getDoc(doc(db, 'spaces', user.defaultSpaceId));
-      const baseCurrency = spaceDoc.exists() ? spaceDoc.data().baseCurrency : 'USD';
-      
-      // Convert to base currency
-      const currencyService = CurrencyService.getInstance();
       const amount = parseFloat(values.amountCurrency.amount);
       const currency = values.amountCurrency.currency;
-      let convertedAmount = amount;
-      
-      try {
-        convertedAmount = await currencyService.convert(
-          amount,
-          currency,
-          baseCurrency
-        );
-      } catch (conversionError) {
-        console.error('Currency conversion failed:', conversionError);
-        toast.error('Failed to convert currency. Please try again.');
-        setIsSubmitting(false);
-        return;
-      }
 
       const entryData = {
         type: values.type,
+        userId: user.id,
         originalAmount: amount,
         currency,
-        convertedAmount,
-        baseCurrency,
         category: values.category,
         description: values.description || '',
-        spaceId: user.defaultSpaceId,
         date: toUTCMidnight(values.date || new Date()),
         ...(entry ? {
           updatedBy: user.id,
@@ -163,8 +139,6 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
           createdBy: user.id,
           createdAt: serverTimestamp(),
         }),
-        ...(values.type === 'expense' && { payerId: user.id }),
-        ...(values.type === 'income' && { source: values.category }),
       };
 
       if (entry) {

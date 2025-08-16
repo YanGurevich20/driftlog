@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
-import { useSpaceCurrency } from '@/hooks/use-space-currency';
+import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { MoreVertical, Edit2, Trash2, CalendarIcon } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -49,12 +49,12 @@ export function DailyView() {
   const dateRange = getDateRangeForDay(selectedDate);
   
   const { entries, loading, error } = useEntries({
-    spaceId: user?.defaultSpaceId,
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
   
-  const { currency: spaceBaseCurrency } = useSpaceCurrency(user?.defaultSpaceId);
+  const displayCurrency = user?.displayCurrency || 'USD';
+  const { convert } = useExchangeRates();
 
   const groupedEntries = entries.reduce((acc, entry) => {
     const category = entry.category;
@@ -65,7 +65,12 @@ export function DailyView() {
       };
     }
     acc[category].entries.push(entry);
-    const amount = entry.convertedAmount;
+    // Convert to display currency on the fly
+    const amount = convert(
+      entry.originalAmount,
+      entry.currency,
+      displayCurrency
+    );
     // Add as positive for income, negative for expense
     acc[category].net += entry.type === 'income' ? amount : -amount;
     return acc;
@@ -147,7 +152,7 @@ export function DailyView() {
                     }`}>
                       {formatCurrency(
                         Math.abs(group.net),
-                        spaceBaseCurrency,
+                        displayCurrency,
                         group.net < 0
                       )}
                     </span>
@@ -209,7 +214,7 @@ export function DailyView() {
             <div className="flex justify-between w-full">
               <span className="font-medium">Daily Net</span>
               <span className={`text-lg font-bold ${dailyNet >= 0 ? 'text-primary' : ''}`}>
-                {formatCurrency(Math.abs(dailyNet), spaceBaseCurrency, dailyNet < 0)}
+                {formatCurrency(Math.abs(dailyNet), displayCurrency, dailyNet < 0)}
               </span>
             </div>
           </CardFooter>

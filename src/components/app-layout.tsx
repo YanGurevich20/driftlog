@@ -1,9 +1,10 @@
 'use client';
 
-import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
-import { LogOut, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { CurrencyService } from '@/services/currency';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -11,7 +12,14 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, title }: AppLayoutProps) {
-  const { user, logout } = useAuth();
+
+  // Pre-fetch exchange rates on app load
+  useEffect(() => {
+    const currencyService = CurrencyService.getInstance();
+    currencyService.getExchangeRates().catch(err => {
+      console.error('Failed to pre-fetch exchange rates:', err);
+    });
+  }, []);
 
   return (
     <div className="min-h-screen">

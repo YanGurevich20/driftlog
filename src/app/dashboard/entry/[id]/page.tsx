@@ -23,13 +23,10 @@ export default function EditEntryPage({ params }: { params: Promise<{ id: string
       try {
         const entryDoc = await getDoc(doc(db, 'entries', id));
         if (entryDoc.exists()) {
-          const entryData = {
-            ...convertFirestoreDoc<Entry>(entryDoc.data()),
-            id: entryDoc.id
-          };
+          const entryData = convertFirestoreDoc<Entry>(entryDoc);
           
-          // Check if user has access to this entry
-          if (entryData.spaceId === user.defaultSpaceId) {
+          // Check if user has access to this entry (must be the creator)
+          if (entryData.userId === user.id) {
             setEntry(entryData);
           } else {
             console.error('User does not have access to this entry');

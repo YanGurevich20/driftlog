@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Info } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { SpacesService } from '@/services/spaces';
+import { UserGroupsService } from '@/services/user-groups';
 import { CurrencySelector } from '@/components/currency-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { toast } from 'sonner';
@@ -32,23 +32,18 @@ export default function Onboarding() {
 
     setIsSubmitting(true);
     try {
-      // Create the user's main space
-      const spaceId = await SpacesService.createSpace(
-        user.id,
-        name,
-        `${name}'s Space`,
-        currency
-      );
+      // Create the user's initial group
+      const groupId = await UserGroupsService.createGroup(user.id);
 
-      // Update user document with name and main space
+      // Update user document with name and group
       await setDoc(doc(db, 'users', user.id), {
         id: user.id,
         email: user.email,
         name: name.trim(),
         displayName: name.trim(),
         photoUrl: user.photoUrl || null,
-        preferredCurrency: currency,
-        defaultSpaceId: spaceId,
+        displayCurrency: currency,
+        groupId: groupId,
         createdAt: serverTimestamp(),
         onboardingCompleted: true,
       });
@@ -65,7 +60,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-card border rounded-lg p-8">
           <div className="text-center mb-8">
@@ -90,7 +85,7 @@ export default function Onboarding() {
 
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label htmlFor="currency">Main Currency</Label>
+                <Label htmlFor="currency">Display Currency</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
@@ -99,10 +94,10 @@ export default function Onboarding() {
                   </PopoverTrigger>
                   <PopoverContent className="w-80">
                     <div className="text-sm">
-                      <p className="font-medium mb-1">About Main Currency</p>
+                      <p className="font-medium mb-1">About Display Currency</p>
                       <p className="text-muted-foreground">
-                        All your expenses will be converted to this currency for easy tracking. 
-                        We recommend choosing the currency you earn income in or use most frequently.
+                        All amounts will be displayed in this currency for easy tracking. 
+                        You can change this anytime in settings.
                       </p>
                     </div>
                   </PopoverContent>

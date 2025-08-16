@@ -117,10 +117,10 @@ function CurrencyList({
       added.add(lastUsedCurrency);
     }
     
-    // 2. User's preferred currency (if different from last used)
-    if (user?.preferredCurrency && !added.has(user.preferredCurrency) && currencyMap.has(user.preferredCurrency)) {
-      ordered.push(currencyMap.get(user.preferredCurrency)!);
-      added.add(user.preferredCurrency);
+    // 2. User's display currency (if different from last used)
+    if (user?.displayCurrency && !added.has(user.displayCurrency) && currencyMap.has(user.displayCurrency)) {
+      ordered.push(currencyMap.get(user.displayCurrency)!);
+      added.add(user.displayCurrency);
     }
     
     // 3. Major currencies (in their defined order)
@@ -136,7 +136,7 @@ function CurrencyList({
     ordered.push(...otherCurrencies);
     
     return ordered;
-  }, [lastUsedCurrency, user?.preferredCurrency]);
+  }, [lastUsedCurrency, user?.displayCurrency]);
   
   // Filter based on search
   const filteredCurrencies = React.useMemo(() => {
@@ -165,7 +165,7 @@ function CurrencyList({
             // Visual separator after last used and preferred currencies
             const showSeparator = 
               (index === 0 && lastUsedCurrency === currency.code) ||
-              (index === 1 && user?.preferredCurrency === currency.code && lastUsedCurrency !== user?.preferredCurrency);
+              (index === 1 && user?.displayCurrency === currency.code && lastUsedCurrency !== user?.displayCurrency);
             
             return (
               <React.Fragment key={currency.code}>

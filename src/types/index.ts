@@ -5,25 +5,22 @@ export interface User {
   name: string;
   displayName?: string;
   photoUrl?: string;
-  preferredCurrency: string;
-  defaultSpaceId: string;
+  displayCurrency: string;
+  groupId: string;
   createdAt: Date;
 }
 
-// Space types
-export interface Space {
+// User Group types
+export interface UserGroup {
   id: string;
-  name: string;
-  baseCurrency: string;
-  ownerId: string;
   memberIds: string[];
   createdAt: Date;
+  createdBy: string;
 }
 
-export interface SpaceInvitation {
+export interface GroupInvitation {
   id: string;
-  spaceId: string;
-  spaceName: string;
+  groupId: string;
   invitedEmail: string;
   invitedBy: string;
   inviterName: string;
@@ -39,11 +36,9 @@ export type RecurringFrequency = 'daily' | 'weekly' | 'monthly';
 export interface BaseEntry {
   id: string;
   type: EntryType;
-  spaceId: string;
+  userId: string;
   originalAmount: number;
   currency: string;
-  convertedAmount: number;
-  baseCurrency: string;
   category: string;
   description?: string;
   date: Date;
@@ -55,13 +50,11 @@ export interface BaseEntry {
 
 export interface ExpenseEntry extends BaseEntry {
   type: 'expense';
-  payerId: string;
   location?: { lat: number; lng: number };
 }
 
 export interface IncomeEntry extends BaseEntry {
   type: 'income';
-  source?: string;
 }
 
 export type Entry = ExpenseEntry | IncomeEntry;
