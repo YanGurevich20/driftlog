@@ -44,7 +44,6 @@ export function CurrencyInput({
       <CurrencySelector
         value={value.currency}
         onChange={(currency) => onChange({ ...value, currency })}
-        className="w-[120px] justify-between"
       />
     </div>
   );
