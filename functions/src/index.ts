@@ -2,7 +2,6 @@ import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {logger} from "firebase-functions/v2";
 import {defineSecret} from "firebase-functions/params";
 import * as admin from "firebase-admin";
-import { Timestamp } from "firebase-admin/firestore";
 
 admin.initializeApp();
 
@@ -15,10 +14,7 @@ interface DailyRates {
 }
 
 interface MonthlyRates {
-  rates: {
-    [date: string]: DailyRates; // "YYYY-MM-DD" -> rates
-  };
-  lastUpdated: Timestamp;
+  [date: string]: DailyRates; // "YYYY-MM-DD" -> rates
 }
 
 interface GetMonthlyRatesRequest {
@@ -86,7 +82,7 @@ export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
         monthlyRates[month] = data;
         
         // If this is the current month and today's rates are missing, fetch them
-        if (month === currentMonthKey && !data.rates[todayKey]) {
+        if (month === currentMonthKey && !data[todayKey]) {
           const apiKey = exchangeRateApiKey.value();
           if (apiKey) {
             try {
@@ -94,8 +90,7 @@ export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
               const todaysRates = await fetchTodaysRates(apiKey);
               
               // Update the month document with today's rates
-              data.rates[todayKey] = todaysRates;
-              data.lastUpdated = Timestamp.now();
+              data[todayKey] = todaysRates;
               
               await db.doc(`exchangeRates/${month}`).set(data);
               logger.info(`Updated ${month} with today's rates`);
@@ -117,10 +112,7 @@ export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
               const todaysRates = await fetchTodaysRates(apiKey);
               
               const newMonthData: MonthlyRates = {
-                rates: {
-                  [todayKey]: todaysRates,
-                },
-                lastUpdated: Timestamp.now(),
+                [todayKey]: todaysRates,
               };
               
               await db.doc(`exchangeRates/${month}`).set(newMonthData);
@@ -130,19 +122,13 @@ export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
             } catch (error) {
               logger.error(`Failed to create month ${month}: ${error}`);
               // Return empty month data
-              monthlyRates[month] = {
-                rates: {},
-                lastUpdated: Timestamp.now(),
-              };
+              monthlyRates[month] = {};
             }
           }
         } else {
           // Historical or future month without data
           logger.warn(`No data for month ${month}`);
-          monthlyRates[month] = {
-            rates: {},
-            lastUpdated: Timestamp.now(),
-          };
+          monthlyRates[month] = {};
         }
       }
     }

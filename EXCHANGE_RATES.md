@@ -9,16 +9,13 @@ Fixed exchange rate system that stores historical rates and uses them for accura
 ```typescript
 // Firestore Document: exchangeRates/YYYY-MM
 {
-  rates: {
-    "YYYY-MM-DD": {
-      USD: 1,
-      EUR: 0.92,
-      GBP: 0.79,
-      // ... ~160 currencies
-    },
-    // ... all days in month
+  "YYYY-MM-DD": {
+    USD: 1,
+    EUR: 0.92,
+    GBP: 0.79,
+    // ... ~30 currencies (Frankfurter API)
   },
-  lastUpdated: Timestamp
+  // ... all days in month
 }
 ```
 
@@ -87,12 +84,9 @@ Fixed exchange rate system that stores historical rates and uses them for accura
 
 ```typescript
 interface MonthlyExchangeRates {
-  rates: {
-    [date: string]: { // "YYYY-MM-DD"
-      [currency: string]: number
-    }
+  [date: string]: { // "YYYY-MM-DD"
+    [currency: string]: number
   }
-  lastUpdated: Timestamp
 }
 
 interface ExchangeRateContext {

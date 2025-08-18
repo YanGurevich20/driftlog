@@ -10,10 +10,7 @@ interface GetMonthlyRatesRequest {
 interface GetMonthlyRatesResponse {
   monthlyRates: {
     [month: string]: {
-      rates: {
-        [date: string]: DailyRates;
-      };
-      lastUpdated: { _seconds: number; _nanoseconds: number };
+      [date: string]: DailyRates;
     };
   };
 }
@@ -94,10 +91,7 @@ export class CurrencyService {
         const { monthlyRates } = response.data;
 
         for (const [month, data] of Object.entries(monthlyRates)) {
-          const monthData: MonthlyExchangeRates = {
-            rates: data.rates,
-            lastUpdated: new Date(data.lastUpdated._seconds * 1000),
-          };
+          const monthData: MonthlyExchangeRates = data;
           
           // Update cache
           this.monthlyCache.set(month, monthData);
@@ -120,12 +114,12 @@ export class CurrencyService {
   }
 
   private findNearestRates(monthlyRates: MonthlyExchangeRates, targetDate: string): DailyRates | null {
-    const availableDates = Object.keys(monthlyRates.rates).sort();
+    const availableDates = Object.keys(monthlyRates).sort();
     if (availableDates.length === 0) return null;
 
     // Exact match
-    if (monthlyRates.rates[targetDate]) {
-      return monthlyRates.rates[targetDate];
+    if (monthlyRates[targetDate]) {
+      return monthlyRates[targetDate];
     }
 
     // Find nearest date (prefer past over future)
@@ -142,7 +136,7 @@ export class CurrencyService {
 
     // Prefer past date, fallback to future
     const nearestDate = nearestPast || nearestFuture;
-    return nearestDate ? monthlyRates.rates[nearestDate] : null;
+    return nearestDate ? monthlyRates[nearestDate] : null;
   }
 
   async convertWithDate(amount: number, from: string, to: string, date: Date): Promise<{ 
@@ -161,7 +155,7 @@ export class CurrencyService {
     const monthlyRates = await this.getMonthlyRates([monthKey]);
     const monthData = monthlyRates.get(monthKey);
     
-    if (!monthData || Object.keys(monthData.rates).length === 0) {
+    if (!monthData || Object.keys(monthData).length === 0) {
       // No rates available for this month - use today's rates as fallback
       const today = new Date();
       const todayMonth = this.getMonthKey(today);
@@ -204,9 +198,9 @@ export class CurrencyService {
     const converted = to === 'USD' ? amountInUSD : amountInUSD * rates[to];
     
     // Check if we used the exact date or a different one
-    const isEstimate = !monthData.rates[dateKey];
+    const isEstimate = !monthData[dateKey];
     const actualRateDate = isEstimate ? 
-      Object.keys(monthData.rates).find(d => monthData.rates[d] === rates) : 
+      Object.keys(monthData).find(d => monthData[d] === rates) : 
       dateKey;
     
     return { 

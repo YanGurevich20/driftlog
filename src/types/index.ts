@@ -102,10 +102,7 @@ export interface DailyRates {
 }
 
 export interface MonthlyExchangeRates {
-  rates: {
-    [date: string]: DailyRates; // "YYYY-MM-DD" -> rates
-  };
-  lastUpdated: Date;
+  [date: string]: DailyRates; // "YYYY-MM-DD" -> rates
 }
 
 // Form types
