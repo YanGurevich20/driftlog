@@ -182,19 +182,10 @@ export const CURRENCIES = [
   { code: 'GIP', name: 'Gibraltar Pound', symbol: '£' },
 ];
 
-// Helper functions for currency management
 export function getCurrencyByCode(code: string) {
   return CURRENCIES.find(c => c.code === code);
 }
 
 export function getPopularCurrencies() {
   return CURRENCIES.filter(c => c.popular);
-}
-
-export function searchCurrencies(query: string) {
-  const q = query.toLowerCase();
-  return CURRENCIES.filter(c => 
-    c.code.toLowerCase().includes(q) ||
-    c.name.toLowerCase().includes(q)
-  );
 }

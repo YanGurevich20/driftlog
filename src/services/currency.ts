@@ -1,5 +1,4 @@
 import { httpsCallable } from 'firebase/functions';
-import { getCurrencyByCode } from '@/lib/currencies';
 import { functions } from '@/lib/firebase';
 import type { MonthlyExchangeRates, DailyRates } from '@/types';
 
@@ -235,11 +234,6 @@ export class CurrencyService {
     const converted = to === 'USD' ? amountInUSD : amountInUSD * rates[to];
     
     return Math.round(converted * 100) / 100;
-  }
-
-  getCurrencySymbol(code: string): string {
-    const currency = getCurrencyByCode(code);
-    return currency?.symbol || code + ' ';
   }
 
   clearCache(): void {
