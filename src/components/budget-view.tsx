@@ -32,7 +32,10 @@ export function BudgetView() {
   });
   
   const displayCurrency = user?.displayCurrency || 'USD';
-  const { convert } = useExchangeRates();
+  const { convert } = useExchangeRates({
+    startDate: monthRange.start,
+    endDate: monthRange.end,
+  });
   
   // Calculate daily budget
   const calculateBudget = () => {
@@ -43,7 +46,8 @@ export function BudgetView() {
         const converted = convert(
           entry.originalAmount,
           entry.currency,
-          displayCurrency
+          displayCurrency,
+          entry.date
         );
         return sum + converted;
       }, 0);
@@ -55,7 +59,8 @@ export function BudgetView() {
         const converted = convert(
           entry.originalAmount,
           entry.currency,
-          displayCurrency
+          displayCurrency,
+          entry.date
         );
         return sum + converted;
       }, 0);
@@ -67,7 +72,8 @@ export function BudgetView() {
         const converted = convert(
           e.originalAmount,
           e.currency,
-          displayCurrency
+          displayCurrency,
+          e.date
         );
         return sum + converted;
       }, 0);

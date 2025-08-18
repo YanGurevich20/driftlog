@@ -15,10 +15,15 @@ export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const isSettingsPage = pathname?.includes('/settings');
 
-  // Pre-fetch exchange rates on app load
+  // Pre-fetch current month's exchange rates on app load
   useEffect(() => {
     const currencyService = CurrencyService.getInstance();
-    currencyService.getExchangeRates().catch(err => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const currentMonth = `${year}-${month}`;
+    
+    currencyService.getMonthlyRates([currentMonth]).catch(err => {
       console.error('Failed to pre-fetch exchange rates:', err);
     });
   }, []);

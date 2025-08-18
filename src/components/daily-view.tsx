@@ -53,7 +53,10 @@ export function DailyView() {
   });
   
   const displayCurrency = user?.displayCurrency || 'USD';
-  const { convert } = useExchangeRates();
+  const { convert } = useExchangeRates({
+    startDate: dateRange.start,
+    endDate: dateRange.end,
+  });
 
   const groupedEntries = entries.reduce((acc, entry) => {
     const category = entry.category;
@@ -64,11 +67,12 @@ export function DailyView() {
       };
     }
     acc[category].entries.push(entry);
-    // Convert to display currency on the fly
+    // Convert to display currency using the entry's date
     const amount = convert(
       entry.originalAmount,
       entry.currency,
-      displayCurrency
+      displayCurrency,
+      entry.date
     );
     // Add as positive for income, negative for expense
     acc[category].net += entry.type === 'income' ? amount : -amount;

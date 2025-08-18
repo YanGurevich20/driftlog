@@ -27,7 +27,10 @@ export function MonthlyView() {
   });
   
   const displayCurrency = user?.displayCurrency || 'USD';
-  const { convert } = useExchangeRates();
+  const { convert } = useExchangeRates({
+    startDate: dateRange.start,
+    endDate: dateRange.end,
+  });
 
   const categoryTotals = entries.reduce((acc, entry) => {
     const category = entry.category;
@@ -37,11 +40,12 @@ export function MonthlyView() {
         type: entry.type,
       };
     }
-    // Convert to display currency on the fly
+    // Convert to display currency using the entry's date
     const convertedAmount = convert(
       entry.originalAmount,
       entry.currency,
-      displayCurrency
+      displayCurrency,
+      entry.date
     );
     acc[category].total += convertedAmount;
     return acc;

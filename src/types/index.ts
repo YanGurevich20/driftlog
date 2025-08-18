@@ -96,6 +96,18 @@ export interface ExchangeRates {
   fetchedAt: Date;
 }
 
+// Monthly exchange rate types
+export interface DailyRates {
+  [currency: string]: number;
+}
+
+export interface MonthlyExchangeRates {
+  rates: {
+    [date: string]: DailyRates; // "YYYY-MM-DD" -> rates
+  };
+  lastUpdated: Date;
+}
+
 // Form types
 export interface EntryFormData {
   type: EntryType;
