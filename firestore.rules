@@ -35,8 +35,8 @@ service cloud.firestore {
     // User Groups - members can read, anyone can create (for onboarding)
     match /userGroups/{groupId} {
       allow read: if isAuthenticated() && 
-        ((getUserGroupId() != null && getUserGroupId() == groupId) || 
-         (resource != null && request.auth.uid in resource.data.memberIds));
+        (request.auth.uid in resource.data.memberIds || 
+         (getUserGroupId() != null && getUserGroupId() == groupId));
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && 
         (request.auth.uid in resource.data.memberIds ||
