@@ -48,8 +48,6 @@ export default function Onboarding() {
         onboardingCompleted: true,
       });
 
-      // The auth context will automatically update via the real-time listener
-      // and redirect to dashboard when onboardingCompleted is detected
       router.push('/dashboard');
     } catch (error) {
       console.error('Error completing onboarding:', error);

@@ -81,10 +81,11 @@ Multi-currency expense tracking with real-time collaboration.
 - [ ] CI/CD pipeline
 - [ ] Security audit
 - [ ] Rename repo and firebase project to driftlog
+- [ ] multi region deploy
 ### Bugs
 - [ ] Budget headroom settings
 - [V] Delete invites in db after acceptance
-- [ ] Orphaned groups in db
+- [V] Orphaned groups in db
 ### Enhancements
 - [ ] Verify indexes
 - [X] Sort entries and categories by date in daily view, top one is expanded. currently not doing for simplicity
@@ -92,7 +93,7 @@ Multi-currency expense tracking with real-time collaboration.
 ### Features
 - [ ] **Tiered currency support**: Frankfurter API for free users (31 currencies, no costs), Exchange Rate API for paid users (170+ currencies)
 - [ ] Custom categories per group/user - maybe
-- [ ] Recurring transactions
+- [ ] Recurring entries
 - [ ] Entry from photo
 - [ ] Entry from audio
 - [ ] entry from whatsapp message
