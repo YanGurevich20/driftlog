@@ -64,7 +64,7 @@ export function useExchangeRates(options?: UseExchangeRatesOptions) {
     };
 
     fetchRates();
-  }, [requiredMonths, requiredMonthsKey]);
+  }, [requiredMonthsKey]);
 
   // Date-aware conversion function
   const convert = useCallback((amount: number, from: string, to: string, date: Date): number => {

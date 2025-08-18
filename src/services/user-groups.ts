@@ -87,13 +87,12 @@ export class UserGroupsService {
       }
     }
     
-    // Check 2: Pending invitation exists
+    // Check 2: Active invitation exists
     const existingInvitations = await getDocs(
       query(
         collection(db, 'groupInvitations'),
         where('groupId', '==', groupId),
-        where('invitedEmail', '==', normalizedEmail),
-        where('status', '==', 'pending')
+        where('invitedEmail', '==', normalizedEmail)
       )
     );
     
@@ -125,7 +124,6 @@ export class UserGroupsService {
       invitedEmail: invitedEmail.toLowerCase(),
       invitedBy: inviterUserId,
       inviterName,
-      status: 'pending' as const,
       createdAt: serverTimestamp(),
       expiresAt: Timestamp.fromDate(expiresAt),
     };
@@ -137,8 +135,7 @@ export class UserGroupsService {
   static async getUserInvitations(userEmail: string): Promise<GroupInvitation[]> {
     const q = query(
       collection(db, 'groupInvitations'),
-      where('invitedEmail', '==', userEmail.toLowerCase()),
-      where('status', '==', 'pending')
+      where('invitedEmail', '==', userEmail.toLowerCase())
     );
     
     const snapshot = await getDocs(q);
@@ -164,11 +161,7 @@ export class UserGroupsService {
     
     const invitation = convertFirestoreDoc<GroupInvitation>(invitationDoc);
     
-    // Check invitation status and expiry
-    if (invitation.status !== 'pending') {
-      throw new Error('Invitation already processed');
-    }
-    
+    // Check expiry
     const now = Timestamp.now();
     if (invitation.expiresAt.getTime() < now.toMillis()) {
       throw new Error('Invitation expired');
@@ -192,8 +185,8 @@ export class UserGroupsService {
 
     // Update all in a batch for consistency
     await Promise.all([
-      // Mark invitation as accepted
-      updateDoc(invitationRef, { status: 'accepted' }),
+      // Delete the invitation
+      deleteDoc(invitationRef),
       // Add user to new group
       updateDoc(doc(db, 'userGroups', invitation.groupId), {
         memberIds: arrayUnion(userId)
@@ -211,10 +204,7 @@ export class UserGroupsService {
   }
 
   static async rejectInvitation(invitationId: string): Promise<void> {
-    const invitationRef = doc(db, 'groupInvitations', invitationId);
-    await updateDoc(invitationRef, {
-      status: 'rejected'
-    });
+    await deleteDoc(doc(db, 'groupInvitations', invitationId));
   }
 
   static async cancelInvitation(invitationId: string): Promise<void> {

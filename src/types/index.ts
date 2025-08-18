@@ -24,7 +24,6 @@ export interface GroupInvitation {
   invitedEmail: string;
   invitedBy: string;
   inviterName: string;
-  status: 'pending' | 'accepted' | 'rejected';
   createdAt: Date;
   expiresAt: Date;
 }
