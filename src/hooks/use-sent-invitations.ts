@@ -20,8 +20,7 @@ export function useSentInvitations() {
 
     const q = query(
       collection(db, 'groupInvitations'),
-      where('invitedBy', '==', user.id),
-      where('status', '==', 'pending')
+      where('invitedBy', '==', user.id)
     );
 
     const unsubscribe = onSnapshot(

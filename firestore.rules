@@ -43,7 +43,8 @@ service cloud.firestore {
          // Allow adding self when accepting invitation
          (request.auth.uid in request.resource.data.memberIds &&
           request.resource.data.memberIds.hasAll(resource.data.memberIds)));
-      allow delete: if false; // Groups are never deleted
+      allow delete: if isAuthenticated() && 
+        resource.data.memberIds.size() == 0; // Can only delete empty groups
     }
     
     // Entries - users can access own and group members' entries
@@ -69,7 +70,8 @@ service cloud.firestore {
       allow update: if isAuthenticated() &&
         request.auth.token.email == resource.data.invitedEmail;
       allow delete: if isAuthenticated() &&
-        request.auth.uid == resource.data.invitedBy; // Sender can cancel their own invitations
+        (request.auth.uid == resource.data.invitedBy || // Sender can cancel
+         request.auth.token.email == resource.data.invitedEmail); // Recipient can delete when accepting/rejecting
     }
     
     // Exchange rates - all authenticated users can read/write

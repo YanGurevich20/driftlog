@@ -10,7 +10,6 @@ import {
   where, 
   serverTimestamp,
   arrayUnion,
-  arrayRemove,
   Timestamp
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -198,9 +197,22 @@ export class UserGroupsService {
 
   private static async removeUserFromGroup(userId: string, groupId: string): Promise<void> {
     const groupRef = doc(db, 'userGroups', groupId);
+    const groupDoc = await getDoc(groupRef);
+    
+    if (!groupDoc.exists()) return;
+    
+    const group = convertFirestoreDoc<UserGroup>(groupDoc);
+    const updatedMembers = group.memberIds.filter((id: string) => id !== userId);
+    
+    // First update the group to remove the member
     await updateDoc(groupRef, {
-      memberIds: arrayRemove(userId)
+      memberIds: updatedMembers
     });
+    
+    // Then delete if empty
+    if (updatedMembers.length === 0) {
+      await deleteDoc(groupRef);
+    }
   }
 
   static async rejectInvitation(invitationId: string): Promise<void> {
