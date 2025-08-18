@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
@@ -21,49 +21,55 @@ export function MonthlyView() {
   
   const dateRange = getDateRangeForMonth(selectedMonth);
   
-  const { entries, loading } = useEntries({
+  const { entries, loading: entriesLoading, error: entriesError } = useEntries({
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
   
   const displayCurrency = user?.displayCurrency || 'USD';
-  const { convert } = useExchangeRates({
+  const { convert, error: conversionError, loading: ratesLoading } = useExchangeRates({
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
 
-  const categoryTotals = entries.reduce((acc, entry) => {
-    const category = entry.category;
-    if (!acc[category]) {
-      acc[category] = {
-        total: 0,
-        type: entry.type,
-      };
-    }
-    // Convert to display currency using the entry's date
-    const convertedAmount = convert(
-      entry.originalAmount,
-      entry.currency,
-      displayCurrency,
-      entry.date
-    );
-    acc[category].total += convertedAmount;
-    return acc;
-  }, {} as Record<string, { total: number; type: 'income' | 'expense' }>);
+  const categoryTotals = useMemo(() => {
+    return entries.reduce((acc, entry) => {
+      const category = entry.category;
+      if (!acc[category]) {
+        acc[category] = {
+          total: 0,
+          type: entry.type,
+        };
+      }
+      // Convert to display currency using the entry's date
+      const convertedAmount = convert(
+        entry.originalAmount,
+        entry.currency,
+        displayCurrency,
+        entry.date
+      );
+      acc[category].total += convertedAmount;
+      return acc;
+    }, {} as Record<string, { total: number; type: 'income' | 'expense' }>);
+  }, [entries, convert, displayCurrency]);
 
-  const monthlyNet = Object.values(categoryTotals).reduce((sum, category) => {
-    return sum + (category.type === 'income' ? category.total : -category.total);
-  }, 0);
+  const monthlyNet = useMemo(() => {
+    return Object.values(categoryTotals).reduce((sum, category) => {
+      return sum + (category.type === 'income' ? category.total : -category.total);
+    }, 0);
+  }, [categoryTotals]);
 
   // Sort all categories by net amount (income positive, expense negative)
-  const sortedCategories = Object.entries(categoryTotals)
-    .map(([category, data]) => ({
-      category,
-      net: data.type === 'income' ? data.total : -data.total,
-      total: data.total,
-      type: data.type
-    }))
-    .sort((a, b) => b.net - a.net);
+  const sortedCategories = useMemo(() => {
+    return Object.entries(categoryTotals)
+      .map(([category, data]) => ({
+        category,
+        net: data.type === 'income' ? data.total : -data.total,
+        total: data.total,
+        type: data.type
+      }))
+      .sort((a, b) => b.net - a.net);
+  }, [categoryTotals]);
 
 
   return (
@@ -91,7 +97,8 @@ export function MonthlyView() {
       
       <CardContent>
         <DataState
-          loading={loading}
+          loading={entriesLoading || ratesLoading}
+          error={entriesError || conversionError}
           empty={entries.length === 0}
           loadingVariant="skeleton"
           emptyTitle="No entries for this month"

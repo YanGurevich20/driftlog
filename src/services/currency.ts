@@ -175,21 +175,18 @@ export class CurrencyService {
         }
       }
       
-      console.warn(`No rates available for ${monthKey}, returning original amount`);
-      return { converted: amount, isEstimate: true };
+      throw new Error(`No exchange rates available for ${monthKey}`);
     }
 
     // Find rates for the specific date or nearest available
     const rates = this.findNearestRates(monthData, dateKey);
     
     if (!rates) {
-      console.warn(`No rates found for ${dateKey}, returning original amount`);
-      return { converted: amount, isEstimate: true };
+      throw new Error(`No exchange rates found for ${dateKey}`);
     }
 
     if (!rates[from] || !rates[to]) {
-      console.warn(`Currency ${from} or ${to} not supported for ${dateKey}`);
-      return { converted: amount, isEstimate: true };
+      throw new Error(`Currency ${from} or ${to} not supported`);
     }
 
     // Convert through USD as base
@@ -219,14 +216,16 @@ export class CurrencyService {
     // Try to use cached rates
     const monthData = this.monthlyCache.get(monthKey);
     if (!monthData) {
-      console.warn(`No cached rates for ${monthKey}, returning original amount`);
-      return amount;
+      throw new Error(`No cached rates for ${monthKey}. Please wait for rates to load.`);
     }
 
     const rates = this.findNearestRates(monthData, dateKey);
-    if (!rates || !rates[from] || !rates[to]) {
-      console.warn(`Cannot convert ${from} to ${to} for ${dateKey}`);
-      return amount;
+    if (!rates) {
+      throw new Error(`No exchange rates found for ${dateKey}`);
+    }
+    
+    if (!rates[from] || !rates[to]) {
+      throw new Error(`Cannot convert ${from} to ${to}: unsupported currency`);
     }
 
     // Convert through USD as base

@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getDaysInMonth } from 'date-fns';
-import { getDateRangeForDay, getDateRangeForMonth } from '@/lib/date-range-utils';
+import { getDaysInMonth, isSameDay } from 'date-fns';
+import { getDateRangeForMonth } from '@/lib/date-range-utils';
 import { DataState } from '@/components/ui/data-state';
 import { Wallet } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
@@ -16,29 +16,27 @@ export function BudgetView() {
   const { user } = useAuth();
   const [selectedDate] = useState(new Date());
   
-  const dateRange = getDateRangeForDay(selectedDate);
   const monthRange = getDateRangeForMonth(selectedDate);
   
-  // Fetch today's entries
-  const { entries: todayEntries, loading: todayLoading } = useEntries({
-    startDate: dateRange.start,
-    endDate: dateRange.end,
-  });
-  
   // Fetch all month entries for budget calculation
-  const { entries: monthEntries, loading: monthLoading } = useEntries({
+  const { entries: monthEntries, loading: monthLoading, error: monthError } = useEntries({
     startDate: monthRange.start,
     endDate: monthRange.end,
   });
   
+  // Derive today's entries from month entries
+  const todayEntries = useMemo(() => {
+    return monthEntries.filter(entry => isSameDay(entry.date, selectedDate));
+  }, [monthEntries, selectedDate]);
+  
   const displayCurrency = user?.displayCurrency || 'USD';
-  const { convert } = useExchangeRates({
+  const { convert, error: conversionError, loading: ratesLoading } = useExchangeRates({
     startDate: monthRange.start,
     endDate: monthRange.end,
   });
   
   // Calculate daily budget
-  const calculateBudget = () => {
+  const { dailyBudget, todaysExpenses } = useMemo(() => {
     // All income for the month (including today and future)
     const monthlyIncome = monthEntries
       .filter(e => e.type === 'income')
@@ -92,12 +90,9 @@ export function BudgetView() {
       dailyBudget, 
       todaysExpenses, 
       remainingDays,
-      availableNet 
+      availableNet
     };
-  };
-  
-  const { dailyBudget, todaysExpenses } = calculateBudget();
-  const loading = todayLoading || monthLoading;
+  }, [monthEntries, todayEntries, convert, displayCurrency, selectedDate]);
   const percentUsed = dailyBudget > 0 ? (todaysExpenses / dailyBudget) * 100 : 0;
   
   return (
@@ -108,7 +103,8 @@ export function BudgetView() {
       
       <CardContent>
         <DataState
-          loading={loading}
+          loading={monthLoading || ratesLoading}
+          error={monthError || conversionError}
           empty={dailyBudget === 0}
           loadingVariant="skeleton"
           emptyTitle="No budget available"

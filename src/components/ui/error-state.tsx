@@ -31,7 +31,7 @@ export function ErrorState({
       </p>
       {error && process.env.NODE_ENV === 'development' && (
         <p className="text-xs text-muted-foreground mb-4 font-mono">
-          {error.message}
+          dev-only message: {error.message}
         </p>
       )}
       {onRetry && (

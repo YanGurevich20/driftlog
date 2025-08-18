@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
@@ -47,41 +47,45 @@ export function DailyView() {
   
   const dateRange = getDateRangeForDay(selectedDate);
   
-  const { entries, loading, error } = useEntries({
+  const { entries, loading: entriesLoading, error: entriesError } = useEntries({
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
   
   const displayCurrency = user?.displayCurrency || 'USD';
-  const { convert } = useExchangeRates({
+  const { convert, error: conversionError, loading: ratesLoading } = useExchangeRates({
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
 
-  const groupedEntries = entries.reduce((acc, entry) => {
-    const category = entry.category;
-    if (!acc[category]) {
-      acc[category] = {
-        entries: [],
-        net: 0,
-      };
-    }
-    acc[category].entries.push(entry);
-    // Convert to display currency using the entry's date
-    const amount = convert(
-      entry.originalAmount,
-      entry.currency,
-      displayCurrency,
-      entry.date
-    );
-    // Add as positive for income, negative for expense
-    acc[category].net += entry.type === 'income' ? amount : -amount;
-    return acc;
-  }, {} as Record<string, { entries: Entry[]; net: number }>);
+  const groupedEntries = useMemo(() => {
+    return entries.reduce((acc, entry) => {
+      const category = entry.category;
+      if (!acc[category]) {
+        acc[category] = {
+          entries: [],
+          net: 0,
+        };
+      }
+      acc[category].entries.push(entry);
+      // Convert to display currency using the entry's date
+      const amount = convert(
+        entry.originalAmount,
+        entry.currency,
+        displayCurrency,
+        entry.date
+      );
+      // Add as positive for income, negative for expense
+      acc[category].net += entry.type === 'income' ? amount : -amount;
+      return acc;
+    }, {} as Record<string, { entries: Entry[]; net: number }>);
+  }, [entries, convert, displayCurrency]);
 
-  const dailyNet = Object.values(groupedEntries).reduce((sum, group) => {
-    return sum + group.net;
-  }, 0);
+  const dailyNet = useMemo(() => {
+    return Object.values(groupedEntries).reduce((sum, group) => {
+      return sum + group.net;
+    }, 0);
+  }, [groupedEntries]);
 
   const handleEdit = (entry: Entry) => {
     router.push(`/dashboard/entry/${entry.id}`);
@@ -128,8 +132,8 @@ export function DailyView() {
       
       <CardContent>
         <DataState
-          loading={loading}
-          error={error}
+          loading={entriesLoading || ratesLoading}
+          error={entriesError || conversionError}
           empty={Object.keys(groupedEntries).length === 0}
           loadingVariant="skeleton"
           emptyTitle="No entries for this day"

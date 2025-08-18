@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { CurrencyService } from '@/services/currency';
 
 interface UseExchangeRatesOptions {
@@ -7,6 +7,8 @@ interface UseExchangeRatesOptions {
 }
 
 export function useExchangeRates(options?: UseExchangeRatesOptions) {
+  const [conversionError, setConversionError] = useState<Error | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Convert dates to stable string representations for dependency comparison
   const startDateStr = options?.startDate?.toISOString() || '';
@@ -14,6 +16,7 @@ export function useExchangeRates(options?: UseExchangeRatesOptions) {
 
   useEffect(() => {
     const fetchRates = async () => {
+      setIsLoading(true);
       // Calculate which months we need based on date range
       const months = new Set<string>();
       
@@ -40,30 +43,46 @@ export function useExchangeRates(options?: UseExchangeRatesOptions) {
       const requiredMonths = Array.from(months);
       
       if (requiredMonths.length === 0) {
+        setIsLoading(false);
         return;
       }
 
       try {
         const currencyService = CurrencyService.getInstance();
         await currencyService.getMonthlyRates(requiredMonths);
+        // Clear any previous conversion errors when rates are successfully loaded
+        setConversionError(null);
       } catch (err) {
         console.error('Failed to fetch monthly exchange rates:', err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchRates();
   }, [startDateStr, endDateStr]);
 
-  // Date-aware conversion function
+  // Date-aware conversion function that handles errors gracefully
   const convert = useCallback((amount: number, from: string, to: string, date: Date): number => {
     if (from === to) return amount;
     
-    const currencyService = CurrencyService.getInstance();
-    return currencyService.convertSync(amount, from, to, date);
+    try {
+      const currencyService = CurrencyService.getInstance();
+      const result = currencyService.convertSync(amount, from, to, date);
+      // Clear error on successful conversion
+      setConversionError(null);
+      return result;
+    } catch (error) {
+      // Set error state but return 0 to avoid breaking calculations
+      setConversionError(error as Error);
+      return 0;
+    }
   }, []);
 
 
   return { 
-    convert
+    convert,
+    error: conversionError,
+    loading: isLoading
   };
 }
