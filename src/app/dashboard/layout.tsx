@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { AppLayout } from '@/components/app-layout';
+import { EntriesCacheProvider } from '@/lib/entries-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,5 +34,9 @@ export default function DashboardLayout({
     );
   }
 
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <EntriesCacheProvider>
+      <AppLayout>{children}</AppLayout>
+    </EntriesCacheProvider>
+  );
 }

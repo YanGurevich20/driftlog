@@ -71,10 +71,20 @@ Multi-currency expense tracking with real-time collaboration.
 - [x] Default theme: system
 
 ## Future Tasks
-- [ ] Custom categories per group
+### Architecture
+- [ ] CI/CD pipeline
+- [ ] Security audit
+- [ ] Delete invites in db after acceptance
+- [ ] Rename repo and firebase project to driftlog
+### Bugs
+- [ ] Fixed exchange rates
 - [ ] Recurring transactions
 - [ ] User avatars
 - [ ] Budget headroom settings
 - [ ] Future expense planning
-- [ ] CI/CD pipeline
-- [ ] Security audit
+- [ ] Limit group size
+### Features
+- [ ] Custom categories per group - maybe
+- [ ] Entry from photo
+- [ ] Entry from audio
+- [ ] Location tagging (city, country OR geopoint)

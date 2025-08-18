@@ -101,17 +101,3 @@ export function getDateRangeForMonth(date: Date): DateRange {
     end: getUTCEndOfDay(end),
   };
 }
-
-export function getDateRangeForWeek(date: Date, weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 1): DateRange {
-  return {
-    start: startOfWeek(date, { weekStartsOn }),
-    end: endOfWeek(date, { weekStartsOn }),
-  };
-}
-
-export function getDateRangeForYear(date: Date): DateRange {
-  return {
-    start: startOfYear(date),
-    end: endOfYear(date),
-  };
-}

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, Timestamp, QueryConstraint, limit as firestoreLimit, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { convertFirestoreDoc } from '@/lib/firestore-utils';
 import type { Entry } from '@/types';
 import { useAuth } from '@/lib/auth-context';
+import { useEntriesCache } from '@/lib/entries-cache';
 
 interface UseEntriesOptions {
   userId?: string;
@@ -19,26 +19,28 @@ export function useEntries(options: UseEntriesOptions = {}) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [memberIds, setMemberIds] = useState<string[]>([]);
 
   const startTime = startDate?.getTime();
   const endTime = endDate?.getTime();
 
+  // Use cache if available (returns null if no provider)
+  const cache = useEntriesCache();
+
+  // Fetch member IDs
   useEffect(() => {
-    const fetchEntries = async () => {
+    const fetchMemberIds = async () => {
       try {
-        let memberIds: string[] = [];
+        let ids: string[] = [];
         
         if (groupId) {
-          // Fetch group members directly by document ID
           const groupDoc = await getDoc(doc(db, 'userGroups', groupId));
           if (groupDoc.exists()) {
-            memberIds = groupDoc.data().memberIds || [];
+            ids = groupDoc.data().memberIds || [];
           }
         } else if (userId) {
-          // Single user mode
-          memberIds = [userId];
+          ids = [userId];
         } else if (user) {
-          // Default: get current user's group
           const userDoc = await getDoc(doc(db, 'users', user.id));
           if (userDoc.exists()) {
             const userGroupId = userDoc.data().groupId;
@@ -46,70 +48,58 @@ export function useEntries(options: UseEntriesOptions = {}) {
             if (userGroupId) {
               const groupDoc = await getDoc(doc(db, 'userGroups', userGroupId));
               if (groupDoc.exists()) {
-                memberIds = groupDoc.data().memberIds || [];
+                ids = groupDoc.data().memberIds || [];
               }
             }
           }
         }
         
-        if (memberIds.length === 0) {
-          setEntries([]);
-          setLoading(false);
-          return;
-        }
-
-        const constraints: QueryConstraint[] = [
-          where('userId', 'in', memberIds),
-        ];
-
-    if (startDate) {
-      constraints.push(where('date', '>=', Timestamp.fromDate(startDate)));
-    }
-    
-    if (endDate) {
-      constraints.push(where('date', '<=', Timestamp.fromDate(endDate)));
-    }
-
-    constraints.push(orderBy('date', 'desc'));
-
-    if (limit) {
-      constraints.push(firestoreLimit(limit));
-    }
-
-    const q = query(collection(db, 'entries'), ...constraints);
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const newEntries: Entry[] = [];
-        snapshot.forEach((doc) => {
-          newEntries.push(convertFirestoreDoc<Entry>(doc));
-        });
-        setEntries(newEntries);
-        setLoading(false);
-        setError(null);
-      },
-      (err) => {
-        console.error('Error fetching entries:', err);
-        setError(err as Error);
-        setLoading(false);
-      }
-    );
-
-        return () => unsubscribe();
+        setMemberIds(ids);
       } catch (err) {
-        console.error('Error setting up entries listener:', err);
+        console.error('Error fetching member IDs:', err);
         setError(err as Error);
         setLoading(false);
       }
     };
     
     if (user || userId || groupId) {
-      fetchEntries();
+      fetchMemberIds();
     } else {
       setLoading(false);
     }
-  }, [userId, groupId, user?.id, user, startTime, endTime, limit, startDate, endDate]);
+  }, [userId, groupId, user?.id, user]);
+
+  // Subscribe to entries using cache if available
+  useEffect(() => {
+    if (memberIds.length === 0) {
+      setEntries([]);
+      setLoading(false);
+      return;
+    }
+
+    if (!cache) {
+      // Cache provider not available, use direct queries
+      console.warn('EntriesCache provider not found, using direct Firestore queries');
+      // For now, return early - in production you'd implement fallback
+      return;
+    }
+
+    const unsubscribe = cache.subscribe(
+      {
+        memberIds,
+        startTime,
+        endTime,
+        limit,
+      },
+      (newEntries, isLoading, err) => {
+        setEntries(newEntries);
+        setLoading(isLoading);
+        setError(err);
+      }
+    );
+
+    return unsubscribe;
+  }, [cache, memberIds, startTime, endTime, limit]);
 
   return { entries, loading, error };
 }
