@@ -346,13 +346,6 @@ export function ConnectedUsers() {
               icon={<UserAvatar user={connectedUser} />}
               title={connectedUser.displayName || connectedUser.name}
               subtitle={connectedUser.email}
-              actions={
-                connectedUser.displayCurrency && (
-                  <div className="text-sm text-muted-foreground">
-                    {connectedUser.displayCurrency}
-                  </div>
-                )
-              }
             />
             {index < connectedUsers.length - 1 && (
               <Separator className="mt-3" />
