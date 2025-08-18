@@ -10,11 +10,10 @@ interface UseEntriesOptions {
   groupId?: string;
   startDate?: Date;
   endDate?: Date;
-  limit?: number;
 }
 
 export function useEntries(options: UseEntriesOptions = {}) {
-  const { userId, groupId, startDate, endDate, limit } = options;
+  const { userId, groupId, startDate, endDate } = options;
   const { user } = useAuth();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +88,6 @@ export function useEntries(options: UseEntriesOptions = {}) {
         memberIds,
         startTime,
         endTime,
-        limit,
       },
       (newEntries, isLoading, err) => {
         setEntries(newEntries);
@@ -99,7 +97,7 @@ export function useEntries(options: UseEntriesOptions = {}) {
     );
 
     return unsubscribe;
-  }, [cache, memberIds, startTime, endTime, limit]);
+  }, [cache, memberIds, startTime, endTime]);
 
   return { entries, loading, error };
 }

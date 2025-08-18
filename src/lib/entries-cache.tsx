@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useRef, useCallback, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, Timestamp, QueryConstraint, limit as firestoreLimit } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, Timestamp, QueryConstraint } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { convertFirestoreDoc } from '@/lib/firestore-utils';
 import type { Entry } from '@/types';
@@ -10,7 +10,6 @@ interface CacheKey {
   memberIds: string[];
   startTime?: number;
   endTime?: number;
-  limit?: number;
 }
 
 interface CacheEntry {
@@ -38,7 +37,6 @@ export function EntriesCacheProvider({ children }: { children: React.ReactNode }
       memberIds: key.memberIds.sort(),
       startTime: key.startTime,
       endTime: key.endTime,
-      limit: key.limit,
     });
   };
 
@@ -71,10 +69,6 @@ export function EntriesCacheProvider({ children }: { children: React.ReactNode }
       }
 
       constraints.push(orderBy('date', 'desc'));
-
-      if (key.limit) {
-        constraints.push(firestoreLimit(key.limit));
-      }
 
       const q = query(collection(db, 'entries'), ...constraints);
 

@@ -3,3 +3,4 @@
 - when working with cloud functions, always read online about cloud functions v2 implementation since it is very new.
 - When working with shadcn components, always make sure to look up reference in shadcn, for example - https://ui.shadcn.com/docs/components/context-menu
 - don't add code comments
+- when testing changes, run build unless explicitly asked to run a dev server

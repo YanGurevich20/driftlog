@@ -79,7 +79,7 @@ export function BudgetView() {
     
     // Calculate daily budget: (all income - all expenses without today) / remaining days
     const availableNet = monthlyIncome - monthlyExpensesWithoutToday;
-    const dailyBudget = availableNet > 0 ? availableNet / remainingDays : 0;
+    const dailyBudget = monthlyIncome > 0 ? availableNet / remainingDays : 0;
     
     
     return { 
