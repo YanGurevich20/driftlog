@@ -88,8 +88,8 @@ export default function Onboarding() {
                 <Label htmlFor="currency">Display Currency</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
-                      <Info className="h-4 w-4 text-muted-foreground" />
+                    <Button variant="ghost" size="sm" className="size-5 p-0">
+                      <Info className="size-4 text-muted-foreground" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80">

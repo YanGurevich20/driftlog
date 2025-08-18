@@ -71,46 +71,50 @@ export class UserGroupsService {
     return members.filter(member => member.id !== userId);
   }
 
+  private static async validateInvitation(
+    groupId: string,
+    inviterUserId: string,
+    invitedEmail: string
+  ): Promise<{ valid: boolean; error?: string }> {
+    const normalizedEmail = invitedEmail.toLowerCase();
+    
+    // Check 1: Self-invitation
+    const inviterDoc = await getDoc(doc(db, 'users', inviterUserId));
+    if (inviterDoc.exists()) {
+      const inviterData = inviterDoc.data();
+      if (inviterData.email?.toLowerCase() === normalizedEmail) {
+        return { valid: false, error: 'You cannot invite yourself' };
+      }
+    }
+    
+    // Check 2: Pending invitation exists
+    const existingInvitations = await getDocs(
+      query(
+        collection(db, 'groupInvitations'),
+        where('groupId', '==', groupId),
+        where('invitedEmail', '==', normalizedEmail),
+        where('status', '==', 'pending')
+      )
+    );
+    
+    if (!existingInvitations.empty) {
+      return { valid: false, error: 'An invitation has already been sent to this user' };
+    }
+    
+    return { valid: true };
+  }
+
   static async inviteToGroup(
     groupId: string,
     inviterUserId: string,
     inviterName: string,
     invitedEmail: string
   ): Promise<string> {
-    console.log('inviteToGroup called with:', {
-      groupId,
-      inviterUserId,
-      inviterName,
-      invitedEmail
-    });
     
-    // Check if user is trying to invite themselves
-    const inviterDoc = await getDoc(doc(db, 'users', inviterUserId));
-    if (inviterDoc.exists()) {
-      const inviterData = inviterDoc.data();
-      if (inviterData.email?.toLowerCase() === invitedEmail.toLowerCase()) {
-        throw new Error('You cannot invite yourself to the group');
-      }
-    }
-    
-    // Check if invitation already exists
-    try {
-      const existingInvitations = await getDocs(
-        query(
-          collection(db, 'groupInvitations'),
-          where('groupId', '==', groupId),
-          where('invitedEmail', '==', invitedEmail.toLowerCase()),
-          where('status', '==', 'pending')
-        )
-      );
-      
-      if (!existingInvitations.empty) {
-        throw new Error('An invitation to this user already exists');
-      }
-    } catch (error) {
-      console.error('Error checking existing invitations:', error);
-      // If the error is about querying, we might need to skip this check
-      // Continue with invitation creation
+    // Validate invitation
+    const validation = await this.validateInvitation(groupId, inviterUserId, invitedEmail);
+    if (!validation.valid) {
+      throw new Error(validation.error);
     }
     
     const expiresAt = new Date();
@@ -125,11 +129,8 @@ export class UserGroupsService {
       createdAt: serverTimestamp(),
       expiresAt: Timestamp.fromDate(expiresAt),
     };
-    
-    console.log('Creating invitation with data:', invitationData);
 
     const docRef = await addDoc(collection(db, 'groupInvitations'), invitationData);
-    console.log('Invitation created with ID:', docRef.id);
     return docRef.id;
   }
 

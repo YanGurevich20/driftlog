@@ -37,7 +37,10 @@ export function useExchangeRates(options?: UseExchangeRatesOptions) {
     }
     
     return Array.from(months);
-  }, [options?.startDate?.getTime(), options?.endDate?.getTime()]);
+  }, [options?.startDate, options?.endDate]);
+
+  // Stable serialization of requiredMonths for dependency
+  const requiredMonthsKey = requiredMonths.join(',');
 
   useEffect(() => {
     const fetchRates = async () => {
@@ -61,7 +64,7 @@ export function useExchangeRates(options?: UseExchangeRatesOptions) {
     };
 
     fetchRates();
-  }, [requiredMonths.join(',')]);
+  }, [requiredMonths, requiredMonthsKey]);
 
   // Date-aware conversion function
   const convert = useCallback((amount: number, from: string, to: string, date: Date): number => {

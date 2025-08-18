@@ -33,13 +33,13 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b bg-card">
+      <header className="bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/dashboard" className="text-2xl font-bold hover:opacity-80">
             DriftLog
           </Link>
           <div className="flex items-center gap-2">
-            {user && <UserAvatar user={user} />}
+            {user && <UserAvatar user={user}/>}
             <Link href={isSettingsPage ? "/dashboard" : "/dashboard/settings"}>
               <Button variant="ghost" size="icon">
                 {isSettingsPage ? <Home /> : <Settings />}

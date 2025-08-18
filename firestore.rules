@@ -12,24 +12,31 @@ service cloud.firestore {
     }
     
     function getUserGroupId() {
-      return getUserData().groupId;
+      let userData = getUserData();
+      return userData != null && 'groupId' in userData ? userData.groupId : null;
     }
     
     function isInSameGroup(userId) {
-      return getUserGroupId() == get(/databases/$(database)/documents/users/$(userId)).data.groupId;
+      let userGroupId = getUserGroupId();
+      let otherUser = get(/databases/$(database)/documents/users/$(userId));
+      return userGroupId != null && 
+             otherUser != null && 
+             otherUser.data != null &&
+             'groupId' in otherUser.data &&
+             userGroupId == otherUser.data.groupId;
     }
     
     // Users - can read/write own doc, read group members
     match /users/{userId} {
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
-      allow read: if isAuthenticated() && isInSameGroup(userId);
+      allow read: if isAuthenticated() && userId != request.auth.uid && isInSameGroup(userId);
     }
     
     // User Groups - members can read, anyone can create (for onboarding)
     match /userGroups/{groupId} {
       allow read: if isAuthenticated() && 
-        (getUserGroupId() == groupId || 
-         request.auth.uid in resource.data.memberIds);
+        ((getUserGroupId() != null && getUserGroupId() == groupId) || 
+         (resource != null && request.auth.uid in resource.data.memberIds));
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && 
         (request.auth.uid in resource.data.memberIds ||
@@ -57,7 +64,8 @@ service cloud.firestore {
          request.auth.uid == resource.data.invitedBy);
       allow create: if isAuthenticated() &&
         request.resource.data.invitedBy == request.auth.uid &&
-        request.auth.uid in get(/databases/$(database)/documents/userGroups/$(request.resource.data.groupId)).data.memberIds;
+        (getUserGroupId() == request.resource.data.groupId ||
+         request.auth.uid in get(/databases/$(database)/documents/userGroups/$(request.resource.data.groupId)).data.memberIds);
       allow update: if isAuthenticated() &&
         request.auth.token.email == resource.data.invitedEmail;
       allow delete: if isAuthenticated() &&

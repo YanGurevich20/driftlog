@@ -88,7 +88,7 @@ Multi-currency expense tracking with real-time collaboration.
 - [ ] User avatars
 - [ ] Verify indexes
 - [ ] Sort entries and categories by date in daily view, top one is expanded
-- [ ] Add indicator when using fallback exchange rates (weekends/missing dates)
+- [ ] Add indicator when using fallback exchange rates (weekends/missing dates /future dates)
 ### Features
 - [ ] **Tiered currency support**: Frankfurter API for free users (31 currencies, no costs), Exchange Rate API for paid users (170+ currencies)
 - [ ] Custom categories per group/user - maybe

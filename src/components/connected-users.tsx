@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { UserPlus, Users, LogOut, Check, X, Mail, Send } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/lib/auth-context';
 import { UserGroupsService } from '@/services/user-groups';
 import { useConnectedUsers } from '@/hooks/use-connected-users';
@@ -62,7 +63,8 @@ export function ConnectedUsersInviteButton() {
       toast.success(`Invitation sent to ${inviteEmail}`);
     } catch (error) {
       console.error('Error inviting user:', error);
-      toast.error('Failed to send invitation');
+      const message = error instanceof Error ? error.message : 'Failed to send invitation';
+      toast.error(message);
     } finally {
       setIsInviting(false);
     }
@@ -79,7 +81,7 @@ export function ConnectedUsersInviteButton() {
         <DialogHeader>
           <DialogTitle>Invite Someone to Share Expenses</DialogTitle>
           <DialogDescription>
-            They&apos;ll be able to see all your expenses and you&apos;ll see theirs
+            They&apos;ll receive an invitation to join your group. Once accepted, you&apos;ll be able to see each other&apos;s expenses.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-2">
@@ -106,20 +108,40 @@ export function ConnectedUsersInviteButton() {
   );
 }
 
+interface ConnectionCardProps {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  actions?: React.ReactNode;
+}
+
+function ConnectionCard({ icon, title, subtitle, actions }: ConnectionCardProps) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        {icon}
+        <div className="space-y-1">
+          {title && <div className="font-medium">{title}</div>}
+          <div className="text-sm text-muted-foreground">{subtitle}</div>
+        </div>
+      </div>
+      {actions}
+    </div>
+  );
+}
+
 export function ConnectedUsersLeaveButton() {
   const { user } = useAuth();
   const { connectedUsers } = useConnectedUsers();
+  const [leaveGroupDialogOpen, setLeaveGroupDialogOpen] = useState(false);
 
   const handleLeaveGroup = async () => {
     if (!user) return;
     
-    if (!confirm('Are you sure you want to leave this group? You will no longer see shared expenses.')) {
-      return;
-    }
-    
     try {
       await UserGroupsService.leaveGroup(user.id);
       toast.success('Left the group successfully');
+      setLeaveGroupDialogOpen(false);
     } catch (error) {
       console.error('Error leaving group:', error);
       toast.error('Failed to leave group');
@@ -132,14 +154,31 @@ export function ConnectedUsersLeaveButton() {
   }
 
   return (
-    <Button 
-      variant="ghost" 
-      size="icon"
-      onClick={handleLeaveGroup}
-      title="Leave group"
-    >
-      <LogOut />
-    </Button>
+    <>
+      <Button 
+        variant="ghost" 
+        size="icon"
+        onClick={() => setLeaveGroupDialogOpen(true)}
+        title="Leave group"
+      >
+        <LogOut />
+      </Button>
+
+      <AlertDialog open={leaveGroupDialogOpen} onOpenChange={setLeaveGroupDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to leave this group? You will no longer see shared expenses with {connectedUsers.length} {connectedUsers.length === 1 ? 'person' : 'people'}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeaveGroup}>Leave Group</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -235,96 +274,90 @@ export function ConnectedUsers() {
       emptyDescription="Click the + icon above to invite someone"
       emptyIcon={Users}
     >
-      <div className="grid gap-3">
+      <div className="space-y-3">
         {/* Pending Invitations */}
-        {invitations.map((invitation) => (
-          <div
-            key={invitation.id}
-            className="flex items-center justify-between p-3 border border-primary/50 rounded-lg bg-primary/5"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Mail className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <div className="font-medium">
-                  {invitation.inviterName}
+        {invitations.map((invitation, index) => (
+          <div key={invitation.id}>
+            <ConnectionCard
+              icon={
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Mail className="h-5 w-5 text-primary" />
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Invited you to share expenses
+              }
+              title={invitation.inviterName}
+              subtitle="Invited you to share expenses"
+              actions={
+                <div className="flex gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleAcceptInvitation(invitation)}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleRejectInvitation(invitation)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
-            </div>
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleAcceptInvitation(invitation)}
-              >
-                <Check />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleRejectInvitation(invitation)}
-              >
-                <X />
-              </Button>
-            </div>
+              }
+            />
+            {(index < invitations.length - 1 || sentInvitations.length > 0 || connectedUsers.length > 0) && (
+              <Separator className="mt-3" />
+            )}
           </div>
         ))}
 
         {/* Sent Invitations */}
-        {sentInvitations.map((invitation) => (
-          <div
-            key={invitation.id}
-            className="flex items-center justify-between p-3 border border-muted-foreground/30 rounded-lg"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                <Send className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div>
-                <div className="font-medium">
-                  {invitation.invitedEmail}
+        {sentInvitations.map((invitation, index) => (
+          <div key={invitation.id}>
+            <ConnectionCard
+              icon={
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                  <Send className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Invitation sent • Expires {new Date(invitation.expiresAt).toLocaleDateString()}
-                </div>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleCancelInvitation(invitation)}
-              title="Cancel invitation"
-            >
-              <X />
-            </Button>
+              }
+              title={invitation.invitedEmail}
+              subtitle={`Invitation sent • Expires ${new Date(invitation.expiresAt).toLocaleDateString()}`}
+              actions={
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => handleCancelInvitation(invitation)}
+                  title="Cancel invitation"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              }
+            />
+            {(index < sentInvitations.length - 1 || connectedUsers.length > 0) && (
+              <Separator className="mt-3" />
+            )}
           </div>
         ))}
 
         {/* Connected Users */}
-        {connectedUsers.map((connectedUser) => (
-            <div
-              key={connectedUser.id}
-              className="flex items-center justify-between p-3 border rounded-lg"
-            >
-              <div className="flex items-center gap-3">
-                <UserAvatar user={connectedUser} />
-                <div>
-                  <div className="font-medium">
-                    {connectedUser.displayName || connectedUser.name}
-                  </div>
+        {connectedUsers.map((connectedUser, index) => (
+          <div key={connectedUser.id}>
+            <ConnectionCard
+              icon={<UserAvatar user={connectedUser} />}
+              title={connectedUser.displayName || connectedUser.name}
+              subtitle={connectedUser.email}
+              actions={
+                connectedUser.displayCurrency && (
                   <div className="text-sm text-muted-foreground">
-                    {connectedUser.email}
+                    {connectedUser.displayCurrency}
                   </div>
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {connectedUser.displayCurrency}
-              </div>
-            </div>
+                )
+              }
+            />
+            {index < connectedUsers.length - 1 && (
+              <Separator className="mt-3" />
+            )}
+          </div>
         ))}
       </div>
       </DataState>

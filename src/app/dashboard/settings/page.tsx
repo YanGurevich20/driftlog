@@ -13,11 +13,22 @@ import { ArrowLeft, LogOut } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Settings() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [isUpdatingCurrency, setIsUpdatingCurrency] = useState(false);
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
 
   const handleCurrencyChange = async (newCurrency: string) => {
     if (!user || newCurrency === user.displayCurrency) return;
@@ -59,14 +70,14 @@ export default function Settings() {
           <CardHeader>
             <div className="flex items-center justify-between w-full">
               <CardTitle>Account</CardTitle>
-              <Button variant="ghost" size="icon" onClick={logout}>
+              <Button variant="ghost" size="icon" onClick={() => setSignOutDialogOpen(true)}>
                 <LogOut />
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
-              <UserAvatar user={user} className="h-16 w-16" />
+              <UserAvatar user={user}/>
               <div className="space-y-1">
                 {user.displayName && (
                   <div className="font-medium">{user.displayName}</div>
@@ -120,6 +131,21 @@ export default function Settings() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign Out</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to sign out? You&apos;ll need to sign in again to access your expenses.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={logout}>Sign Out</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

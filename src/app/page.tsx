@@ -35,7 +35,7 @@ export default function Home() {
         <div className="bg-card border rounded-lg p-8">
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="bg-secondary p-4 rounded-full">
-              <Wallet className="w-12 h-12 text-secondary-foreground" />
+              <Wallet className="size-12 text-secondary-foreground" />
             </div>
             <h1 className="text-4xl font-bold tracking-tight">DriftLog</h1>
             <p className="text-muted-foreground text-lg">
