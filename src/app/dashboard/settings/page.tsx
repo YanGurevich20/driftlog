@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { ConnectedUsers, ConnectedUsersInviteButton, ConnectedUsersLeaveButton } from '@/components/connected-users';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { CurrencySelector } from '@/components/currency-selector';
+import { UserAvatar } from '@/components/user-avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, LogOut } from 'lucide-react';
@@ -64,17 +65,14 @@ export default function Settings() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-muted-foreground">Email</span>
-                <span className="text-sm font-medium">{user.email}</span>
+            <div className="flex items-center gap-4">
+              <UserAvatar user={user} className="h-16 w-16" />
+              <div className="space-y-1">
+                {user.displayName && (
+                  <div className="font-medium">{user.displayName}</div>
+                )}
+                <div className="text-sm text-muted-foreground">{user.email}</div>
               </div>
-              {user.displayName && (
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-muted-foreground">Name</span>
-                  <span className="text-sm font-medium">{user.displayName}</span>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>

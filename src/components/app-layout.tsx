@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { CurrencyService } from '@/services/currency';
+import { useAuth } from '@/lib/auth-context';
+import { UserAvatar } from '@/components/user-avatar';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -14,6 +16,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const isSettingsPage = pathname?.includes('/settings');
+  const { user } = useAuth();
 
   // Pre-fetch current month's exchange rates on app load
   useEffect(() => {
@@ -35,11 +38,14 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Link href="/dashboard" className="text-2xl font-bold hover:opacity-80">
             DriftLog
           </Link>
-          <Link href={isSettingsPage ? "/dashboard" : "/dashboard/settings"}>
-            <Button variant="ghost" size="icon">
-              {isSettingsPage ? <Home /> : <Settings />}
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {user && <UserAvatar user={user} />}
+            <Link href={isSettingsPage ? "/dashboard" : "/dashboard/settings"}>
+              <Button variant="ghost" size="icon">
+                {isSettingsPage ? <Home /> : <Settings />}
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
       

@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { UserAvatar } from '@/components/user-avatar';
 import {
   Dialog,
   DialogContent,
@@ -311,19 +311,7 @@ export function ConnectedUsers() {
               className="flex items-center justify-between p-3 border rounded-lg"
             >
               <div className="flex items-center gap-3">
-                {connectedUser.photoUrl ? (
-                  <Image 
-                    src={connectedUser.photoUrl} 
-                    alt={connectedUser.displayName || connectedUser.name || ''}
-                    width={40}
-                    height={40}
-                    className="rounded-full"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    <Users className="h-5 w-5" />
-                  </div>
-                )}
+                <UserAvatar user={connectedUser} />
                 <div>
                   <div className="font-medium">
                     {connectedUser.displayName || connectedUser.name}

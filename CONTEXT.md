@@ -40,9 +40,12 @@ Multi-currency expense tracking with real-time collaboration.
 
 ### Currency Handling
 - `originalAmount`: Stored with currency code
-- Convert on-the-fly using cached exchange rates
+- **Fixed historical rates**: Uses exchange rates from entry date (not current rates)
+- **Monthly rate storage**: Rates grouped by month in Firestore (`exchangeRates/YYYY-MM`)
+- **Current implementation**: Frankfurter API for backfill (31 major currencies)
 - Display in user's `displayCurrency`
 - formatCurrency() handles display with proper signs
+- Weekend entries use Friday's rates (forex markets closed)
 
 ### Daily Budget
 - BudgetView component shows remaining daily allowance
@@ -56,7 +59,8 @@ Multi-currency expense tracking with real-time collaboration.
   /hooks        - Custom hooks (use-entries, use-connected-users)
   /services     - Firebase services
   /lib          - Utilities
-/functions      - Cloud Functions (exchange rates)
+/functions      - Cloud Functions (getMonthlyRates)
+/scripts        - Utility scripts (backfill-exchange-rates.js)
 ```
 
 ## Completed Features
@@ -64,6 +68,7 @@ Multi-currency expense tracking with real-time collaboration.
 - [x] Connected users replacing spaces
 - [x] Email invitations with accept/reject
 - [x] Multi-currency with live conversion
+- [x] **Fixed historical exchange rates** (uses rates from entry date)
 - [x] Daily budget calculation
 - [x] Timezone-agnostic date storage
 - [x] Three-dot menu for entries
@@ -74,17 +79,23 @@ Multi-currency expense tracking with real-time collaboration.
 ### Architecture
 - [ ] CI/CD pipeline
 - [ ] Security audit
-- [ ] Delete invites in db after acceptance
 - [ ] Rename repo and firebase project to driftlog
 ### Bugs
-- [ ] Fixed exchange rates
-- [ ] Recurring transactions
-- [ ] User avatars
 - [ ] Budget headroom settings
-- [ ] Future expense planning
-- [ ] Limit group size
+- [ ] Delete invites in db after acceptance
+- [ ] Orphaned groups in db
+### Enhancements
+- [ ] User avatars
+- [ ] Verify indexes
+- [ ] Sort entries and categories by date in daily view, top one is expanded
+- [ ] Add indicator when using fallback exchange rates (weekends/missing dates)
 ### Features
-- [ ] Custom categories per group - maybe
+- [ ] **Tiered currency support**: Frankfurter API for free users (31 currencies, no costs), Exchange Rate API for paid users (170+ currencies)
+- [ ] Custom categories per group/user - maybe
+- [ ] Recurring transactions
 - [ ] Entry from photo
 - [ ] Entry from audio
+- [ ] entry from whatsapp message
+- [ ] entry from telegram message
+- [ ] Limit group size (larger limits for paid users)
 - [ ] Location tagging (city, country OR geopoint)
