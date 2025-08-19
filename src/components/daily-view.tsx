@@ -148,7 +148,9 @@ export function DailyView() {
             value={openCategories}
             onValueChange={setOpenCategories}
           >
-            {Object.entries(groupedEntries).map(([category, group]) => (
+            {Object.entries(groupedEntries)
+              .sort(([, a], [, b]) => a.net - b.net)
+              .map(([category, group]) => (
               <AccordionItem key={category} value={category}>
                 <AccordionTrigger className={cn(
                   // "hover:no-underline",
@@ -170,7 +172,13 @@ export function DailyView() {
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-2.5 pt-1">
-                    {group.entries.map((entry) => (
+                    {group.entries
+                      .sort((a, b) => {
+                        const aAmount = a.type === 'income' ? a.originalAmount : -a.originalAmount;
+                        const bAmount = b.type === 'income' ? b.originalAmount : -b.originalAmount;
+                        return aAmount - bAmount;
+                      })
+                      .map((entry) => (
                       <div key={entry.id} className="flex justify-between items-start gap-2 pl-10 pr-1">
                         <div className="flex items-center gap-1">
                           {entry.isRecurringInstance && (

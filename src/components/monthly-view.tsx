@@ -59,7 +59,7 @@ export function MonthlyView() {
     }, 0);
   }, [categoryTotals]);
 
-  // Sort all categories by net amount (income positive, expense negative)
+  // Sort all categories by net amount in ascending order
   const sortedCategories = useMemo(() => {
     return Object.entries(categoryTotals)
       .map(([category, data]) => ({
@@ -68,7 +68,7 @@ export function MonthlyView() {
         total: data.total,
         type: data.type
       }))
-      .sort((a, b) => b.net - a.net);
+      .sort((a, b) => a.net - b.net);
   }, [categoryTotals]);
 
 
