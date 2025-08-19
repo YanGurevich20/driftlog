@@ -100,3 +100,10 @@ Multi-currency expense tracking with real-time collaboration.
 - [ ] entry from telegram message
 - [ ] Limit group size (larger limits for paid users)
 - [ ] Location tagging (city, country OR geopoint)
+
+### Monetization ideas
+- limit recurring entries count
+- limit currencies to frankfurter api (31 currently)
+- 2-3 plans max including free
+- no ads (need to estimate average free user cost)
+- AI features ()
