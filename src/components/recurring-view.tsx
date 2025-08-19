@@ -108,7 +108,7 @@ export function RecurringView() {
             entriesColl,
             where('userId', '==', user.id),
             where('recurringTemplateId', '==', t.id),
-            where('date', '>=', Timestamp.fromDate(todayUtc))
+            where('date', '>', Timestamp.fromDate(todayUtc))
           );
           const remainingSnap = await getCountFromServer(remainingQ);
           const remaining = Number(remainingSnap.data().count || 0);
