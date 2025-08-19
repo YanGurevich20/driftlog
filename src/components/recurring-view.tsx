@@ -96,7 +96,7 @@ export function RecurringView() {
             entriesColl,
             where('userId', '==', user.id),
             where('recurringTemplateId', '==', t.id),
-            where('date', '>=', Timestamp.fromDate(todayUtc)),
+            where('date', '>', Timestamp.fromDate(todayUtc)),
             orderBy('date', 'asc'),
             limit(1)
           );
