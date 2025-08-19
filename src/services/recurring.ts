@@ -13,6 +13,7 @@ import {
 import { db } from '@/lib/firebase';
 import { format, addDays, addWeeks, addMonths, addYears } from 'date-fns';
 import { toUTCMidnight } from '@/lib/date-utils';
+import { SERVICE_START_DATE } from '@/lib/config';
 import { convertFirestoreDoc } from '@/lib/firestore-utils';
 import type { RecurringTemplate, RecurrenceRule, Entry } from '@/types';
 
@@ -26,17 +27,52 @@ function generateOccurrenceDates(
   recurrence: RecurrenceRule
 ): Date[] {
   const dates: Date[] = [];
-  let currentDate = new Date(startDate);
-  let count = 0;
+  const endDate = new Date(recurrence.endDate);
+  endDate.setHours(23, 59, 59, 999);
+  // Clamp start to service start
+  const effectiveStart = new Date(Math.max(startDate.getTime(), SERVICE_START_DATE.getTime()));
 
-  while (count < recurrence.occurrenceCount) {
-    const shouldInclude = shouldIncludeDate(currentDate, recurrence);
-    
-    if (shouldInclude) {
-      dates.push(new Date(currentDate));
-      count++;
+  // Handle weekly with multiple weekdays by emitting all selected weekdays per interval window
+  if (recurrence.frequency === 'weekly' && recurrence.daysOfWeek && recurrence.daysOfWeek.length > 0) {
+    // Sort weekdays ascending (0=Sun..6=Sat)
+    const sortedWeekdays = [...recurrence.daysOfWeek].sort((a, b) => a - b);
+    const intervalWeeks = (recurrence.interval || 1);
+
+    // Cursor aligned to the week containing startDate
+    let cursor = new Date(effectiveStart);
+
+    while (cursor <= endDate) {
+      // Compute week start (Sunday)
+      const weekStart = new Date(cursor);
+      weekStart.setHours(0, 0, 0, 0);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+      for (const weekday of sortedWeekdays) {
+        const occurrence = new Date(weekStart);
+        occurrence.setDate(weekStart.getDate() + weekday);
+        occurrence.setHours(0, 0, 0, 0);
+
+        // Skip days prior to startDate (only on the first week)
+        if (occurrence < effectiveStart) continue;
+        if (occurrence > endDate) break;
+
+        dates.push(new Date(occurrence));
+      }
+
+      // Advance to the next interval window
+      cursor = addWeeks(weekStart, intervalWeeks);
     }
 
+    return dates;
+  }
+
+  // Default behavior: step by frequency and include dates that match optional weekday filters
+  let currentDate = new Date(effectiveStart);
+  while (currentDate <= endDate) {
+    const shouldInclude = shouldIncludeDate(currentDate, recurrence);
+    if (shouldInclude) {
+      dates.push(new Date(currentDate));
+    }
     currentDate = getNextDate(currentDate, recurrence);
   }
 
@@ -67,20 +103,17 @@ function getNextDate(date: Date, recurrence: RecurrenceRule): Date {
     case 'weekly':
       return addWeeks(date, interval);
     
-    case 'biweekly':
-      return addWeeks(date, 2 * interval);
-    
     case 'monthly':
+      // Monthly by day-of-month with automatic rollback for short months
       const nextMonth = addMonths(date, interval);
-      if (recurrence.dayOfMonth) {
-        const lastDayOfMonth = new Date(
-          nextMonth.getFullYear(),
-          nextMonth.getMonth() + 1,
-          0
-        ).getDate();
-        const targetDay = Math.min(recurrence.dayOfMonth, lastDayOfMonth);
-        nextMonth.setDate(targetDay);
-      }
+      const baseDay = recurrence.dayOfMonth || date.getDate();
+      const lastDayOfMonth = new Date(
+        nextMonth.getFullYear(),
+        nextMonth.getMonth() + 1,
+        0
+      ).getDate();
+      const targetDay = Math.min(baseDay, lastDayOfMonth);
+      nextMonth.setDate(targetDay);
       return nextMonth;
     
     case 'yearly':
@@ -193,6 +226,7 @@ export async function materializeRecurringEntries(
     const existingQuery = await getDocs(
       query(
         collection(db, 'entries'),
+        where('userId', '==', template.userId),
         where('recurringTemplateId', '==', templateId)
       )
     );
@@ -282,6 +316,7 @@ export async function materializeRecurringEntries(
 
 export async function updateRecurringTemplate(
   templateId: string,
+  userId: string,
   updates: Partial<RecurringTemplate>
 ): Promise<void> {
   const batch = writeBatch(db);
@@ -291,11 +326,15 @@ export async function updateRecurringTemplate(
     updatedAt: serverTimestamp(),
   });
 
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
   const futureEntries = await getDocs(
     query(
       collection(db, 'entries'),
+      where('userId', '==', userId),
       where('recurringTemplateId', '==', templateId),
-      where('date', '>=', toUTCMidnight(new Date())),
+      where('date', '>=', toUTCMidnight(tomorrow)),
       where('isModified', '==', false)
     )
   );
@@ -309,21 +348,23 @@ export async function updateRecurringTemplate(
     await materializeRecurringEntries(
       templateId, 
       { ...fullTemplate, ...updates },
-      { regenerate: true, fromDate: new Date() }
+      { regenerate: true, fromDate: tomorrow }
     );
   }
 }
 
-export async function stopRecurring(templateId: string): Promise<void> {
+export async function stopRecurring(templateId: string, userId: string, fromDate?: Date): Promise<void> {
   const batch = writeBatch(db);
 
-  batch.delete(doc(db, 'recurringTemplates', templateId));
-
+  // If no date provided, default to today (inclusive)
+  const effectiveDate = fromDate || new Date();
+  
   const futureEntries = await getDocs(
     query(
       collection(db, 'entries'),
+      where('userId', '==', userId),
       where('recurringTemplateId', '==', templateId),
-      where('date', '>=', toUTCMidnight(new Date())),
+      where('date', '>=', toUTCMidnight(effectiveDate)),
       where('isModified', '==', false)
     )
   );
@@ -332,25 +373,22 @@ export async function stopRecurring(templateId: string): Promise<void> {
   await batch.commit();
 }
 
-export async function deleteRecurringSeries(templateId: string): Promise<void> {
+export async function deleteRecurringSeries(templateId: string, userId: string): Promise<void> {
   const batch = writeBatch(db);
 
   batch.delete(doc(db, 'recurringTemplates', templateId));
 
+  // Delete ALL entries in the series (both modified and unmodified)
   const allEntries = await getDocs(
     query(
       collection(db, 'entries'),
-      where('recurringTemplateId', '==', templateId),
-      where('isModified', '==', false)
+      where('userId', '==', userId),
+      where('recurringTemplateId', '==', templateId)
     )
   );
 
   allEntries.forEach(doc => batch.delete(doc.ref));
   await batch.commit();
-}
-
-export async function deleteRecurringInstance(entryId: string): Promise<void> {
-  await deleteDoc(doc(db, 'entries', entryId));
 }
 
 export async function editRecurringInstance(
@@ -368,35 +406,13 @@ export async function editRecurringInstance(
   );
 }
 
-export async function getRecurringTemplates(groupId: string): Promise<RecurringTemplate[]> {
+export async function getRecurringTemplates(userId: string): Promise<RecurringTemplate[]> {
   const templates = await getDocs(
     query(
       collection(db, 'recurringTemplates'),
-      where('groupId', '==', groupId)
+      where('userId', '==', userId)
     )
   );
 
   return templates.docs.map(doc => convertFirestoreDoc<RecurringTemplate>(doc));
-}
-
-export function calculateEndDate(startDate: Date, recurrence: RecurrenceRule): Date {
-  const dates = generateOccurrenceDates(startDate, recurrence);
-  return dates[dates.length - 1] || startDate;
-}
-
-export function calculateNextOccurrence(
-  template: RecurringTemplate,
-  fromDate: Date = new Date()
-): Date | null {
-  const dates = generateOccurrenceDates(template.startDate, template.recurrence);
-  const futureDate = dates.find(date => date >= fromDate);
-  return futureDate || null;
-}
-
-export function getRemainingOccurrences(
-  template: RecurringTemplate,
-  fromDate: Date = new Date()
-): number {
-  const dates = generateOccurrenceDates(template.startDate, template.recurrence);
-  return dates.filter(date => date >= fromDate).length;
 }

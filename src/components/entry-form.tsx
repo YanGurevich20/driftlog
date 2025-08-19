@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/form';
 import { CategorySelector } from '@/components/category-selector';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
@@ -26,12 +25,16 @@ import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent } from '@/components/ui/card';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toUTCMidnight, fromUTCMidnight } from '@/lib/date-utils';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/types';
-import type { Entry } from '@/types';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, RECURRENCE_LIMITS } from '@/types';
+import type { Entry, RecurrenceFrequency } from '@/types';
 import { useRouter } from 'next/navigation';
+import { createRecurringTemplate } from '@/services/recurring';
+import RecurringSection from '@/components/entry-form/recurrence-form';
+import { SERVICE_START_DATE } from '@/lib/config';
+import { Input } from './ui/input';
 
 const formSchema = z.object({
   type: z.enum(['expense', 'income']),
@@ -62,6 +65,13 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { lastUsedCurrency, setLastUsedCurrency, addRecentCurrency } = usePreferences();
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<RecurrenceFrequency>('monthly');
+  const [endDate, setEndDate] = useState<Date>(() => {
+    return addDays(new Date(), RECURRENCE_LIMITS.monthly.defaultDays);
+  });
+  const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>([]);
+  const [interval, setInterval] = useState<number>(1);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -87,7 +97,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
 
   const transactionType = form.watch('type');
 
-  // Update category when transaction type changes
+  // Update category when entry type changes
   useEffect(() => {
     if (!entry) {
       // For new entries, set default category
@@ -109,6 +119,17 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
     }
   }, [transactionType, form, entry]);
 
+  // Default weekly selection to the picked date's weekday when enabling weekly
+  useEffect(() => {
+    const freq = recurringFrequency;
+    if (isRecurring && freq === 'weekly' && selectedWeekdays.length === 0) {
+      const d = form.watch('date') || new Date();
+      setSelectedWeekdays([d.getDay()]);
+    }
+  }, [isRecurring, recurringFrequency, form, selectedWeekdays.length]);
+
+  // No-op: toggling handled in RecurringSection
+
   const onSubmit = async (values: FormValues) => {
     if (!user) return;
 
@@ -117,39 +138,90 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
       const amount = parseFloat(values.amountCurrency.amount);
       const currency = values.amountCurrency.currency;
 
-      const entryData = {
-        type: values.type,
-        userId: user.id,
-        originalAmount: amount,
-        currency,
-        category: values.category,
-        description: values.description || '',
-        date: toUTCMidnight(values.date || new Date()),
-        ...(entry ? {
-          updatedBy: user.id,
-          updatedAt: serverTimestamp(),
-        } : {
-          createdBy: user.id,
-          createdAt: serverTimestamp(),
-        }),
-      };
-
-      if (entry) {
-        await updateDoc(doc(db, 'entries', entry.id), entryData);
-        toast.success('Entry updated successfully');
-      } else {
-        await addDoc(collection(db, 'entries'), entryData);
-        toast.success('Entry added successfully');
+      // Enforce service start date for selected date
+      const selectedLocalDate = form.watch('date') || new Date();
+      const selectedUtcDate = toUTCMidnight(selectedLocalDate);
+      if (selectedUtcDate < SERVICE_START_DATE) {
+        toast.error('Date cannot be before Jan 1, 2025');
+        setIsSubmitting(false);
+        return;
       }
-      
-      // Remember the currency for next time (only for new entries)
-      if (!entry) {
+
+      if (isRecurring && !entry) {
+        const pickedDate = selectedLocalDate;
+        const pickedUtc = selectedUtcDate;
+        // Enforce endDate is not before start
+        if (toUTCMidnight(endDate) < pickedUtc) {
+          toast.error('End date cannot be before start date');
+          setIsSubmitting(false);
+          return;
+        }
+        const templateData = {
+          userId: user.id,
+          entryTemplate: {
+            type: values.type,
+            originalAmount: amount,
+            currency,
+            category: values.category,
+            description: values.description || '',
+          },
+          recurrence: {
+            frequency: recurringFrequency,
+            interval: interval,
+            endDate: endDate,
+            ...(recurringFrequency === 'weekly'
+              ? (selectedWeekdays.length ? { daysOfWeek: selectedWeekdays } : { daysOfWeek: [pickedDate.getDay()] })
+              : {}),
+            ...(recurringFrequency === 'monthly'
+              ? { dayOfMonth: pickedDate.getDate() }
+              : {}),
+          },
+          startDate: pickedUtc,
+          createdBy: user.id,
+        };
+
+        await createRecurringTemplate(templateData);
+        toast.success(`Created recurring entries until ${format(endDate, 'MMM d, yyyy')}`);
+        
         setLastUsedCurrency(currency);
         addRecentCurrency(currency);
+        onSuccess?.();
+        router.push('/dashboard');
+      } else {
+        const entryData = {
+          type: values.type,
+          userId: user.id,
+          originalAmount: amount,
+          currency,
+          category: values.category,
+          description: values.description || '',
+          date: selectedUtcDate,
+          ...(entry ? {
+            updatedBy: user.id,
+            updatedAt: serverTimestamp(),
+            ...(entry.isRecurringInstance ? { isModified: true } : {}),
+          } : {
+            createdBy: user.id,
+            createdAt: serverTimestamp(),
+          }),
+        };
+
+        if (entry) {
+          await updateDoc(doc(db, 'entries', entry.id), entryData);
+          toast.success('Entry updated successfully');
+        } else {
+          await addDoc(collection(db, 'entries'), entryData);
+          toast.success('Entry added successfully');
+        }
+        
+        if (!entry) {
+          setLastUsedCurrency(currency);
+          addRecentCurrency(currency);
+        }
+        
+        onSuccess?.();
+        router.push('/dashboard');
       }
-      
-      onSuccess?.();
-      router.push('/dashboard');
     } catch (error) {
       console.error('Error saving entry:', error);
       toast.error(`Failed to ${entry ? 'update' : 'add'} entry`);
@@ -180,7 +252,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Transaction Type Tabs */}
+          {/* entry Type Tabs */}
           <FormField
             control={form.control}
             name="type"
@@ -249,13 +321,33 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
             )}
           />
 
+          {/* Description */}
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Add an optional note..." 
+                    type='text'
+                    autoComplete='entry-description'
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           {/* Date */}
           <FormField
             control={form.control}
             name="date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Date</FormLabel>
+                <FormLabel>{isRecurring ? 'Start Date' : 'Date'}</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -280,9 +372,8 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) =>
-                        date < new Date("1900-01-01")
-                      }
+                      startMonth={SERVICE_START_DATE}
+                      disabled={{ before: SERVICE_START_DATE }}
                       captionLayout="dropdown"
                     />
                   </PopoverContent>
@@ -292,24 +383,23 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
             )}
           />
 
-          {/* Description */}
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Add an optional note..." 
-                    className="resize-none h-20"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+
+
+          {!entry && (
+            <RecurringSection
+              isRecurring={isRecurring}
+              setIsRecurring={setIsRecurring}
+              recurringFrequency={recurringFrequency}
+              setRecurringFrequency={setRecurringFrequency}
+              endDate={endDate}
+              setEndDate={setEndDate}
+              selectedWeekdays={selectedWeekdays}
+              setSelectedWeekdays={setSelectedWeekdays}
+              interval={interval}
+              setInterval={setInterval}
+              selectedDate={form.watch('date') || new Date()}
+            />
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-2 pt-4">

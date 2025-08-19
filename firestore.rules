@@ -50,11 +50,16 @@ service cloud.firestore {
     // Entries - users can access own and group members' entries
     match /entries/{entryId} {
       allow read: if isAuthenticated() && 
-        (resource.data.userId == request.auth.uid || isInSameGroup(resource.data.userId));
-      allow create: if isAuthenticated() && 
-        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && 
         resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.date >= timestamp.date(2025, 1, 1);
+      allow update: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid &&
+        // Prevent moving entries before service start
+        (request.resource.data.date == null || request.resource.data.date >= timestamp.date(2025, 1, 1));
+      allow delete: if isAuthenticated() && 
+        (resource == null || resource.data.userId == request.auth.uid);
     }
     
     // Group invitations - simplified access
@@ -77,6 +82,28 @@ service cloud.firestore {
     // Exchange rates - all authenticated users can read/write
     match /exchangeRates/{document=**} {
       allow read, write: if isAuthenticated();
+    }
+    
+    // Recurring templates - users can only access their own
+    match /recurringTemplates/{templateId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.createdBy == request.auth.uid &&
+        // Enforce start and end dates not before service start
+        request.resource.data.startDate >= timestamp.date(2025, 1, 1) &&
+        request.resource.data.recurrence.endDate >= timestamp.date(2025, 1, 1) &&
+        // endDate must not be before start
+        request.resource.data.recurrence.endDate >= request.resource.data.startDate;
+      allow update: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid &&
+        // If startDate/endDate are updated, enforce bounds
+        (request.resource.data.startDate == null || request.resource.data.startDate >= timestamp.date(2025, 1, 1)) &&
+        (request.resource.data.recurrence.endDate == null || request.resource.data.recurrence.endDate >= timestamp.date(2025, 1, 1)) &&
+        (request.resource.data.recurrence.endDate == null || request.resource.data.startDate == null || request.resource.data.recurrence.endDate >= request.resource.data.startDate);
+      allow delete: if isAuthenticated() && 
+        (resource == null || resource.data.userId == request.auth.uid);
     }
   }
 }

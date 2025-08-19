@@ -3,14 +3,13 @@ import type { EntryType } from './entries';
 export type RecurrenceFrequency = 
   | 'daily' 
   | 'weekly' 
-  | 'biweekly' 
   | 'monthly' 
   | 'yearly';
 
 export interface RecurrenceRule {
   frequency: RecurrenceFrequency;
   interval: number;
-  occurrenceCount: number;
+  endDate: Date;
   daysOfWeek?: number[];
   dayOfMonth?: number;
 }
@@ -18,7 +17,6 @@ export interface RecurrenceRule {
 export interface RecurringTemplate {
   id: string;
   userId: string;
-  groupId: string;
   
   entryTemplate: {
     type: EntryType;
@@ -40,24 +38,20 @@ export interface RecurringTemplate {
 
 export const RECURRENCE_LIMITS = {
   daily: { 
-    maxOccurrences: 365,
-    defaultOccurrences: 90,
+    maxDays: 365,      // 1 year
+    defaultDays: 90,   // 3 months
   },
   weekly: { 
-    maxOccurrences: 104,
-    defaultOccurrences: 26,
-  },
-  biweekly: {
-    maxOccurrences: 52,
-    defaultOccurrences: 13,
+    maxDays: 365,      // 1 year
+    defaultDays: 180,  // 6 months
   },
   monthly: { 
-    maxOccurrences: 24,
-    defaultOccurrences: 12,
+    maxDays: 365 * 5,     // 5 years
+    defaultDays: 365,  // 1 year
   },
   yearly: {
-    maxOccurrences: 5,
-    defaultOccurrences: 2,
+    maxDays: 365 * 5,     // 5 years
+    defaultDays: 365 * 2,  // 2 years
   }
 } as const;
 

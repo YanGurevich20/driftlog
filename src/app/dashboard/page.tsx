@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react';
 import { DailyView } from '@/components/daily-view';
 import { MonthlyView } from '@/components/monthly-view';
 import { BudgetView } from '@/components/budget-view';
+import { RecurringView } from '@/components/recurring-view';
 import { useAuth } from '@/lib/auth-context';
 
 const greetings = [
@@ -74,7 +75,10 @@ export default function Dashboard() {
           </div>
           <DailyView />
         </div>
-        <MonthlyView />
+        <div className="space-y-6">
+          <MonthlyView />
+          <RecurringView />
+        </div>
       </div>
 
       <div className="fixed bottom-6 right-6">

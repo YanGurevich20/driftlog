@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
-import { MoreVertical, Edit2, Trash2, CalendarIcon } from 'lucide-react';
+import { MoreVertical, Edit2, Trash2, CalendarIcon, Repeat, Repeat1 } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { format } from 'date-fns';
@@ -36,6 +36,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SERVICE_START_DATE } from '@/lib/config';
 
 export function DailyView() {
   const { user } = useAuth();
@@ -93,13 +94,13 @@ export function DailyView() {
 
   const handleDelete = async () => {
     if (!entryToDelete) return;
-    
     try {
       await deleteEntry(entryToDelete.id);
       toast.success('Entry deleted');
       setDeleteDialogOpen(false);
       setEntryToDelete(null);
-    } catch {
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') console.error('Failed to delete:', error);
       toast.error('Failed to delete entry');
     }
   };
@@ -124,6 +125,8 @@ export function DailyView() {
                 mode="single"
                 selected={selectedDate}
                 onSelect={(date) => date && setSelectedDate(date)}
+                disabled={{ before: SERVICE_START_DATE }}
+                startMonth={SERVICE_START_DATE}
               />
             </PopoverContent>
           </Popover>
@@ -169,9 +172,18 @@ export function DailyView() {
                   <div className="space-y-2.5 pt-1">
                     {group.entries.map((entry) => (
                       <div key={entry.id} className="flex justify-between items-start gap-2 pl-10 pr-1">
-                        <span className="text-muted-foreground text-sm">
-                          {entry.description || 'No description'}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          {entry.isRecurringInstance && (
+                            entry.isModified ? (
+                              <Repeat1 className="h-3 w-3 text-muted-foreground" />
+                            ) : (
+                              <Repeat className="h-3 w-3 text-muted-foreground" />
+                            )
+                          )}
+                          <span className="text-muted-foreground text-sm">
+                            {entry.description || 'No description'}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-2">
                           <span className={`text-sm whitespace-nowrap ${entry.type === 'income' ? 'text-primary' : ''}`}>
                             {formatCurrency(entry.originalAmount, entry.currency, entry.type === 'expense')}
@@ -234,7 +246,11 @@ export function DailyView() {
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Entry</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete this entry? This action cannot be undone.
+            {entryToDelete?.recurringTemplateId ? (
+              'This is a recurring entry. What would you like to do?'
+            ) : (
+              'Are you sure you want to delete this entry? This action cannot be undone.'
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
