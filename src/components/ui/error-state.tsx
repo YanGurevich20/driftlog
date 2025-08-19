@@ -29,7 +29,8 @@ export function ErrorState({
       <p className="text-sm text-muted-foreground mb-4 max-w-sm">
         {description}
       </p>
-      {error && process.env.NODE_ENV === 'development' && (
+      {error && (
+      // {error && process.env.NODE_ENV === 'development' && (
         <p className="text-xs text-muted-foreground mb-4 font-mono">
           dev-only message: {error.message}
         </p>
