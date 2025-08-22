@@ -132,3 +132,52 @@ Multi-currency expense tracking with real-time collaboration.
 - 2-3 plans max including free
 - no ads (need to estimate average free user cost)
 - AI features (entry generation)
+
+## AI Context Addendum
+
+- Security rules summary:
+  - All access requires auth. Group membership validated via `userGroups/{groupId}.memberIds.hasAny([uid])`.
+  - `users`: read/write own; read others if same group.
+  - `userGroups`: members can read/update; anyone can create for onboarding.
+  - `entries`: group-wide read/create/update/delete; enforce `date >= SERVICE_START_DATE (2025-01-01)` on create/update.
+  - `recurringTemplates`: group-wide read/create/update/delete.
+  - `groupInvitations`: sender/recipient access; create requires inviter is a member of the target group.
+  - `exchangeRates`: read/write allowed for authenticated clients (used by Cloud Function backfill).
+
+- Firestore schema (cheat sheet):
+  - `users/{uid}`: `id, email, name, displayName?, photoUrl?, displayCurrency, groupId, createdAt, onboardingCompleted?`
+  - `userGroups/{groupId}`: `memberIds[], createdAt, createdBy`
+  - `entries/{entryId}`: `id, userId, type, originalAmount, currency, category, description?, date, createdBy, createdAt, updatedAt?, updatedBy?, location?, recurringTemplateId?, originalDate?, isRecurringInstance?, isModified?`
+  - `groupInvitations/{id}`: `groupId, invitedEmail, invitedBy, inviterName, createdAt, expiresAt`
+  - `recurringTemplates/{id}`: `userId, entryTemplate{type, originalAmount, currency, category, description?}, recurrence{frequency, interval, endDate, daysOfWeek?, dayOfMonth?}, startDate, instancesCreated, createdBy, createdAt, updatedAt?`
+  - `exchangeRates/YYYY-MM`: `{ [yyyy-mm-dd]: { [CURRENCY]: rate } }`
+
+- Indexes used:
+  - `entries(userId ASC, date DESC)`
+  - `entries(userId ASC, recurringTemplateId ASC, date ASC)`
+  - `entries(userId ASC, recurringTemplateId ASC, isModified ASC, date ASC)`
+
+- Query limits & patterns:
+  - Firestore `in` operator limit: 10 values. Services chunk member lists when needed.
+  - Common pattern: equality on `userId` + range on `date` + `orderBy('date')`.
+
+- Local dev setup:
+  - Emulators (development only): Auth `9099`, Firestore `8080`, Functions `5001`.
+  - Functions region: `us-central1`.
+  - Required env (NEXT_PUBLIC_*): `FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID, FIREBASE_STORAGE_BUCKET, FIREBASE_MESSAGING_SENDER_ID, FIREBASE_APP_ID, MEASUREMENT_ID`.
+  - Deploy rules: `firebase deploy --only firestore:rules --project <project>`.
+
+- Exchange rates flow:
+  - Cloud Function `getMonthlyRates` stores documents under `exchangeRates/YYYY-MM`.
+  - Cache policy: historical months indefinite; current month until next UTC midnight; future months 1h.
+  - Conversion uses exact date or nearest available (weekends/missing); estimates flagged internally.
+
+- Recurring specifics:
+  - Entry ID format: `rt_{templateId}_{yyyyMMdd}`; instances store `originalDate`, `isRecurringInstance`, `isModified`.
+  - Update template: delete future unmodified instances then rematerialize; preserve modified ones.
+  - Stop series: delete future unmodified instances from provided date (default today inclusive).
+  - Delete series: remove template and all unmodified instances.
+
+- Entries cache note:
+  - Real-time listener over `entries` with `where('userId','in', memberIds)` and optional date bounds; ordered by `date desc`.
+  - If cache provider is absent, direct query fallback not implemented.
