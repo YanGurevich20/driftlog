@@ -54,7 +54,7 @@ async function fetchTodaysRates(apiKey: string): Promise<DailyRates> {
 }
 
 export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
-  region: "us-central1",
+  region: "asia-southeast1",
   secrets: [exchangeRateApiKey],
 }, async (request): Promise<GetMonthlyRatesResponse> => {
   if (!request.auth) {

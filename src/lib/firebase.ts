@@ -21,9 +21,9 @@ if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.proj
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = getFirestore(app, 'asia-db');
 export const storage = getStorage(app);
-export const functions = getFunctions(app, 'us-central1');
+export const functions = getFunctions(app, 'asia-southeast1');
 
 // Use the Functions emulator in development
 if (process.env.NODE_ENV === 'development') {
