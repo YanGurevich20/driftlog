@@ -94,7 +94,7 @@ export function RecurringView() {
           // Next occurrence
           const nextQ = query(
             entriesColl,
-            where('userId', '==', user.id),
+            where('userId', '==', t.userId),
             where('recurringTemplateId', '==', t.id),
             where('date', '>', Timestamp.fromDate(todayUtc)),
             orderBy('date', 'asc'),
@@ -106,7 +106,7 @@ export function RecurringView() {
           // Remaining count
           const remainingQ = query(
             entriesColl,
-            where('userId', '==', user.id),
+            where('userId', '==', t.userId),
             where('recurringTemplateId', '==', t.id),
             where('date', '>', Timestamp.fromDate(todayUtc))
           );
@@ -138,7 +138,6 @@ export function RecurringView() {
   useEffect(() => {
     const loadTemplates = async () => {
       if (!user?.id) return;
-      
       setLoading(true);
       try {
         const fetchedTemplates = await getRecurringTemplates(user.id);
@@ -158,20 +157,19 @@ export function RecurringView() {
 
   const handleDelete = async (mode: 'stop' | 'delete-all') => {
     if (!user?.id) return;
-    
+    const tpl = templates.find(t => t.id === deleteDialog.templateId);
+    const ownerId = tpl?.userId || user.id;
     try {
       if (mode === 'stop') {
-        await stopRecurring(deleteDialog.templateId, user.id);
+        await stopRecurring(deleteDialog.templateId, ownerId);
         toast.success('Recurring entry stopped');
       } else {
-        await deleteRecurringSeries(deleteDialog.templateId, user.id);
+        await deleteRecurringSeries(deleteDialog.templateId, ownerId);
         toast.success('Recurring series deleted');
       }
-      // Reload templates
-      if (user?.id) {
-        const fetchedTemplates = await getRecurringTemplates(user.id);
-        setTemplates(fetchedTemplates);
-      }
+      // Reload templates (group-aware service)
+      const fetchedTemplates = await getRecurringTemplates(user.id);
+      setTemplates(fetchedTemplates);
     } catch (error) {
       console.error('Failed to delete recurring:', error);
       toast.error('Failed to delete recurring entry');

@@ -269,6 +269,7 @@ export function ConnectedUsers() {
       <DataState
       loading={loading}
       empty={!hasContent}
+      error={usersError || invitationsError || sentError}
       loadingVariant="skeleton"
       emptyTitle="No connections"
       emptyDescription="Click the + icon above to invite someone"

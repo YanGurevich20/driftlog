@@ -407,12 +407,64 @@ export async function editRecurringInstance(
 }
 
 export async function getRecurringTemplates(userId: string): Promise<RecurringTemplate[]> {
-  const templates = await getDocs(
-    query(
-      collection(db, 'recurringTemplates'),
-      where('userId', '==', userId)
-    )
-  );
+  // Resolve group member IDs for the provided userId
+  let memberIds: string[] = [userId];
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const groupId = userDoc.exists() ? (userDoc.data().groupId as string | undefined) : undefined;
+    if (groupId) {
+      const groupDoc = await getDoc(doc(db, 'userGroups', groupId));
+      if (groupDoc.exists()) {
+        const ids = (groupDoc.data().memberIds as string[]) || [];
+        if (ids.length > 0) memberIds = ids;
+      }
+    }
+  } catch (e) {
+    // Fallback to just the provided userId on any error
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Falling back to single-user recurring templates due to error:', e);
+    }
+  }
 
-  return templates.docs.map(doc => convertFirestoreDoc<RecurringTemplate>(doc));
+  // Firestore "in" supports up to 10 values; chunk if needed
+  const chunks: string[][] = [];
+  for (let i = 0; i < memberIds.length; i += 10) {
+    chunks.push(memberIds.slice(i, i + 10));
+  }
+
+  const results: RecurringTemplate[] = [];
+  for (const chunk of chunks) {
+    const snap = await getDocs(
+      query(
+        collection(db, 'recurringTemplates'),
+        where('userId', 'in', chunk)
+      )
+    );
+    results.push(...snap.docs.map(d => convertFirestoreDoc<RecurringTemplate>(d)));
+  }
+
+  return results;
+}
+
+export async function getRecurringTemplatesForMembers(memberIds: string[]): Promise<RecurringTemplate[]> {
+  if (memberIds.length === 0) return [];
+
+  // Firestore "in" supports up to 10 values; chunk if needed
+  const chunks: string[][] = [];
+  for (let i = 0; i < memberIds.length; i += 10) {
+    chunks.push(memberIds.slice(i, i + 10));
+  }
+
+  const results: RecurringTemplate[] = [];
+  for (const chunk of chunks) {
+    const snap = await getDocs(
+      query(
+        collection(db, 'recurringTemplates'),
+        where('userId', 'in', chunk)
+      )
+    );
+    results.push(...snap.docs.map(d => convertFirestoreDoc<RecurringTemplate>(d)));
+  }
+
+  return results;
 }
