@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useAuth } from '@/lib/auth-context';
-import { getRecurringTemplates, stopRecurring, deleteRecurringSeries } from '@/services/recurring';
+import { stopRecurring, deleteRecurringSeries } from '@/services/recurring';
+import { useRecurringTemplates } from '@/hooks/use-recurring-templates';
 import type { RecurringTemplate } from '@/types';
 import { toast } from 'sonner';
 import {
@@ -36,8 +37,7 @@ import { toUTCMidnight } from '@/lib/date-utils';
 
 export function RecurringView() {
   const { user } = useAuth();
-  const [templates, setTemplates] = useState<RecurringTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { templates, loading, error } = useRecurringTemplates();
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
     templateId: string;
@@ -135,25 +135,6 @@ export function RecurringView() {
     fetchAggregates();
   }, [templates, user?.id]);
 
-  useEffect(() => {
-    const loadTemplates = async () => {
-      if (!user?.id) return;
-      setLoading(true);
-      try {
-        const fetchedTemplates = await getRecurringTemplates(user.id);
-        setTemplates(fetchedTemplates);
-      } catch (error) {
-        console.error('Failed to load recurring templates:', error);
-        toast.error('Failed to load recurring entries');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user?.id) {
-      loadTemplates();
-    }
-  }, [user?.id]);
 
   const handleDelete = async (mode: 'stop' | 'delete-all') => {
     if (!user?.id) return;
@@ -167,11 +148,8 @@ export function RecurringView() {
         await deleteRecurringSeries(deleteDialog.templateId, ownerId);
         toast.success('Recurring series deleted');
       }
-      // Reload templates (group-aware service)
-      const fetchedTemplates = await getRecurringTemplates(user.id);
-      setTemplates(fetchedTemplates);
-    } catch (error) {
-      console.error('Failed to delete recurring:', error);
+    } catch (err) {
+      console.error('Failed to delete recurring:', err);
       toast.error('Failed to delete recurring entry');
     } finally {
       setDeleteDialog({ open: false, templateId: '', mode: 'stop' });
@@ -222,7 +200,7 @@ export function RecurringView() {
         <CardContent>
           <DataState
             loading={loading || aggLoading}
-            error={null}
+            error={error}
             empty={visibleTemplates.length === 0}
             loadingVariant="skeleton"
             emptyTitle="No recurring entries"
