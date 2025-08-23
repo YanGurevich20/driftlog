@@ -133,7 +133,7 @@ export function RecurringView() {
     };
 
     fetchAggregates();
-  }, [templates]);
+  }, [templates, user?.id]);
 
   useEffect(() => {
     const loadTemplates = async () => {

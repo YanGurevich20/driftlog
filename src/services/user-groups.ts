@@ -9,7 +9,6 @@ import {
   query, 
   where, 
   serverTimestamp,
-  arrayUnion,
   Timestamp,
   runTransaction
 } from 'firebase/firestore';
@@ -172,7 +171,7 @@ export class UserGroupsService {
       if (!userSnap.exists()) {
         throw new Error('User not found');
       }
-      const userData = userSnap.data() as any;
+      const userData = userSnap.data() as { groupId?: string };
 
       // Remove from current group if applicable
       const currentGroupId: string | undefined = userData.groupId;
@@ -248,7 +247,7 @@ export class UserGroupsService {
       if (!userSnap.exists()) {
         throw new Error('User not found');
       }
-      const userData = userSnap.data() as any;
+      const userData = userSnap.data() as { groupId?: string };
 
       // Remove from current group if applicable
       const currentGroupId: string | undefined = userData.groupId;

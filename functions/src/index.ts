@@ -59,7 +59,12 @@ export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
   secrets: [exchangeRateApiKey],
 }, async (request): Promise<GetMonthlyRatesResponse> => {
   if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
+    // Allow unauthenticated in emulator to simplify local development
+    if (process.env.FUNCTIONS_EMULATOR === "true") {
+      logger.warn("Allowing unauthenticated getMonthlyRates call in emulator");
+    } else {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
   }
 
   const { months } = request.data;

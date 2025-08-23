@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Repeat, CalendarIcon } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { RECURRENCE_LIMITS } from "@/types";
 import type { RecurrenceFrequency } from "@/types";
 import { format, addDays } from "date-fns";
