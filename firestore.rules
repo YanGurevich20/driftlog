@@ -24,16 +24,14 @@ service cloud.firestore {
     
     // Users - can read/write own doc, read group members
     match /users/{userId} {
+      // Always allow users to read/write their own user document
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
-      // Allow reading other users only if they are in the same group as the requester
-      allow read: if isAuthenticated() &&
-        (
-          userId == request.auth.uid ||
-          (
-            getUserGroupId() != null &&
-            get(/databases/$(database)/documents/userGroups/$(getUserGroupId())).data.memberIds.hasAny([userId])
-          )
-        );
+
+      // Allow reading other users only if they are in the same group as the requester.
+      // Guard against self-reads here to avoid recursive get() when the user doc does not yet exist.
+      allow read: if isAuthenticated() && userId != request.auth.uid &&
+        getUserGroupId() != null &&
+        get(/databases/$(database)/documents/userGroups/$(getUserGroupId())).data.memberIds.hasAny([userId]);
     }
     
     // User Groups - members can read, anyone can create (for onboarding)

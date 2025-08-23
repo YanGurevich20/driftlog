@@ -10,7 +10,8 @@ import {
   where, 
   serverTimestamp,
   arrayUnion,
-  Timestamp
+  Timestamp,
+  runTransaction
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { convertFirestoreDoc } from '@/lib/firestore-utils';
@@ -150,49 +151,63 @@ export class UserGroupsService {
   }
 
   static async acceptInvitation(invitationId: string, userId: string): Promise<void> {
-    // Validate invitation
     const invitationRef = doc(db, 'groupInvitations', invitationId);
-    const invitationDoc = await getDoc(invitationRef);
-    
-    if (!invitationDoc.exists()) {
-      throw new Error('Invitation not found');
-    }
-    
-    const invitation = convertFirestoreDoc<GroupInvitation>(invitationDoc);
-    
-    // Check expiry
-    const now = Timestamp.now();
-    if (invitation.expiresAt.getTime() < now.toMillis()) {
-      throw new Error('Invitation expired');
-    }
-
-    // Get user's current state
     const userRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userRef);
-    
-    if (!userDoc.exists()) {
-      throw new Error('User not found');
-    }
-    
-    const userData = userDoc.data();
-    const currentGroupId = userData.groupId;
 
-    // Handle leaving current group
-    if (currentGroupId) {
-      await this.removeUserFromGroup(userId, currentGroupId);
-    }
+    await runTransaction(db, async (tx) => {
+      const invitationSnap = await tx.get(invitationRef);
+      if (!invitationSnap.exists()) {
+        throw new Error('Invitation not found');
+      }
+      const invitation = convertFirestoreDoc<GroupInvitation>(invitationSnap);
 
-    // Update all in a batch for consistency
-    await Promise.all([
-      // Delete the invitation
-      deleteDoc(invitationRef),
-      // Add user to new group
-      updateDoc(doc(db, 'userGroups', invitation.groupId), {
-        memberIds: arrayUnion(userId)
-      }),
-      // Update user's groupId
-      updateDoc(userRef, { groupId: invitation.groupId })
-    ]);
+      // Check expiry inside the transaction
+      const now = Timestamp.now();
+      if (invitation.expiresAt.getTime() < now.toMillis()) {
+        throw new Error('Invitation expired');
+      }
+
+      // Load user
+      const userSnap = await tx.get(userRef);
+      if (!userSnap.exists()) {
+        throw new Error('User not found');
+      }
+      const userData = userSnap.data() as any;
+
+      // Remove from current group if applicable
+      const currentGroupId: string | undefined = userData.groupId;
+      if (currentGroupId) {
+        const currentGroupRef = doc(db, 'userGroups', currentGroupId);
+        const currentGroupSnap = await tx.get(currentGroupRef);
+        if (currentGroupSnap.exists()) {
+          const currentGroup = currentGroupSnap.data() as UserGroup;
+          if (currentGroup.memberIds.includes(userId)) {
+            const nextMembers = currentGroup.memberIds.filter((id: string) => id !== userId);
+            if (nextMembers.length === 0) {
+              tx.delete(currentGroupRef);
+            } else {
+              tx.update(currentGroupRef, { memberIds: nextMembers });
+            }
+          }
+        }
+      }
+
+      // Add to new group
+      const newGroupRef = doc(db, 'userGroups', invitation.groupId);
+      const newGroupSnap = await tx.get(newGroupRef);
+      if (!newGroupSnap.exists()) {
+        throw new Error('Target group not found');
+      }
+      const newGroup = newGroupSnap.data() as UserGroup;
+      const ensuredMembers = Array.from(new Set([...(newGroup.memberIds || []), userId]));
+      tx.update(newGroupRef, { memberIds: ensuredMembers });
+
+      // Update user groupId
+      tx.update(userRef, { groupId: invitation.groupId });
+
+      // Delete invitation
+      tx.delete(invitationRef);
+    });
   }
 
   private static async removeUserFromGroup(userId: string, groupId: string): Promise<void> {
@@ -202,6 +217,9 @@ export class UserGroupsService {
     if (!groupDoc.exists()) return;
     
     const group = convertFirestoreDoc<UserGroup>(groupDoc);
+    if (!group.memberIds.includes(userId)) {
+      return;
+    }
     const updatedMembers = group.memberIds.filter((id: string) => id !== userId);
     
     // First update the group to remove the member
@@ -225,28 +243,45 @@ export class UserGroupsService {
 
   static async leaveGroup(userId: string): Promise<string> {
     const userRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userRef);
-    
-    if (!userDoc.exists()) {
-      throw new Error('User not found');
-    }
-    
-    const userData = userDoc.data();
-    const currentGroupId = userData.groupId;
+    const newGroupId = await runTransaction(db, async (tx) => {
+      const userSnap = await tx.get(userRef);
+      if (!userSnap.exists()) {
+        throw new Error('User not found');
+      }
+      const userData = userSnap.data() as any;
 
-    // Remove from current group if exists
-    if (currentGroupId) {
-      await this.removeUserFromGroup(userId, currentGroupId);
-    }
+      // Remove from current group if applicable
+      const currentGroupId: string | undefined = userData.groupId;
+      if (currentGroupId) {
+        const currentGroupRef = doc(db, 'userGroups', currentGroupId);
+        const currentGroupSnap = await tx.get(currentGroupRef);
+        if (currentGroupSnap.exists()) {
+          const currentGroup = currentGroupSnap.data() as UserGroup;
+          if (currentGroup.memberIds.includes(userId)) {
+            const nextMembers = currentGroup.memberIds.filter((id: string) => id !== userId);
+            if (nextMembers.length === 0) {
+              tx.delete(currentGroupRef);
+            } else {
+              tx.update(currentGroupRef, { memberIds: nextMembers });
+            }
+          }
+        }
+      }
 
-    // Create new solo group
-    const newGroupId = await this.createGroup(userId);
-    
-    // Update user's groupId
-    await updateDoc(userRef, {
-      groupId: newGroupId
+      // Create new solo group id and doc
+      const newGroupRef = doc(collection(db, 'userGroups'));
+      tx.set(newGroupRef, {
+        memberIds: [userId],
+        createdAt: serverTimestamp(),
+        createdBy: userId,
+      });
+
+      // Update user to point to new group
+      tx.update(userRef, { groupId: newGroupRef.id });
+
+      return newGroupRef.id;
     });
-    
+
     return newGroupId;
   }
 }
