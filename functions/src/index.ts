@@ -284,14 +284,24 @@ export const leaveConnections = onCall<{ userId: string }>({
 
   const userRef = db.doc(`users/${userId}`);
   const result = await db.runTransaction(async (tx) => {
+    // Read all documents first
     const userSnap = await tx.get(userRef);
     if (!userSnap.exists) throw new HttpsError("not-found", "User not found");
     const userData = userSnap.data() as { connectedUserIds?: string[] };
     const peers = Array.from(new Set(userData.connectedUserIds || []));
 
+    // Read all peer documents
+    const peerSnapshots = new Map<string, FirebaseFirestore.DocumentSnapshot>();
     for (const peerId of peers) {
       const peerRef = db.doc(`users/${peerId}`);
       const peerSnap = await tx.get(peerRef);
+      peerSnapshots.set(peerId, peerSnap);
+    }
+
+    // Now do all writes
+    for (const peerId of peers) {
+      const peerRef = db.doc(`users/${peerId}`);
+      const peerSnap = peerSnapshots.get(peerId)!;
       if (peerSnap.exists) {
         const peerData = peerSnap.data() as { connectedUserIds?: string[] };
         const next = (peerData.connectedUserIds || []).filter((id) => id !== userId);
