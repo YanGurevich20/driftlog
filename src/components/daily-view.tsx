@@ -208,7 +208,7 @@ export function DailyView() {
                             )
                           )}
                           <span className="text-muted-foreground text-sm">
-                            {`${isRecent ? '•' : ''} ${entry.description || 'No description'}`}
+                            {`${entry.description || 'No description'} ${isRecent ? '•' : ''}`}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
