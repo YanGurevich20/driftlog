@@ -119,7 +119,7 @@ function CollapsibleCardContent({
 }: CollapsibleCardContentProps) {
   return (
     <CollapsibleContent
-      className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down"
+      className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down duration-200 ease-out"
     >
       <CardContent className={className} {...props}>
         {children}
