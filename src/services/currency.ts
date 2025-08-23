@@ -1,7 +1,6 @@
 import type { MonthlyExchangeRates, DailyRates } from '@/types';
-import { db, functions } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
 
 
 export class CurrencyService {
@@ -85,23 +84,6 @@ export class CurrencyService {
             this.cacheTimestamps.set(month, Date.now());
             result.set(month, monthData);
           } else {
-            // In development with emulator, try to seed via callable for convenience
-            if (process.env.NODE_ENV === 'development') {
-              try {
-                const seed = httpsCallable<{ months: string[] }, { monthlyRates: Record<string, MonthlyExchangeRates> }>(
-                  functions,
-                  'getMonthlyRates'
-                );
-                const response = await seed({ months: [month] });
-                const seeded = response.data.monthlyRates[month] || {};
-                this.monthlyCache.set(month, seeded);
-                this.cacheTimestamps.set(month, Date.now());
-                result.set(month, seeded);
-                return;
-              } catch {
-                // fall through to empty cache
-              }
-            }
             // Cache empty object to avoid repeated reads; conversions will estimate/fail gracefully
             const empty: MonthlyExchangeRates = {};
             this.monthlyCache.set(month, empty);

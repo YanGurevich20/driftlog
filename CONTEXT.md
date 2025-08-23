@@ -82,8 +82,8 @@ Multi-currency expense tracking with real-time collaboration.
   /hooks        - Custom hooks (use-entries, use-connected-users)
   /services     - Firebase services
   /lib          - Utilities
-/functions      - Cloud Functions (getMonthlyRates, acceptConnectionInvitation, leaveConnections)
-/scripts        - Utility scripts (backfill-exchange-rates.js)
+/functions      - Cloud Functions (acceptConnectionInvitation, leaveConnections)
+/scripts        - Utility scripts (seed-exchange-rates.js)
 ```
 
 
@@ -165,7 +165,8 @@ Multi-currency expense tracking with real-time collaboration.
   - Deploy rules: `firebase deploy --only firestore:rules --project <project>`.
 
 - Exchange rates flow:
-  - Cloud Function `getMonthlyRates` stores documents under `exchangeRates/YYYY-MM`.
+  - Local development: Use `pnpm seed` to populate exchange rates from SERVICE_START_DATE to today.
+  - Production: Exchange rates stored under `exchangeRates/YYYY-MM` documents.
   - Cache policy: historical months indefinite; current month until next UTC midnight; future months 1h.
   - Conversion uses exact date or nearest available (weekends/missing); estimates flagged internally.
 
