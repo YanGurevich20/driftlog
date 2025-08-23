@@ -185,3 +185,95 @@ export const scheduledUpdateExchangeRates = onSchedule({
     logger.error("Scheduled exchange rate update failed", error);
   }
 });
+
+// Connections: accept invitation
+export const acceptConnectionInvitation = onCall<{ invitationId: string; userId: string }, { ok: boolean }>({
+  region: "asia-southeast1",
+}, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "User must be authenticated");
+  const { invitationId, userId } = request.data;
+  if (!invitationId || !userId) throw new HttpsError("invalid-argument", "invitationId and userId are required");
+
+  const db = admin.firestore();
+  const invitationRef = db.doc(`connectionInvitations/${invitationId}`);
+  const recipientRef = db.doc(`users/${userId}`);
+
+  return await db.runTransaction(async (tx) => {
+    const invSnap = await tx.get(invitationRef);
+    if (!invSnap.exists) throw new HttpsError("not-found", "Invitation not found");
+    const invitation = invSnap.data() as { invitedEmail: string; invitedBy: string; inviterName: string; expiresAt: admin.firestore.Timestamp };
+
+    // Validate recipient matches invitation
+    const authEmail = request.auth.token.email as string | undefined;
+    if (!authEmail || authEmail.toLowerCase() !== invitation.invitedEmail.toLowerCase()) {
+      throw new HttpsError("permission-denied", "Invitation not addressed to this user");
+    }
+
+    // Validate expiry
+    if (invitation.expiresAt.toMillis() < Date.now()) {
+      throw new HttpsError("failed-precondition", "Invitation expired");
+    }
+
+    // Load inviter and recipient
+    const inviterRef = db.doc(`users/${invitation.invitedBy}`);
+    const inviterSnap = await tx.get(inviterRef);
+    const recipientSnap = await tx.get(recipientRef);
+    if (!inviterSnap.exists || !recipientSnap.exists) throw new HttpsError("not-found", "User not found");
+
+    const inviterData = inviterSnap.data() as { connectedUserIds?: string[] };
+    const recipientData = recipientSnap.data() as { connectedUserIds?: string[] };
+    const clique = Array.from(new Set([invitation.invitedBy, ...(inviterData.connectedUserIds || [])]));
+
+    // Update mutual connections
+    for (const memberId of clique) {
+      const memberRef = db.doc(`users/${memberId}`);
+      const memberSnap = memberId === invitation.invitedBy ? inviterSnap : await tx.get(memberRef);
+      const member = (memberSnap.data() || {}) as { connectedUserIds?: string[] };
+      const memberSet = new Set(member.connectedUserIds || []);
+      memberSet.add(userId);
+      tx.update(memberRef, { connectedUserIds: Array.from(memberSet) });
+    }
+
+    // Recipient gets all members mutually
+    const recipientSet = new Set(recipientData.connectedUserIds || []);
+    for (const memberId of clique) {
+      recipientSet.add(memberId);
+    }
+    tx.update(recipientRef, { connectedUserIds: Array.from(recipientSet) });
+
+    // Delete invitation
+    tx.delete(invitationRef);
+    return { ok: true };
+  });
+});
+
+// Connections: leave all connections
+export const leaveConnections = onCall<{ userId: string }, { ok: boolean }>({
+  region: "asia-southeast1",
+}, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "User must be authenticated");
+  const { userId } = request.data;
+  if (!userId || userId !== request.auth.uid) throw new HttpsError("permission-denied", "Only self can leave");
+
+  const db = admin.firestore();
+  const userRef = db.doc(`users/${userId}`);
+  return await db.runTransaction(async (tx) => {
+    const userSnap = await tx.get(userRef);
+    if (!userSnap.exists) throw new HttpsError("not-found", "User not found");
+    const userData = userSnap.data() as { connectedUserIds?: string[] };
+    const peers = Array.from(new Set(userData.connectedUserIds || []));
+
+    for (const peerId of peers) {
+      const peerRef = db.doc(`users/${peerId}`);
+      const peerSnap = await tx.get(peerRef);
+      if (peerSnap.exists) {
+        const peerData = peerSnap.data() as { connectedUserIds?: string[] };
+        const next = (peerData.connectedUserIds || []).filter((id) => id !== userId);
+        tx.update(peerRef, { connectedUserIds: next });
+      }
+    }
+
+    tx.update(userRef, { connectedUserIds: [] });
+    return { ok: true };
+  });
+});

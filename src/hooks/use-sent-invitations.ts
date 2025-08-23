@@ -19,7 +19,7 @@ export function useSentInvitations() {
     }
 
     const q = query(
-      collection(db, 'groupInvitations'),
+      collection(db, 'connectionInvitations'),
       where('invitedBy', '==', user.id)
     );
 

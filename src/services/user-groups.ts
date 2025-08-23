@@ -20,27 +20,10 @@ import type { UserGroup, GroupInvitation, User } from '@/types';
 export type { UserGroup, GroupInvitation } from '@/types';
 
 export class UserGroupsService {
-  static async createGroup(userId: string): Promise<string> {
-    const groupData = {
-      memberIds: [userId],
-      createdAt: serverTimestamp(),
-      createdBy: userId,
-    };
+  // Deprecated
+  static async createGroup(userId: string): Promise<string> { throw new Error('Deprecated'); }
 
-    const docRef = await addDoc(collection(db, 'userGroups'), groupData);
-    return docRef.id;
-  }
-
-  static async getGroup(groupId: string): Promise<UserGroup | null> {
-    const docRef = doc(db, 'userGroups', groupId);
-    const docSnap = await getDoc(docRef);
-    
-    if (!docSnap.exists()) {
-      return null;
-    }
-    
-    return convertFirestoreDoc<UserGroup>(docSnap);
-  }
+  static async getGroup(groupId: string): Promise<UserGroup | null> { return null; }
 
   static async getGroupMembers(groupId: string): Promise<User[]> {
     const group = await this.getGroup(groupId);
@@ -58,18 +41,7 @@ export class UserGroupsService {
       .map(doc => convertFirestoreDoc<User>(doc));
   }
 
-  static async getConnectedUsers(userId: string): Promise<User[]> {
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (!userDoc.exists()) return [];
-    
-    const userData = userDoc.data();
-    const groupId = userData.groupId;
-    
-    if (!groupId) return [];
-    
-    const members = await this.getGroupMembers(groupId);
-    return members.filter(member => member.id !== userId);
-  }
+  static async getConnectedUsers(userId: string): Promise<User[]> { return []; }
 
   private static async validateInvitation(
     groupId: string,
@@ -103,34 +75,7 @@ export class UserGroupsService {
     return { valid: true };
   }
 
-  static async inviteToGroup(
-    groupId: string,
-    inviterUserId: string,
-    inviterName: string,
-    invitedEmail: string
-  ): Promise<string> {
-    
-    // Validate invitation
-    const validation = await this.validateInvitation(groupId, inviterUserId, invitedEmail);
-    if (!validation.valid) {
-      throw new Error(validation.error);
-    }
-    
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-
-    const invitationData = {
-      groupId,
-      invitedEmail: invitedEmail.toLowerCase(),
-      invitedBy: inviterUserId,
-      inviterName,
-      createdAt: serverTimestamp(),
-      expiresAt: Timestamp.fromDate(expiresAt),
-    };
-
-    const docRef = await addDoc(collection(db, 'groupInvitations'), invitationData);
-    return docRef.id;
-  }
+  static async inviteToGroup(): Promise<string> { throw new Error('Deprecated'); }
 
   static async getUserInvitations(userEmail: string): Promise<GroupInvitation[]> {
     const q = query(
@@ -150,62 +95,7 @@ export class UserGroupsService {
       });
   }
 
-  static async acceptInvitation(invitationId: string, userId: string): Promise<void> {
-    const invitationRef = doc(db, 'groupInvitations', invitationId);
-    const userRef = doc(db, 'users', userId);
-
-    await runTransaction(db, async (tx) => {
-      const invitationSnap = await tx.get(invitationRef);
-      if (!invitationSnap.exists()) {
-        throw new Error('Invitation not found');
-      }
-      const invitation = convertFirestoreDoc<GroupInvitation>(invitationSnap);
-
-      // Check expiry inside the transaction
-      const now = Timestamp.now();
-      if (invitation.expiresAt.getTime() < now.toMillis()) {
-        throw new Error('Invitation expired');
-      }
-
-      // Load user
-      const userSnap = await tx.get(userRef);
-      if (!userSnap.exists()) {
-        throw new Error('User not found');
-      }
-      const userData = userSnap.data() as { groupId?: string };
-
-      // Read any potentially involved groups BEFORE any writes
-      const currentGroupId: string | undefined = userData.groupId;
-      const currentGroupRef = currentGroupId ? doc(db, 'userGroups', currentGroupId) : null;
-      const currentGroupSnap = currentGroupRef ? await tx.get(currentGroupRef) : null;
-
-      const newGroupRef = doc(db, 'userGroups', invitation.groupId);
-
-      // All reads are complete above. Perform writes below.
-
-      // 1) Add to new group first (so reads to new group are permitted immediately)
-      tx.update(newGroupRef, { memberIds: arrayUnion(userId) });
-
-      // 2) Update user to point to the new group
-      tx.update(userRef, { groupId: invitation.groupId });
-
-      // 3) Remove from current group if applicable (using data read above)
-      if (currentGroupRef && currentGroupSnap && currentGroupSnap.exists()) {
-        const currentGroup = currentGroupSnap.data() as UserGroup;
-        if (currentGroup.memberIds.includes(userId)) {
-          const nextMembers = currentGroup.memberIds.filter((id: string) => id !== userId);
-          if (nextMembers.length === 0) {
-            tx.delete(currentGroupRef);
-          } else {
-            tx.update(currentGroupRef, { memberIds: nextMembers });
-          }
-        }
-      }
-
-      // 4) Delete invitation
-      tx.delete(invitationRef);
-    });
-  }
+  static async acceptInvitation(): Promise<void> { throw new Error('Deprecated'); }
 
   private static async removeUserFromGroup(userId: string, groupId: string): Promise<void> {
     const groupRef = doc(db, 'userGroups', groupId);
@@ -230,57 +120,9 @@ export class UserGroupsService {
     }
   }
 
-  static async rejectInvitation(invitationId: string): Promise<void> {
-    await deleteDoc(doc(db, 'groupInvitations', invitationId));
-  }
+  static async rejectInvitation(): Promise<void> { throw new Error('Deprecated'); }
 
-  static async cancelInvitation(invitationId: string): Promise<void> {
-    await deleteDoc(doc(db, 'groupInvitations', invitationId));
-  }
+  static async cancelInvitation(): Promise<void> { throw new Error('Deprecated'); }
 
-  static async leaveGroup(userId: string): Promise<string> {
-    const userRef = doc(db, 'users', userId);
-    const newGroupId = await runTransaction(db, async (tx) => {
-      const userSnap = await tx.get(userRef);
-      if (!userSnap.exists()) {
-        throw new Error('User not found');
-      }
-      const userData = userSnap.data() as { groupId?: string };
-
-      // READ any current group BEFORE any writes (transaction requirement)
-      const currentGroupId: string | undefined = userData.groupId;
-      const currentGroupRef = currentGroupId ? doc(db, 'userGroups', currentGroupId) : null;
-      const currentGroupSnap = currentGroupRef ? await tx.get(currentGroupRef) : null;
-      const shouldUpdateCurrentGroup = !!(currentGroupRef && currentGroupSnap && currentGroupSnap.exists());
-      const nextMembers = shouldUpdateCurrentGroup
-        ? (currentGroupSnap!.data() as UserGroup).memberIds.filter((id: string) => id !== userId)
-        : [];
-
-      // All reads complete above. Perform writes below.
-
-      // Create new solo group id and doc
-      const newGroupRef = doc(collection(db, 'userGroups'));
-      tx.set(newGroupRef, {
-        memberIds: [userId],
-        createdAt: serverTimestamp(),
-        createdBy: userId,
-      });
-
-      // Update or delete old group BEFORE switching the user
-      if (shouldUpdateCurrentGroup) {
-        if (nextMembers.length === 0) {
-          tx.delete(currentGroupRef!);
-        } else {
-          tx.update(currentGroupRef!, { memberIds: nextMembers });
-        }
-      }
-
-      // Now update user to point to new group
-      tx.update(userRef, { groupId: newGroupRef.id });
-
-      return newGroupRef.id;
-    });
-
-    return newGroupId;
-  }
+  static async leaveGroup(): Promise<string> { throw new Error('Deprecated'); }
 }

@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 displayName: firebaseUser.displayName || '',
                 photoUrl: firebaseUser.photoURL || undefined,
                 displayCurrency: 'USD',
-                groupId: '',
+                connectedUserIds: [],
                 createdAt: new Date(),
               } as User);
             }

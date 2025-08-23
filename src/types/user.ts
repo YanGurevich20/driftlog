@@ -6,7 +6,7 @@ export interface User {
   displayName?: string;
   photoUrl?: string;
   displayCurrency: string;
-  groupId: string;
+  connectedUserIds: string[];
   createdAt: Date;
 }
 

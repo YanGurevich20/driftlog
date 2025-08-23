@@ -7,79 +7,46 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    // Mutual-connection check between requester and target user
+    function isMutuallyConnected(targetUserId) {
+      return
+        // Requester lists target
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.connectedUserIds.hasAny([targetUserId]) &&
+        // Target lists requester
+        get(/databases/$(database)/documents/users/$(targetUserId)).data.connectedUserIds.hasAny([request.auth.uid]);
     }
     
-    function getUserGroupId() {
-      let userData = getUserData();
-      return userData != null && 'groupId' in userData ? userData.groupId : null;
-    }
-    
-    
-    function isGroupMember(targetUserId) {
-      return getUserGroupId() != null &&
-        get(/databases/$(database)/documents/userGroups/$(getUserGroupId())).data.memberIds.hasAny([targetUserId]);
-    }
-    
-    // Users - can read/write own doc, read group members
+    // Users - can read/write own doc, read mutually connected users
     match /users/{userId} {
       // Always allow users to read/write their own user document
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
 
-      // Allow reading other users only if they are in the same group as the requester.
-      // Guard against self-reads here to avoid recursive get() when the user doc does not yet exist.
-      allow read: if isAuthenticated() && userId != request.auth.uid &&
-        getUserGroupId() != null &&
-        get(/databases/$(database)/documents/userGroups/$(getUserGroupId())).data.memberIds.hasAny([userId]);
-    }
-    
-    // User Groups - members can read, anyone can create (for onboarding)
-    match /userGroups/{groupId} {
-      allow read: if isAuthenticated() && 
-        (resource.data.memberIds.hasAny([request.auth.uid]) || 
-         (getUserGroupId() != null && getUserGroupId() == groupId));
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && 
-        (resource.data.memberIds.hasAny([request.auth.uid]) ||
-         // Allow adding self when accepting invitation
-         (request.resource.data.memberIds.hasAny([request.auth.uid]) &&
-          request.resource.data.memberIds.hasAll(resource.data.memberIds)));
-      allow delete: if isAuthenticated() && 
-        (
-          resource.data.memberIds.size() == 0 ||
-          (resource.data.memberIds.size() == 1 && resource.data.memberIds.hasAny([request.auth.uid]))
-        );
+      // Allow reading other users only if mutually connected
+      allow read: if isAuthenticated() && userId != request.auth.uid && isMutuallyConnected(userId);
     }
     
     // Entries - users can access own and group members' entries
     match /entries/{entryId} {
       allow read: if isAuthenticated() &&
-        (
-          resource.data.userId == request.auth.uid ||
-          isGroupMember(resource.data.userId)
-        );
+        (resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId));
       allow create: if isAuthenticated() && 
-        (request.resource.data.userId == request.auth.uid || isGroupMember(request.resource.data.userId)) &&
+        (request.resource.data.userId == request.auth.uid || isMutuallyConnected(request.resource.data.userId)) &&
         request.resource.data.date >= timestamp.date(2025, 1, 1);
       allow update: if isAuthenticated() && 
-        (resource.data.userId == request.auth.uid || isGroupMember(resource.data.userId)) &&
+        (resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId)) &&
         // Prevent moving entries before service start
         (request.resource.data.date == null || request.resource.data.date >= timestamp.date(2025, 1, 1));
       allow delete: if isAuthenticated() && 
-        (resource == null || resource.data.userId == request.auth.uid || isGroupMember(resource.data.userId));
+        (resource == null || resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId));
     }
     
-    // Group invitations - simplified access
-    match /groupInvitations/{invitationId} {
+    // Connection invitations - simplified access
+    match /connectionInvitations/{invitationId} {
       allow list: if isAuthenticated();
       allow get: if isAuthenticated() && 
         (request.auth.token.email == resource.data.invitedEmail ||
          request.auth.uid == resource.data.invitedBy);
-      allow create: if isAuthenticated() &&
-        request.resource.data.invitedBy == request.auth.uid &&
-        (getUserGroupId() == request.resource.data.groupId ||
-         get(/databases/$(database)/documents/userGroups/$(request.resource.data.groupId)).data.memberIds.hasAny([request.auth.uid]));
+      allow create: if isAuthenticated() && request.resource.data.invitedBy == request.auth.uid;
       allow update: if isAuthenticated() &&
         request.auth.token.email == resource.data.invitedEmail;
       allow delete: if isAuthenticated() &&
@@ -93,12 +60,12 @@ service cloud.firestore {
       allow write: if false; // Clients cannot write exchange rates
     }
     
-    // Recurring templates - users and their group members can fully manage
+    // Recurring templates - users and their mutual connections can fully manage
     match /recurringTemplates/{templateId} {
       allow read, list: if isAuthenticated() && 
-        (resource.data.userId == request.auth.uid || isGroupMember(resource.data.userId));
+        (resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId));
       allow create: if isAuthenticated() && 
-        (request.resource.data.userId == request.auth.uid || isGroupMember(request.resource.data.userId)) &&
+        (request.resource.data.userId == request.auth.uid || isMutuallyConnected(request.resource.data.userId)) &&
         request.resource.data.createdBy == request.auth.uid &&
         // Enforce start and end dates not before service start
         request.resource.data.startDate >= timestamp.date(2025, 1, 1) &&
@@ -106,13 +73,13 @@ service cloud.firestore {
         // endDate must not be before start
         request.resource.data.recurrence.endDate >= request.resource.data.startDate;
       allow update: if isAuthenticated() && 
-        (resource.data.userId == request.auth.uid || isGroupMember(resource.data.userId)) &&
+        (resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId)) &&
         // If startDate/endDate are updated, enforce bounds
         (request.resource.data.startDate == null || request.resource.data.startDate >= timestamp.date(2025, 1, 1)) &&
         (request.resource.data.recurrence.endDate == null || request.resource.data.recurrence.endDate >= timestamp.date(2025, 1, 1)) &&
         (request.resource.data.recurrence.endDate == null || request.resource.data.startDate == null || request.resource.data.recurrence.endDate >= request.resource.data.startDate);
       allow delete: if isAuthenticated() && 
-        (resource == null || resource.data.userId == request.auth.uid || isGroupMember(resource.data.userId));
+        (resource == null || resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId));
     }
   }
 }

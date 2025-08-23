@@ -12,28 +12,25 @@ export function useConnectedUsers() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!user || !user.groupId || !userReady) {
+    if (!user || !userReady) {
       setConnectedUsers([]);
       setLoading(false);
       return;
     }
 
-    // Single listener on the group document
+    // Listen to own user document; derive connected users from connectedUserIds
     const unsubscribe = onSnapshot(
-      doc(db, 'userGroups', user.groupId),
-      async (groupSnapshot) => {
+      doc(db, 'users', user.id),
+      async (userSnapshot) => {
         try {
-          if (!groupSnapshot.exists()) {
+          if (!userSnapshot.exists()) {
             setConnectedUsers([]);
             setLoading(false);
             return;
           }
 
-          const groupData = groupSnapshot.data();
-          const memberIds = groupData.memberIds || [];
-          
-          // Filter out current user
-          const otherMemberIds = memberIds.filter((id: string) => id !== user.id);
+          const userData = userSnapshot.data() as User;
+          const otherMemberIds = (userData.connectedUserIds || []).filter((id: string) => id !== user.id);
           
           if (otherMemberIds.length === 0) {
             setConnectedUsers([]);
@@ -42,9 +39,7 @@ export function useConnectedUsers() {
           }
 
           // Fetch all member documents
-          const memberPromises = otherMemberIds.map((memberId: string) => 
-            getDoc(doc(db, 'users', memberId))
-          );
+          const memberPromises = otherMemberIds.map((memberId: string) => getDoc(doc(db, 'users', memberId)));
           
           const memberDocs = await Promise.all(memberPromises);
           const members = memberDocs
@@ -67,7 +62,7 @@ export function useConnectedUsers() {
     );
 
     return () => unsubscribe();
-  }, [user?.id, user?.groupId, userReady, user]);
+  }, [user?.id, userReady, user]);
 
   return { connectedUsers, loading, error };
 }

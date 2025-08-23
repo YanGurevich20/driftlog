@@ -406,20 +406,15 @@ export async function editRecurringInstance(
 }
 
 export async function getRecurringTemplates(userId: string): Promise<RecurringTemplate[]> {
-  // Resolve group member IDs for the provided userId
+  // Resolve member IDs using mutual connections
   let memberIds: string[] = [userId];
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
-    const groupId = userDoc.exists() ? (userDoc.data().groupId as string | undefined) : undefined;
-    if (groupId) {
-      const groupDoc = await getDoc(doc(db, 'userGroups', groupId));
-      if (groupDoc.exists()) {
-        const ids = (groupDoc.data().memberIds as string[]) || [];
-        if (ids.length > 0) memberIds = ids;
-      }
+    if (userDoc.exists()) {
+      const connectedIds = (userDoc.data().connectedUserIds as string[] | undefined) || [];
+      memberIds = [userId, ...connectedIds];
     }
   } catch (e) {
-    // Fallback to just the provided userId on any error
     if (process.env.NODE_ENV === 'development') {
       console.warn('Falling back to single-user recurring templates due to error:', e);
     }

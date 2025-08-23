@@ -19,7 +19,7 @@ export function useInvitations() {
     }
 
     const q = query(
-      collection(db, 'groupInvitations'),
+      collection(db, 'connectionInvitations'),
       where('invitedEmail', '==', user.email.toLowerCase())
     );
 

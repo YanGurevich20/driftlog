@@ -32,24 +32,13 @@ export function useEntries(options: UseEntriesOptions = {}) {
       try {
         let ids: string[] = [];
         
-        if (groupId) {
-          const groupDoc = await getDoc(doc(db, 'userGroups', groupId));
-          if (groupDoc.exists()) {
-            ids = groupDoc.data().memberIds || [];
-          }
-        } else if (userId) {
+        if (userId) {
           ids = [userId];
         } else if (user) {
           const userDoc = await getDoc(doc(db, 'users', user.id));
           if (userDoc.exists()) {
-            const userGroupId = userDoc.data().groupId;
-            
-            if (userGroupId) {
-              const groupDoc = await getDoc(doc(db, 'userGroups', userGroupId));
-              if (groupDoc.exists()) {
-                ids = groupDoc.data().memberIds || [];
-              }
-            }
+            const connectedIds = (userDoc.data().connectedUserIds || []) as string[];
+            ids = [user.id, ...connectedIds];
           }
         }
         

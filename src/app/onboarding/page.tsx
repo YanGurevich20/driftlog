@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Info } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { UserGroupsService } from '@/services/user-groups';
 import { CurrencySelector } from '@/components/currency-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { toast } from 'sonner';
@@ -32,10 +31,7 @@ export default function Onboarding() {
 
     setIsSubmitting(true);
     try {
-      // Create the user's initial group
-      const groupId = await UserGroupsService.createGroup(user.id);
-
-      // Update user document with name and group
+      // Update user document with name and initial settings
       await setDoc(doc(db, 'users', user.id), {
         id: user.id,
         email: user.email,
@@ -43,7 +39,7 @@ export default function Onboarding() {
         displayName: name.trim(),
         photoUrl: user.photoUrl || null,
         displayCurrency: currency,
-        groupId: groupId,
+        connectedUserIds: [],
         createdAt: serverTimestamp(),
         onboardingCompleted: true,
       });

@@ -26,7 +26,7 @@ import {
 import { UserPlus, Users, LogOut, Check, X, Mail, Send } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/lib/auth-context';
-import { UserGroupsService } from '@/services/user-groups';
+import { ConnectionsService } from '@/services/connections';
 import { useConnectedUsers } from '@/hooks/use-connected-users';
 import { useInvitations } from '@/hooks/use-invitations';
 import { useSentInvitations } from '@/hooks/use-sent-invitations';
@@ -51,12 +51,7 @@ export function ConnectedUsersInviteButton() {
     
     setIsInviting(true);
     try {
-      await UserGroupsService.inviteToGroup(
-        user.groupId,
-        user.id,
-        user.displayName || user.email || 'User',
-        inviteEmail
-      );
+      await ConnectionsService.invite(user.id, user.displayName || user.email || 'User', inviteEmail);
       
       setInviteEmail('');
       setInviteDialogOpen(false);
@@ -138,7 +133,7 @@ export function ConnectedUsersLeaveButton() {
     if (!user) return;
     
     try {
-      await UserGroupsService.leaveGroup(user.id);
+      await ConnectionsService.leave(user.id);
       toast.success('Left the group successfully');
       setLeaveGroupDialogOpen(false);
     } catch (error) {
@@ -220,8 +215,8 @@ export function ConnectedUsers() {
     if (!user) return;
     
     try {
-      await UserGroupsService.acceptInvitation(invitation.id, user.id);
-      toast.success(`Joined group with ${invitation.inviterName}`);
+      await ConnectionsService.accept(invitation.id, user.id);
+      toast.success(`Connected with ${invitation.inviterName}`);
       setConfirmDialogOpen(false);
       setPendingInvitation(null);
     } catch (error) {
@@ -243,7 +238,7 @@ export function ConnectedUsers() {
 
   const handleRejectInvitation = async (invitation: GroupInvitation) => {
     try {
-      await UserGroupsService.rejectInvitation(invitation.id);
+      await ConnectionsService.reject(invitation.id);
       toast.success('Invitation declined');
     } catch (error) {
       console.error('Error rejecting invitation:', error);
@@ -253,7 +248,7 @@ export function ConnectedUsers() {
 
   const handleCancelInvitation = async (invitation: GroupInvitation) => {
     try {
-      await UserGroupsService.cancelInvitation(invitation.id);
+      await ConnectionsService.cancel(invitation.id);
       toast.success('Invitation cancelled');
     } catch (error) {
       console.error('Error cancelling invitation:', error);
