@@ -183,7 +183,13 @@ export class UserGroupsService {
 
       // All reads are complete above. Perform writes below.
 
-      // Remove from current group if applicable
+      // 1) Add to new group first (so reads to new group are permitted immediately)
+      tx.update(newGroupRef, { memberIds: arrayUnion(userId) });
+
+      // 2) Update user to point to the new group
+      tx.update(userRef, { groupId: invitation.groupId });
+
+      // 3) Remove from current group if applicable (using data read above)
       if (currentGroupRef && currentGroupSnap && currentGroupSnap.exists()) {
         const currentGroup = currentGroupSnap.data() as UserGroup;
         if (currentGroup.memberIds.includes(userId)) {
@@ -196,13 +202,7 @@ export class UserGroupsService {
         }
       }
 
-      // Add to new group (no read needed)
-      tx.update(newGroupRef, { memberIds: arrayUnion(userId) });
-
-      // Update user groupId
-      tx.update(userRef, { groupId: invitation.groupId });
-
-      // Delete invitation
+      // 4) Delete invitation
       tx.delete(invitationRef);
     });
   }
@@ -266,10 +266,7 @@ export class UserGroupsService {
         createdBy: userId,
       });
 
-      // Update user to point to new group
-      tx.update(userRef, { groupId: newGroupRef.id });
-
-      // Update or delete old group
+      // Update or delete old group BEFORE switching the user
       if (shouldUpdateCurrentGroup) {
         if (nextMembers.length === 0) {
           tx.delete(currentGroupRef!);
@@ -277,6 +274,9 @@ export class UserGroupsService {
           tx.update(currentGroupRef!, { memberIds: nextMembers });
         }
       }
+
+      // Now update user to point to new group
+      tx.update(userRef, { groupId: newGroupRef.id });
 
       return newGroupRef.id;
     });
