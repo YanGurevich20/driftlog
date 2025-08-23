@@ -83,9 +83,11 @@ export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
         
         // If this is the current month and today's rates are missing, fetch them
         if (month === currentMonthKey && !data[todayKey]) {
-          const apiKey = exchangeRateApiKey.value();
-          if (apiKey) {
-            try {
+          try {
+            const apiKey = exchangeRateApiKey.value();
+            if (!apiKey) {
+              logger.warn("Exchange rate API key not configured - skipping today's rates fetch");
+            } else {
               logger.info(`Fetching today's rates for ${todayKey}`);
               const todaysRates = await fetchTodaysRates(apiKey);
               
@@ -96,18 +98,21 @@ export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
               logger.info(`Updated ${month} with today's rates`);
               
               monthlyRates[month] = data;
-            } catch (error) {
-              logger.error(`Failed to fetch today's rates: ${error}`);
-              // Continue with existing data
             }
+          } catch (error) {
+            logger.error(`Failed to fetch today's rates: ${error}`);
+            // Continue with existing data
           }
         }
       } else {
         // Month doesn't exist - if it's current month, try to create it
         if (month === currentMonthKey) {
-          const apiKey = exchangeRateApiKey.value();
-          if (apiKey) {
-            try {
+          try {
+            const apiKey = exchangeRateApiKey.value();
+            if (!apiKey) {
+              logger.warn(`Exchange rate API key not configured - cannot create month ${month}`);
+              monthlyRates[month] = {};
+            } else {
               logger.info(`Creating new month document for ${month}`);
               const todaysRates = await fetchTodaysRates(apiKey);
               
@@ -119,11 +124,11 @@ export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
               logger.info(`Created ${month} with today's rates`);
               
               monthlyRates[month] = newMonthData;
-            } catch (error) {
-              logger.error(`Failed to create month ${month}: ${error}`);
-              // Return empty month data
-              monthlyRates[month] = {};
             }
+          } catch (error) {
+            logger.error(`Failed to create month ${month}: ${error}`);
+            // Return empty month data
+            monthlyRates[month] = {};
           }
         } else {
           // Historical or future month without data
