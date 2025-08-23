@@ -9,15 +9,40 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { MonthPicker } from '@/components/ui/month-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, MoreVertical, Edit2, Trash2, Repeat, Repeat1 } from 'lucide-react';
 import { DataState } from '@/components/ui/data-state';
 import { format } from 'date-fns';
 import { Receipt } from 'lucide-react';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import type { Entry } from '@/types';
+import { useRouter } from 'next/navigation';
+import { deleteEntry } from '@/services/entries';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function MonthlyView() {
   const { user } = useAuth();
+  const router = useRouter();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [openCategories, setOpenCategories] = useState<string[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
   
   const dateRange = getDateRangeForMonth(selectedMonth);
   
@@ -32,47 +57,53 @@ export function MonthlyView() {
     endDate: dateRange.end,
   });
 
-  const categoryTotals = useMemo(() => {
+  const groupedEntries = useMemo(() => {
     return entries.reduce((acc, entry) => {
       const category = entry.category;
       if (!acc[category]) {
         acc[category] = {
-          total: 0,
-          type: entry.type,
+          entries: [],
+          net: 0,
         };
       }
-      // Convert to display currency using the entry's date
-      const convertedAmount = convert(
+      acc[category].entries.push(entry);
+      const amount = convert(
         entry.originalAmount,
         entry.currency,
         displayCurrency,
         entry.date
       );
-      acc[category].total += convertedAmount;
+      acc[category].net += entry.type === 'income' ? amount : -amount;
       return acc;
-    }, {} as Record<string, { total: number; type: 'income' | 'expense' }>);
+    }, {} as Record<string, { entries: Entry[]; net: number }>);
   }, [entries, convert, displayCurrency]);
 
   const monthlyNet = useMemo(() => {
-    return Object.values(categoryTotals).reduce((sum, category) => {
-      return sum + (category.type === 'income' ? category.total : -category.total);
+    return Object.values(groupedEntries).reduce((sum, group) => {
+      return sum + group.net;
     }, 0);
-  }, [categoryTotals]);
+  }, [groupedEntries]);
 
-  // Sort all categories by net amount in ascending order
-  const sortedCategories = useMemo(() => {
-    return Object.entries(categoryTotals)
-      .map(([category, data]) => ({
-        category,
-        net: data.type === 'income' ? data.total : -data.total,
-        total: data.total,
-        type: data.type
-      }))
-      .sort((a, b) => a.net - b.net);
-  }, [categoryTotals]);
+  const handleEdit = (entry: Entry) => {
+    router.push(`/dashboard/entry/${entry.id}`);
+  };
+
+  const handleDelete = async () => {
+    if (!entryToDelete) return;
+    try {
+      await deleteEntry(entryToDelete.id);
+      toast.success('Entry deleted');
+      setDeleteDialogOpen(false);
+      setEntryToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete:', error);
+      toast.error('Failed to delete entry');
+    }
+  };
 
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between w-full">
@@ -99,31 +130,101 @@ export function MonthlyView() {
         <DataState
           loading={entriesLoading || ratesLoading}
           error={entriesError || conversionError}
-          empty={entries.length === 0}
+          empty={Object.keys(groupedEntries).length === 0}
           loadingVariant="skeleton"
           emptyTitle="No entries for this month"
           emptyDescription="Add your first entry for this month"
           emptyIcon={Receipt}
         >
-          <div className="space-y-3">
-            {sortedCategories.map((item) => (
-              <div key={item.category} className="flex justify-between items-center">
-                <span className="text-sm">{item.category}</span>
-                <span className={`font-semibold ${item.net >= 0 ? 'text-primary' : ''}`}>
-                  {formatCurrency(
-                    item.total, 
-                    displayCurrency, 
-                    item.type === 'expense',
-                    item.type === 'income'
-                  )}
-                </span>
-              </div>
+          <Accordion 
+            type="multiple" 
+            value={openCategories}
+            onValueChange={setOpenCategories}
+          >
+            {Object.entries(groupedEntries)
+              .sort(([, a], [, b]) => a.net - b.net)
+              .map(([category, group]) => (
+              <AccordionItem key={category} value={category}>
+                <AccordionTrigger>
+                  <div className="flex items-center justify-between w-full pr-2">
+                    <span className="font-medium">{category}</span>
+                    <span className={`font-semibold ${
+                      group.net >= 0 ? 'text-primary' : ''
+                    }`}>
+                      {formatCurrency(
+                        Math.abs(group.net),
+                        displayCurrency,
+                        group.net < 0
+                      )}
+                    </span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-2.5 pt-1">
+                    {group.entries
+                      .sort((a, b) => {
+                        const aAmount = a.type === 'income' ? a.originalAmount : -a.originalAmount;
+                        const bAmount = b.type === 'income' ? b.originalAmount : -b.originalAmount;
+                        return aAmount - bAmount;
+                      })
+                      .map((entry) => (
+                      <div key={entry.id} className="flex justify-between items-start gap-2 pl-10 pr-1">
+                        <div className="flex items-center gap-1">
+                          {entry.isRecurringInstance && (
+                            entry.isModified ? (
+                              <Repeat1 className="h-3 w-3 text-muted-foreground" />
+                            ) : (
+                              <Repeat className="h-3 w-3 text-muted-foreground" />
+                            )
+                          )}
+                          <span className="text-muted-foreground text-sm">
+                            {entry.description || 'No description'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm whitespace-nowrap ${entry.type === 'income' ? 'text-primary' : ''}`}>
+                            {formatCurrency(entry.originalAmount, entry.currency, entry.type === 'expense')}
+                          </span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(entry)}>
+                                <Edit2 className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEntryToDelete(entry);
+                                  setDeleteDialogOpen(true);
+                                }}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         </DataState>
       </CardContent>
 
-      {entries.length > 0 && (
+      {Object.keys(groupedEntries).length > 0 && (
         <>
           <CardFooter className="pt-4">
             <div className="flex justify-between w-full">
@@ -136,5 +237,25 @@ export function MonthlyView() {
         </>
       )}
     </Card>
+
+    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Entry</AlertDialogTitle>
+          <AlertDialogDescription>
+            {entryToDelete?.recurringTemplateId ? (
+              'This is a recurring entry. What would you like to do?'
+            ) : (
+              'Are you sure you want to delete this entry? This action cannot be undone.'
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setEntryToDelete(null)}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
