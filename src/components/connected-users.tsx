@@ -26,13 +26,13 @@ import {
 import { UserPlus, Users, LogOut, Check, X, Mail, Send } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/lib/auth-context';
-import { ConnectionsService } from '@/services/connections';
 import { useConnectedUsers } from '@/hooks/use-connected-users';
 import { useInvitations } from '@/hooks/use-invitations';
 import { useSentInvitations } from '@/hooks/use-sent-invitations';
 import { DataState } from '@/components/ui/data-state';
 import type { GroupInvitation } from '@/types';
 import { toast } from 'sonner';
+import { ConnectionsService } from '@/services/connections';
 
 export function ConnectedUsersInviteButton() {
   const { user } = useAuth();
@@ -45,7 +45,7 @@ export function ConnectedUsersInviteButton() {
     
     // Prevent self-invitation
     if (inviteEmail.toLowerCase() === user.email?.toLowerCase()) {
-      toast.warning('You cannot invite yourself to the group');
+      toast.warning('You cannot invite yourself');
       return;
     }
     
@@ -73,9 +73,9 @@ export function ConnectedUsersInviteButton() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Invite Someone to Share Expenses</DialogTitle>
+          <DialogTitle>Invite someone to share expenses</DialogTitle>
           <DialogDescription>
-            They&apos;ll receive an invitation to join your group. Once accepted, you&apos;ll be able to see each other&apos;s expenses.
+            They&apos;ll receive an invitation to connect. Once accepted, you&apos;ll be able to see each other&apos;s expenses.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-2">
@@ -161,14 +161,14 @@ export function ConnectedUsersLeaveButton() {
       <AlertDialog open={leaveGroupDialogOpen} onOpenChange={setLeaveGroupDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Leave Group</AlertDialogTitle>
+            <AlertDialogTitle>Disconnect from connections</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to leave this group? You will no longer see shared expenses with {connectedUsers.length} {connectedUsers.length === 1 ? 'person' : 'people'}.
+              Are you sure you want to disconnect? You will no longer see shared expenses with {connectedUsers.length} {connectedUsers.length === 1 ? 'person' : 'people'}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLeaveGroup}>Leave Group</AlertDialogAction>
+            <AlertDialogAction onClick={handleLeaveGroup}>Disconnect</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -353,10 +353,10 @@ export function ConnectedUsers() {
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Leave Current Group?</AlertDialogTitle>
+            <AlertDialogTitle>Disconnect current connections?</AlertDialogTitle>
             <AlertDialogDescription>
               You are currently connected with {connectedUsers.length} {connectedUsers.length === 1 ? 'person' : 'people'}. 
-              Accepting this invitation will disconnect you from them and join {pendingInvitation?.inviterName}&apos;s group instead.
+              Accepting this invitation will disconnect you from them and connect you with {pendingInvitation?.inviterName} instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

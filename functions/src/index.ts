@@ -3,6 +3,7 @@ import {logger} from "firebase-functions/v2";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {defineSecret} from "firebase-functions/params";
 import * as admin from "firebase-admin";
+import { getFirestore } from "firebase-admin/firestore";
 
 admin.initializeApp();
 
@@ -54,6 +55,9 @@ async function fetchTodaysRates(apiKey: string): Promise<DailyRates> {
   return data.conversion_rates;
 }
 
+// Use named Firestore database (asia-db)
+const db = getFirestore(admin.app(), "asia-db");
+
 export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
   region: "asia-southeast1",
   secrets: [exchangeRateApiKey],
@@ -73,7 +77,6 @@ export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
   }
 
   try {
-    const db = admin.firestore();
     const monthlyRates: { [month: string]: MonthlyRates } = {};
     const today = new Date();
     const currentMonthKey = getMonthKey(today);
@@ -194,14 +197,13 @@ export const acceptConnectionInvitation = onCall<{ invitationId: string; userId:
   const { invitationId, userId } = request.data;
   if (!invitationId || !userId) throw new HttpsError("invalid-argument", "invitationId and userId are required");
 
-  const db = admin.firestore();
   const invitationRef = db.doc(`connectionInvitations/${invitationId}`);
   const recipientRef = db.doc(`users/${userId}`);
 
   const result = await db.runTransaction(async (tx) => {
     const invSnap = await tx.get(invitationRef);
     if (!invSnap.exists) throw new HttpsError("not-found", "Invitation not found");
-    const invitation = invSnap.data() as { invitedEmail: string; invitedBy: string; inviterName: string; expiresAt: admin.firestore.Timestamp };
+    const invitation = invSnap.data() as { invitedEmail: string; invitedBy: string; inviterName: string; expiresAt: admin.firestore.Timestamp | Date };
 
     // Validate recipient matches invitation
     const authEmail = request.auth?.token.email;
@@ -210,7 +212,10 @@ export const acceptConnectionInvitation = onCall<{ invitationId: string; userId:
     }
 
     // Validate expiry
-    if (invitation.expiresAt.toMillis() < Date.now()) {
+    const expMs = invitation.expiresAt instanceof admin.firestore.Timestamp
+      ? invitation.expiresAt.toMillis()
+      : new Date(invitation.expiresAt).getTime();
+    if (expMs < Date.now()) {
       throw new HttpsError("failed-precondition", "Invitation expired");
     }
 
@@ -218,10 +223,15 @@ export const acceptConnectionInvitation = onCall<{ invitationId: string; userId:
     const inviterRef = db.doc(`users/${invitation.invitedBy}`);
     const inviterSnap = await tx.get(inviterRef);
     const recipientSnap = await tx.get(recipientRef);
-    if (!inviterSnap.exists || !recipientSnap.exists) throw new HttpsError("not-found", "User not found");
+    if (!inviterSnap.exists) {
+      tx.set(inviterRef, { connectedUserIds: [] }, { merge: true });
+    }
+    if (!recipientSnap.exists) {
+      tx.set(recipientRef, { connectedUserIds: [] }, { merge: true });
+    }
 
-    const inviterData = inviterSnap.data() as { connectedUserIds?: string[] };
-    const recipientData = recipientSnap.data() as { connectedUserIds?: string[] };
+    const inviterData = inviterSnap.exists ? inviterSnap.data() as { connectedUserIds?: string[] } : { connectedUserIds: [] };
+    const recipientData = recipientSnap.exists ? recipientSnap.data() as { connectedUserIds?: string[] } : { connectedUserIds: [] };
     const clique = Array.from(new Set([invitation.invitedBy, ...(inviterData.connectedUserIds || [])]));
 
     // Update mutual connections
@@ -231,7 +241,7 @@ export const acceptConnectionInvitation = onCall<{ invitationId: string; userId:
       const member = (memberSnap.data() || {}) as { connectedUserIds?: string[] };
       const memberSet = new Set(member.connectedUserIds || []);
       memberSet.add(userId);
-      tx.update(memberRef, { connectedUserIds: Array.from(memberSet) });
+      tx.set(memberRef, { connectedUserIds: Array.from(memberSet) }, { merge: true });
     }
 
     // Recipient gets all members mutually
@@ -239,7 +249,7 @@ export const acceptConnectionInvitation = onCall<{ invitationId: string; userId:
     for (const memberId of clique) {
       recipientSet.add(memberId);
     }
-    tx.update(recipientRef, { connectedUserIds: Array.from(recipientSet) });
+    tx.set(recipientRef, { connectedUserIds: Array.from(recipientSet) }, { merge: true });
 
     // Delete invitation
     tx.delete(invitationRef);
@@ -256,7 +266,6 @@ export const leaveConnections = onCall<{ userId: string }>({
   const { userId } = request.data;
   if (!userId || userId !== request.auth.uid) throw new HttpsError("permission-denied", "Only self can leave");
 
-  const db = admin.firestore();
   const userRef = db.doc(`users/${userId}`);
   const result = await db.runTransaction(async (tx) => {
     const userSnap = await tx.get(userRef);

@@ -10,17 +10,16 @@ Multi-currency expense tracking with real-time collaboration.
 ## Architecture
 
 ### Data Model
-- **Users**: Profile with `displayCurrency` and `groupId`
-- **UserGroups**: Backend-only concept for user associations
-- **Entries**: Expenses/income tied to users (not groups)
-- **Invitations**: Pending group invitations
+- **Users**: Profile with `displayCurrency` and `connectedUserIds[]` (mutual connections)
+- **Entries**: Expenses/income tied to users
+- **Invitations**: Pending connection invitations
 - **RecurringTemplates**: Schedules that materialize future `entries` (daily/weekly/monthly/yearly)
 
 ### Key Features
 1. **Multi-currency**: Store in original currency, convert on display
 2. **Real-time sync**: Connected users and entries update live
-3. **User groups**: Users share all expenses within their group
-4. **Simple invitations**: Email-based with accept/reject flow
+3. **Connections**: Users share expenses with mutually connected users (≤6)
+4. **Simple invitations**: Email-based with accept/reject via Cloud Functions
 5. **Recurring entries**: Create schedules that auto-generate future entries; edit a single instance or the whole series
 
 ## Development Guidelines
@@ -30,7 +29,7 @@ Multi-currency expense tracking with real-time collaboration.
 ### Firestore
 - Use `convertFirestoreDoc()` for all document fetches (handles ID + timestamps)
 - Dates stored at UTC midnight for timezone consistency
-- Security rules enforce group-based access
+- Security rules enforce mutual-connection-based access
 - Real-time listeners for entries and connected users
 
 ### UI Patterns
@@ -72,7 +71,6 @@ Multi-currency expense tracking with real-time collaboration.
   - Deletes future unmodified instances from a given date forward (default: today)
 - Deleting a series:
   - Deletes the template and all instances (modified and unmodified)
-- Editing a single instance marks it `isModified = true` and detaches it from future template updates
 - Limits:
   - Practical horizons per frequency (see `RECURRENCE_LIMITS`): daily/weekly up to 1 year, monthly/yearly up to 5 years
 
@@ -84,7 +82,7 @@ Multi-currency expense tracking with real-time collaboration.
   /hooks        - Custom hooks (use-entries, use-connected-users)
   /services     - Firebase services
   /lib          - Utilities
-/functions      - Cloud Functions (getMonthlyRates)
+/functions      - Cloud Functions (getMonthlyRates, acceptConnectionInvitation, leaveConnections)
 /scripts        - Utility scripts (backfill-exchange-rates.js)
 ```
 
@@ -102,7 +100,7 @@ Multi-currency expense tracking with real-time collaboration.
 
 - [ ] Budget headroom settings
 ### Enhancements
-- [x] User groups
+- [x] Connections (replaces groups)
 - [X] Verify indexes
 - [X] Sort entries and categories by date in daily view, top one is expanded. currently not doing for simplicity
 - [X] Add indicator when using fallback exchange rates (weekends/missing dates /future dates). currently not doing for simplicity
@@ -118,12 +116,12 @@ Multi-currency expense tracking with real-time collaboration.
 - [x] Recurring entries
 
 - [ ] **Tiered currency support**: Frankfurter API for free users (31 currencies, no costs), Exchange Rate API for paid users (170+ currencies)
-- [ ] Custom categories per group/user - maybe
+- [ ] Custom categories per user - maybe
 - [ ] Entry from photo
 - [ ] Entry from audio
 - [ ] entry from whatsapp message
 - [ ] entry from telegram message
-- [ ] Limit group size (larger limits for paid users)
+- [ ] Limit connection size (larger limits for paid users)
 - [ ] Location tagging (city, country OR geopoint)
 
 ### Monetization ideas
@@ -136,19 +134,17 @@ Multi-currency expense tracking with real-time collaboration.
 ## AI Context Addendum
 
 - Security rules summary:
-  - All access requires auth. Group membership validated via `userGroups/{groupId}.memberIds.hasAny([uid])`.
-  - `users`: read/write own; read others if same group.
-  - `userGroups`: members can read/update; anyone can create for onboarding.
-  - `entries`: group-wide read/create/update/delete; enforce `date >= SERVICE_START_DATE (2025-01-01)` on create/update.
-  - `recurringTemplates`: group-wide read/create/update/delete.
-  - `groupInvitations`: sender/recipient access; create requires inviter is a member of the target group.
-  - `exchangeRates`: read/write allowed for authenticated clients (used by Cloud Function backfill).
+  - All access requires auth. Access permitted if users are mutually connected.
+  - `users`: read/write own; read others only if mutually connected.
+  - `entries`: read/write if `userId == uid` or mutually connected to `userId`.
+  - `recurringTemplates`: same as entries (by owner userId).
+  - `connectionInvitations`: sender/recipient access; CF handles acceptance.
+  - `exchangeRates`: read for authenticated clients; writes via Functions only.
 
 - Firestore schema (cheat sheet):
-  - `users/{uid}`: `id, email, name, displayName?, photoUrl?, displayCurrency, groupId, createdAt, onboardingCompleted?`
-  - `userGroups/{groupId}`: `memberIds[], createdAt, createdBy`
+  - `users/{uid}`: `id, email, name, displayName?, photoUrl?, displayCurrency, connectedUserIds[], createdAt, onboardingCompleted?`
+  - `connectionInvitations/{id}`: `invitedEmail, invitedBy, inviterName, createdAt, expiresAt`
   - `entries/{entryId}`: `id, userId, type, originalAmount, currency, category, description?, date, createdBy, createdAt, updatedAt?, updatedBy?, location?, recurringTemplateId?, originalDate?, isRecurringInstance?, isModified?`
-  - `groupInvitations/{id}`: `groupId, invitedEmail, invitedBy, inviterName, createdAt, expiresAt`
   - `recurringTemplates/{id}`: `userId, entryTemplate{type, originalAmount, currency, category, description?}, recurrence{frequency, interval, endDate, daysOfWeek?, dayOfMonth?}, startDate, instancesCreated, createdBy, createdAt, updatedAt?`
   - `exchangeRates/YYYY-MM`: `{ [yyyy-mm-dd]: { [CURRENCY]: rate } }`
 
@@ -163,7 +159,8 @@ Multi-currency expense tracking with real-time collaboration.
 
 - Local dev setup:
   - Emulators (development only): Auth `9099`, Firestore `8080`, Functions `5001`.
-  - Functions region: `us-central1`.
+  - Functions region: `asia-southeast1`.
+  - Firestore databaseId: `asia-db`.
   - Required env (NEXT_PUBLIC_*): `FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID, FIREBASE_STORAGE_BUCKET, FIREBASE_MESSAGING_SENDER_ID, FIREBASE_APP_ID, MEASUREMENT_ID`.
   - Deploy rules: `firebase deploy --only firestore:rules --project <project>`.
 
