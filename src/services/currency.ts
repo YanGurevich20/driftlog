@@ -129,82 +129,12 @@ export class CurrencyService {
     return nearestDate ? monthlyRates[nearestDate] : null;
   }
 
-  async convertWithDate(amount: number, from: string, to: string, date: Date): Promise<{ 
-    converted: number; 
-    rateDate?: string;
-    isEstimate: boolean;
-  }> {
-    if (from === to) {
-      return { converted: amount, isEstimate: false };
-    }
-
-    const monthKey = this.getMonthKey(date);
-    const dateKey = this.getDateKey(date);
-    
-    // Get rates for the month
-    const monthlyRates = await this.getMonthlyRates([monthKey]);
-    const monthData = monthlyRates.get(monthKey);
-    
-    if (!monthData || Object.keys(monthData).length === 0) {
-      // Fallback: try using today's month from Firestore as an estimate
-      const today = new Date();
-      const todayMonth = this.getMonthKey(today);
-      const todayRates = await this.getMonthlyRates([todayMonth]);
-      const todayData = todayRates.get(todayMonth);
-
-      if (todayData) {
-        const todayKey = this.getDateKey(today);
-        const rates = this.findNearestRates(todayData, todayKey);
-        if (rates && rates[from] && rates[to]) {
-          const amountInUSD = from === 'USD' ? amount : amount / rates[from];
-          const converted = to === 'USD' ? amountInUSD : amountInUSD * rates[to];
-          return {
-            converted: Math.round(converted * 100) / 100,
-            rateDate: todayKey,
-            isEstimate: true,
-          };
-        }
-      }
-
-      throw new Error(`No exchange rates available for ${monthKey}`);
-    }
-
-    // Find rates for the specific date or nearest available
-    const rates = this.findNearestRates(monthData, dateKey);
-    
-    if (!rates) {
-      throw new Error(`No exchange rates found for ${dateKey}`);
-    }
-
-    if (!rates[from] || !rates[to]) {
-      throw new Error(`Currency ${from} or ${to} not supported`);
-    }
-
-    // Convert through USD as base
-    const amountInUSD = from === 'USD' ? amount : amount / rates[from];
-    const converted = to === 'USD' ? amountInUSD : amountInUSD * rates[to];
-    
-    // Check if we used the exact date or a different one
-    const isEstimate = !monthData[dateKey];
-    const actualRateDate = isEstimate ? 
-      Object.keys(monthData).find(d => monthData[d] === rates) : 
-      dateKey;
-    
-    return { 
-      converted: Math.round(converted * 100) / 100,
-      rateDate: actualRateDate,
-      isEstimate
-    };
-  }
-
-  // Simple sync conversion for UI components - will be updated to use cached monthly rates
-  convertSync(amount: number, from: string, to: string, date: Date): number {
+  convert(amount: number, from: string, to: string, date: Date): number {
     if (from === to) return amount;
 
     const monthKey = this.getMonthKey(date);
     const dateKey = this.getDateKey(date);
     
-    // Try to use cached rates
     const monthData = this.monthlyCache.get(monthKey);
     if (!monthData) {
       throw new Error(`No cached rates for ${monthKey}. Please wait for rates to load.`);
@@ -219,7 +149,6 @@ export class CurrencyService {
       throw new Error(`Cannot convert ${from} to ${to}: unsupported currency`);
     }
 
-    // Convert through USD as base
     const amountInUSD = from === 'USD' ? amount : amount / rates[from];
     const converted = to === 'USD' ? amountInUSD : amountInUSD * rates[to];
     

@@ -68,7 +68,7 @@ export function useExchangeRates(options?: UseExchangeRatesOptions) {
     
     try {
       const currencyService = CurrencyService.getInstance();
-      const result = currencyService.convertSync(amount, from, to, date);
+      const result = currencyService.convert(amount, from, to, date);
       // Clear error on successful conversion
       setConversionError(null);
       return result;

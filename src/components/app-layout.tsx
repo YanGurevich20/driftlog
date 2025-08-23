@@ -18,7 +18,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const isSettingsPage = pathname?.includes('/settings');
   const { user } = useAuth();
 
-  // Pre-fetch current month's exchange rates on app load
   useEffect(() => {
     const currencyService = CurrencyService.getInstance();
     const now = new Date();
