@@ -14,7 +14,7 @@ interface UseEntriesOptions {
 
 export function useEntries(options: UseEntriesOptions = {}) {
   const { userId, groupId, startDate, endDate } = options;
-  const { user } = useAuth();
+  const { user, userReady } = useAuth();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -61,12 +61,12 @@ export function useEntries(options: UseEntriesOptions = {}) {
       }
     };
     
-    if (user || userId || groupId) {
+    if ((user && userReady) || userId || groupId) {
       fetchMemberIds();
     } else {
       setLoading(false);
     }
-  }, [userId, groupId, user?.id, user]);
+  }, [userId, groupId, user?.id, userReady, user]);
 
   // Subscribe to entries using cache if available
   useEffect(() => {

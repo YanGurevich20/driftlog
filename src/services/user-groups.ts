@@ -247,6 +247,17 @@ export class UserGroupsService {
       }
       const userData = userSnap.data() as { groupId?: string };
 
+      // READ any current group BEFORE any writes (transaction requirement)
+      const currentGroupId: string | undefined = userData.groupId;
+      const currentGroupRef = currentGroupId ? doc(db, 'userGroups', currentGroupId) : null;
+      const currentGroupSnap = currentGroupRef ? await tx.get(currentGroupRef) : null;
+      const shouldUpdateCurrentGroup = !!(currentGroupRef && currentGroupSnap && currentGroupSnap.exists());
+      const nextMembers = shouldUpdateCurrentGroup
+        ? (currentGroupSnap!.data() as UserGroup).memberIds.filter((id: string) => id !== userId)
+        : [];
+
+      // All reads complete above. Perform writes below.
+
       // Create new solo group id and doc
       const newGroupRef = doc(collection(db, 'userGroups'));
       tx.set(newGroupRef, {
@@ -255,24 +266,15 @@ export class UserGroupsService {
         createdBy: userId,
       });
 
-      // Update user to point to new group FIRST so UI can switch listeners immediately
+      // Update user to point to new group
       tx.update(userRef, { groupId: newGroupRef.id });
 
-      // Now remove from current group if applicable
-      const currentGroupId: string | undefined = userData.groupId;
-      if (currentGroupId) {
-        const currentGroupRef = doc(db, 'userGroups', currentGroupId);
-        const currentGroupSnap = await tx.get(currentGroupRef);
-        if (currentGroupSnap.exists()) {
-          const currentGroup = currentGroupSnap.data() as UserGroup;
-          if (currentGroup.memberIds.includes(userId)) {
-            const nextMembers = currentGroup.memberIds.filter((id: string) => id !== userId);
-            if (nextMembers.length === 0) {
-              tx.delete(currentGroupRef);
-            } else {
-              tx.update(currentGroupRef, { memberIds: nextMembers });
-            }
-          }
+      // Update or delete old group
+      if (shouldUpdateCurrentGroup) {
+        if (nextMembers.length === 0) {
+          tx.delete(currentGroupRef!);
+        } else {
+          tx.update(currentGroupRef!, { memberIds: nextMembers });
         }
       }
 
