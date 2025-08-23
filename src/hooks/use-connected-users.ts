@@ -6,13 +6,13 @@ import type { User } from '@/types';
 import { useAuth } from '@/lib/auth-context';
 
 export function useConnectedUsers() {
-  const { user } = useAuth();
+  const { user, userReady } = useAuth();
   const [connectedUsers, setConnectedUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!user || !user.groupId) {
+    if (!user || !user.groupId || !userReady) {
       setConnectedUsers([]);
       setLoading(false);
       return;
@@ -67,7 +67,7 @@ export function useConnectedUsers() {
     );
 
     return () => unsubscribe();
-  }, [user?.id, user?.groupId, user]);
+  }, [user?.id, user?.groupId, userReady, user]);
 
   return { connectedUsers, loading, error };
 }

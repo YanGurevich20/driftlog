@@ -17,6 +17,7 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   needsOnboarding: boolean;
+  userReady: boolean;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [userReady, setUserReady] = useState(false);
 
   useEffect(() => {
     let unsubscribeUser: (() => void) | null = null;
@@ -45,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Set up real-time listener for user document
         unsubscribeUser = onSnapshot(
           doc(db, 'users', firebaseUser.uid),
+          { includeMetadataChanges: true },
           (snapshot) => {
             if (snapshot.exists()) {
               const userData = snapshot.data() as User & { onboardingCompleted?: boolean };
@@ -65,16 +68,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 createdAt: new Date(),
               } as User);
             }
+            // Mark ready when snapshot is from server (not cache)
+            setUserReady(!snapshot.metadata.fromCache);
             setLoading(false);
           },
           (error) => {
             console.error('Error listening to user document:', error);
+            setUserReady(false);
             setLoading(false);
           }
         );
       } else {
         setUser(null);
         setNeedsOnboarding(false);
+        setUserReady(false);
         setLoading(false);
       }
     });
@@ -108,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, needsOnboarding, signInWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, needsOnboarding, userReady, signInWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );
