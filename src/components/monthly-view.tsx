@@ -157,7 +157,7 @@ export function MonthlyView() {
               .map(([category, group]) => (
               <AccordionItem key={category} value={category}>
                 <AccordionTrigger>
-                  <div className="flex items-center justify-between w-full pr-2">
+                  <div className="flex items-center justify-between w-full">
                     <span className="font-medium">{category}</span>
                     <span className={`font-semibold ${
                       group.net >= 0 ? 'text-primary' : ''
@@ -171,7 +171,7 @@ export function MonthlyView() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="space-y-2.5 pt-1">
+                  <div className="space-y-2 pt-1">
                     {group.entries
                       .sort((a, b) => {
                         const aAmount = a.type === 'income' ? a.originalAmount : -a.originalAmount;
@@ -179,7 +179,7 @@ export function MonthlyView() {
                         return aAmount - bAmount;
                       })
                       .map((entry) => (
-                      <div key={entry.id} className="flex justify-between items-start gap-2 pl-10 pr-1">
+                      <div key={entry.id} className="flex justify-between items-start">
                         <div className="flex items-center gap-1">
                           {entry.isRecurringInstance && (
                             entry.isModified ? (
