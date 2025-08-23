@@ -52,8 +52,8 @@ function getGreeting(userName: string): string {
 export default function Dashboard() {
   const router = useRouter();
   const { user } = useAuth();
-  const userName = user?.name || user?.displayName || user?.email?.split('@')[0] || 'there';
-  const greetingMessage = getGreeting(userName);
+  const firstName = user?.name?.split(' ')[0] || user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
+  const greetingMessage = getGreeting(firstName);
 
   return (
     <>
@@ -83,11 +83,10 @@ export default function Dashboard() {
 
       <div className="fixed bottom-6 right-6">
         <Button 
-          size="lg" 
-          className="rounded-full h-14 w-14 shadow-lg"
+          className="rounded-full size-14"
           onClick={() => router.push('/dashboard/entry')}
         >
-          <Plus className="h-6 w-6" />
+          <Plus className="size-8" />
         </Button>
       </div>
     </>

@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
+import { ChevronUp } from "lucide-react";
 
 interface CollapsibleCardProps {
   children?: React.ReactNode;
@@ -87,7 +87,7 @@ function CollapsibleCardHeader({
                 {actions}
               </div>
             )}
-            <ChevronDown 
+            <ChevronUp 
               className={cn(
                 "h-4 w-4 transition-transform duration-200",
                 !isOpen && "-rotate-180"
@@ -118,7 +118,9 @@ function CollapsibleCardContent({
   ...props 
 }: CollapsibleCardContentProps) {
   return (
-    <CollapsibleContent>
+    <CollapsibleContent
+      className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down"
+    >
       <CardContent className={className} {...props}>
         {children}
       </CardContent>
