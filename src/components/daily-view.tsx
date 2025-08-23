@@ -6,7 +6,13 @@ import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { MoreVertical, Edit2, Trash2, CalendarIcon, Repeat, Repeat1 } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  CollapsibleCard, 
+  CollapsibleCardContent, 
+  CollapsibleCardFooter, 
+  CollapsibleCardHeader, 
+  CollapsibleCardTitle 
+} from '@/components/ui/collapsible-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { format } from 'date-fns';
 import { getDateRangeForDay } from '@/lib/date-range-utils';
@@ -112,12 +118,9 @@ export function DailyView() {
 
   return (
     <>
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between w-full">
-          <CardTitle className="text-primary">
-            {format(selectedDate, 'EEEE, MMMM d')}
-          </CardTitle>
+    <CollapsibleCard>
+      <CollapsibleCardHeader
+        actions={
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -134,10 +137,14 @@ export function DailyView() {
               />
             </PopoverContent>
           </Popover>
-        </div>
-      </CardHeader>
+        }
+      >
+        <CollapsibleCardTitle className="text-primary">
+          {format(selectedDate, 'EEEE, MMMM d')}
+        </CollapsibleCardTitle>
+      </CollapsibleCardHeader>
       
-      <CardContent>
+      <CollapsibleCardContent>
         <DataState
           loading={entriesLoading || ratesLoading}
           error={entriesError || ratesError}
@@ -237,21 +244,21 @@ export function DailyView() {
             ))}
           </Accordion>
         </DataState>
-      </CardContent>
+      </CollapsibleCardContent>
 
       {Object.keys(groupedEntries).length > 0 && (
         <>
-          <CardFooter className="pt-4">
+          <CollapsibleCardFooter>
             <div className="flex justify-between w-full">
               <span className="font-medium">Daily Net</span>
               <span className={`text-lg font-bold ${dailyNet >= 0 ? 'text-primary' : ''}`}>
                 {formatCurrency(Math.abs(dailyNet), displayCurrency, dailyNet < 0)}
               </span>
             </div>
-          </CardFooter>
+          </CollapsibleCardFooter>
         </>
       )}
-    </Card>
+    </CollapsibleCard>
 
     <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
       <AlertDialogContent>

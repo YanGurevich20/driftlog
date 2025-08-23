@@ -3,7 +3,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { MoreVertical, Edit2, Trash2, Repeat, StopCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  CollapsibleCard, 
+  CollapsibleCardContent, 
+  CollapsibleCardFooter, 
+  CollapsibleCardHeader, 
+  CollapsibleCardTitle 
+} from '@/components/ui/collapsible-card';
 import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useAuth } from '@/lib/auth-context';
 import { stopRecurring, deleteRecurringSeries } from '@/services/recurring';
@@ -194,12 +200,12 @@ export function RecurringView() {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-primary">Recurring Entries</CardTitle>
-        </CardHeader>
+      <CollapsibleCard defaultCollapsed={true}>
+        <CollapsibleCardHeader>
+          <CollapsibleCardTitle className="text-primary">Recurring Entries</CollapsibleCardTitle>
+        </CollapsibleCardHeader>
         
-        <CardContent>
+        <CollapsibleCardContent>
           <DataState
             loading={loading || aggLoading}
             error={error}
@@ -290,18 +296,18 @@ export function RecurringView() {
               })}
             </div>
           </DataState>
-        </CardContent>
+        </CollapsibleCardContent>
         {recurringMonthEntries.length > 0 && !entriesLoading && !ratesLoading && (
-          <CardFooter>
+          <CollapsibleCardFooter>
             <div className="flex justify-between w-full">
               <span className="font-medium">{format(monthRange.start, 'MMMM')} Recurring Net</span>
               <span className={`text-lg font-bold ${monthlyRecurringNet >= 0 ? 'text-primary' : ''}`}>
                 {formatCurrency(Math.abs(monthlyRecurringNet), displayCurrency, monthlyRecurringNet < 0)}
               </span>
             </div>
-          </CardFooter>
+          </CollapsibleCardFooter>
         )}
-      </Card>
+      </CollapsibleCard>
 
       <AlertDialog 
         open={deleteDialog.open} 

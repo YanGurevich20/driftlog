@@ -9,13 +9,13 @@ interface LoadingStateProps {
 
 export function LoadingState({ 
   className, 
-  itemCount = 3,
+  itemCount = 1,
   variant = 'skeleton' 
 }: LoadingStateProps) {
   if (variant === 'card') {
     return (
       <div className={cn("space-y-3", className)}>
-        {Array.from({ length: itemCount }).map((_, i) => (
+        {Array.from({ length: 1 }).map((_, i) => (
           <div key={i} className="rounded-lg border bg-card p-4">
             <div className="flex items-center gap-3">
               <Skeleton className="h-10 w-10 rounded-full" />

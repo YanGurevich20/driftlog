@@ -5,7 +5,12 @@ import { useAuth } from '@/lib/auth-context';
 import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  CollapsibleCard, 
+  CollapsibleCardContent, 
+  CollapsibleCardHeader, 
+  CollapsibleCardTitle 
+} from '@/components/ui/collapsible-card';
 import { getDaysInMonth, isSameDay } from 'date-fns';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
 import { DataState } from '@/components/ui/data-state';
@@ -102,12 +107,12 @@ export function BudgetView() {
   const percentUsed = dailyBudget > 0 ? (todaysExpenses / dailyBudget) * 100 : 0;
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-primary">Today&apos;s Budget</CardTitle>
-      </CardHeader>
+    <CollapsibleCard defaultCollapsed={dailyBudget === 0}>
+      <CollapsibleCardHeader>
+        <CollapsibleCardTitle className="text-primary">Today&apos;s Budget</CollapsibleCardTitle>
+      </CollapsibleCardHeader>
       
-      <CardContent>
+      <CollapsibleCardContent>
         <DataState
           loading={monthLoading || ratesLoading}
           error={monthError || ratesError}
@@ -133,7 +138,7 @@ export function BudgetView() {
             />
           </div>
         </DataState>
-      </CardContent>
-    </Card>
+      </CollapsibleCardContent>
+    </CollapsibleCard>
   );
 }
