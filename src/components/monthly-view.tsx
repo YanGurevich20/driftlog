@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { formatCurrency } from '@/lib/currency-utils';
+import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,12 +52,15 @@ export function MonthlyView() {
   });
   
   const displayCurrency = user?.displayCurrency || 'USD';
-  const { convert, error: conversionError, loading: ratesLoading } = useExchangeRates({
+  const { ratesByMonth, error: ratesError, loading: ratesLoading } = useExchangeRates({
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
 
   const groupedEntries = useMemo(() => {
+    if (ratesLoading || !ratesByMonth) {
+      return {} as Record<string, { entries: Entry[]; net: number }>;
+    }
     return entries.reduce((acc, entry) => {
       const category = entry.category;
       if (!acc[category]) {
@@ -67,16 +70,17 @@ export function MonthlyView() {
         };
       }
       acc[category].entries.push(entry);
-      const amount = convert(
+      const amount = convertAmount(
         entry.originalAmount,
         entry.currency,
         displayCurrency,
-        entry.date
+        entry.date,
+        ratesByMonth
       );
       acc[category].net += entry.type === 'income' ? amount : -amount;
       return acc;
     }, {} as Record<string, { entries: Entry[]; net: number }>);
-  }, [entries, convert, displayCurrency]);
+  }, [entries, ratesByMonth, ratesLoading, displayCurrency]);
 
   const monthlyNet = useMemo(() => {
     return Object.values(groupedEntries).reduce((sum, group) => {
@@ -129,7 +133,7 @@ export function MonthlyView() {
       <CardContent>
         <DataState
           loading={entriesLoading || ratesLoading}
-          error={entriesError || conversionError}
+          error={entriesError || ratesError}
           empty={Object.keys(groupedEntries).length === 0}
           loadingVariant="skeleton"
           emptyTitle="No entries for this month"

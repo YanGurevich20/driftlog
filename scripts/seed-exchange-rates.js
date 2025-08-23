@@ -1,4 +1,5 @@
 const admin = require('firebase-admin');
+const { getFirestore } = require('firebase-admin/firestore');
 
 // Set environment variable to use Firestore emulator
 process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
@@ -8,7 +9,8 @@ admin.initializeApp({
   projectId: 'drift-log',
 });
 
-const db = admin.firestore();
+// Use named Firestore database (asia-db) to match the app
+const db = getFirestore(admin.app(), 'asia-db');
 
 // Sample exchange rates for development
 // These don't need to be accurate - just realistic enough for testing

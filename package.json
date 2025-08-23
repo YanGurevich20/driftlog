@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "pnpm dev:emulators & pnpm dev:next & pnpm dev:seed",
     "dev:next": "next dev --turbopack",
-    "dev:emulators": "pnpm --prefix functions run build && dotenv -e functions/.env.local -- firebase emulators:start --only functions,firestore,auth",
+    "dev:emus": "pnpm --prefix functions run build && dotenv -e functions/.env.local -- firebase emulators:start --only functions,firestore,auth",
     "dev:seed": "node scripts/seed-exchange-rates.js",
     "build": "next build",
     "start": "next start",

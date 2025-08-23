@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { MoreVertical, Edit2, Trash2, Repeat, StopCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/currency-utils';
+import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useAuth } from '@/lib/auth-context';
 import { stopRecurring, deleteRecurringSeries } from '@/services/recurring';
 import { useRecurringTemplates } from '@/hooks/use-recurring-templates';
@@ -52,7 +52,7 @@ export function RecurringView() {
     startDate: monthRange.start,
     endDate: monthRange.end,
   });
-  const { convert, loading: ratesLoading } = useExchangeRates({
+  const { ratesByMonth, loading: ratesLoading } = useExchangeRates({
     startDate: monthRange.start,
     endDate: monthRange.end,
   });
@@ -62,16 +62,18 @@ export function RecurringView() {
   }, [monthEntries]);
 
   const monthlyRecurringNet = useMemo(() => {
+    if (ratesLoading || !ratesByMonth) return 0;
     return recurringMonthEntries.reduce((sum, entry) => {
-      const converted = convert(
+      const converted = convertAmount(
         entry.originalAmount,
         entry.currency,
         displayCurrency,
-        entry.date
+        entry.date,
+        ratesByMonth
       );
       return sum + (entry.type === 'income' ? converted : -converted);
     }, 0);
-  }, [recurringMonthEntries, convert, displayCurrency]);
+  }, [recurringMonthEntries, ratesByMonth, ratesLoading, displayCurrency]);
 
   // Actual next occurrence and remaining per template, based on entries
   const [nextByTemplate, setNextByTemplate] = useState<Record<string, Date | null>>({});

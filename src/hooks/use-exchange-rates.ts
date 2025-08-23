@@ -1,5 +1,6 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CurrencyService } from '@/services/currency';
+import type { MonthlyExchangeRates } from '@/types';
 
 interface UseExchangeRatesOptions {
   startDate?: Date;
@@ -7,8 +8,9 @@ interface UseExchangeRatesOptions {
 }
 
 export function useExchangeRates(options?: UseExchangeRatesOptions) {
-  const [conversionError, setConversionError] = useState<Error | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [ratesByMonth, setRatesByMonth] = useState<Map<string, MonthlyExchangeRates> | null>(null);
 
   // Convert dates to stable string representations for dependency comparison
   const startDateStr = options?.startDate?.toISOString() || '';
@@ -16,15 +18,15 @@ export function useExchangeRates(options?: UseExchangeRatesOptions) {
 
   useEffect(() => {
     const fetchRates = async () => {
-      setIsLoading(true);
+      setLoading(true);
+      setError(null);
+      setRatesByMonth(null);
+
       // Calculate which months we need based on date range
       const months = new Set<string>();
-      
       if (startDateStr && endDateStr) {
         const start = new Date(startDateStr);
         const end = new Date(endDateStr);
-        
-        // Add all months in the range
         const current = new Date(start.getFullYear(), start.getMonth(), 1);
         while (current <= end) {
           const year = current.getFullYear();
@@ -33,56 +35,47 @@ export function useExchangeRates(options?: UseExchangeRatesOptions) {
           current.setMonth(current.getMonth() + 1);
         }
       } else {
-        // Default to current month if no range specified
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         months.add(`${year}-${month}`);
       }
-      
+
       const requiredMonths = Array.from(months);
-      
       if (requiredMonths.length === 0) {
-        setIsLoading(false);
+        setRatesByMonth(new Map());
+        setLoading(false);
         return;
       }
 
       try {
         const currencyService = CurrencyService.getInstance();
-        await currencyService.getMonthlyRates(requiredMonths);
-        // Clear any previous conversion errors when rates are successfully loaded
-        setConversionError(null);
+        const map = await currencyService.getMonthlyRates(requiredMonths);
+
+        // Accept empty future months (we'll fall back to nearest past in convertAmount)
+        // Only error if all months are empty (i.e., nothing to convert against)
+        const hasAnyRates = Array.from(map.values()).some((m) => m && Object.keys(m).length > 0);
+        if (!hasAnyRates) {
+          setRatesByMonth(null);
+          throw new Error('No exchange rates data available');
+        }
+
+        // Clone to avoid external mutation concerns
+        setRatesByMonth(new Map(map));
       } catch (err) {
         console.error('Failed to fetch monthly exchange rates:', err);
+        setError(err as Error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
     fetchRates();
   }, [startDateStr, endDateStr]);
 
-  // Date-aware conversion function that handles errors gracefully
-  const convert = useCallback((amount: number, from: string, to: string, date: Date): number => {
-    if (from === to) return amount;
-    
-    try {
-      const currencyService = CurrencyService.getInstance();
-      const result = currencyService.convert(amount, from, to, date);
-      // Clear error on successful conversion
-      setConversionError(null);
-      return result;
-    } catch (error) {
-      // Set error state but return 0 to avoid breaking calculations
-      setConversionError(error as Error);
-      return 0;
-    }
-  }, []);
-
-
-  return { 
-    convert,
-    error: conversionError,
-    loading: isLoading
+  return {
+    ratesByMonth,
+    loading,
+    error,
   };
 }

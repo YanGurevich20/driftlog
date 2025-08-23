@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { formatCurrency } from '@/lib/currency-utils';
+import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,22 +30,26 @@ export function BudgetView() {
   }, [monthEntries, selectedDate]);
   
   const displayCurrency = user?.displayCurrency || 'USD';
-  const { convert, error: conversionError, loading: ratesLoading } = useExchangeRates({
+  const { ratesByMonth, error: ratesError, loading: ratesLoading } = useExchangeRates({
     startDate: monthRange.start,
     endDate: monthRange.end,
   });
   
   // Calculate daily budget
   const { dailyBudget, todaysExpenses } = useMemo(() => {
+    if (ratesLoading || !ratesByMonth) {
+      return { dailyBudget: 0, todaysExpenses: 0, remainingDays: 0, availableNet: 0 };
+    }
     // All income for the month (including today and future)
     const monthlyIncome = monthEntries
       .filter(e => e.type === 'income')
       .reduce((sum, entry) => {
-        const converted = convert(
+        const converted = convertAmount(
           entry.originalAmount,
           entry.currency,
           displayCurrency,
-          entry.date
+          entry.date,
+          ratesByMonth
         );
         return sum + converted;
       }, 0);
@@ -54,11 +58,12 @@ export function BudgetView() {
     const monthlyExpenses = monthEntries
       .filter(e => e.type === 'expense')
       .reduce((sum, entry) => {
-        const converted = convert(
+        const converted = convertAmount(
           entry.originalAmount,
           entry.currency,
           displayCurrency,
-          entry.date
+          entry.date,
+          ratesByMonth
         );
         return sum + converted;
       }, 0);
@@ -67,11 +72,12 @@ export function BudgetView() {
     const todaysExpenses = todayEntries
       .filter(e => e.type === 'expense')
       .reduce((sum, e) => {
-        const converted = convert(
+        const converted = convertAmount(
           e.originalAmount,
           e.currency,
           displayCurrency,
-          e.date
+          e.date,
+          ratesByMonth
         );
         return sum + converted;
       }, 0);
@@ -92,7 +98,7 @@ export function BudgetView() {
       remainingDays,
       availableNet
     };
-  }, [monthEntries, todayEntries, convert, displayCurrency, selectedDate]);
+  }, [monthEntries, todayEntries, displayCurrency, selectedDate, ratesByMonth, ratesLoading]);
   const percentUsed = dailyBudget > 0 ? (todaysExpenses / dailyBudget) * 100 : 0;
   
   return (
@@ -104,7 +110,7 @@ export function BudgetView() {
       <CardContent>
         <DataState
           loading={monthLoading || ratesLoading}
-          error={monthError || conversionError}
+          error={monthError || ratesError}
           empty={dailyBudget === 0}
           loadingVariant="skeleton"
           emptyTitle="No budget available"

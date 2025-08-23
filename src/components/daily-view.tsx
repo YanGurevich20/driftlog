@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { formatCurrency } from '@/lib/currency-utils';
+import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { MoreVertical, Edit2, Trash2, CalendarIcon, Repeat, Repeat1 } from 'lucide-react';
@@ -54,12 +54,15 @@ export function DailyView() {
   });
   
   const displayCurrency = user?.displayCurrency || 'USD';
-  const { convert, error: conversionError, loading: ratesLoading } = useExchangeRates({
+  const { ratesByMonth, error: ratesError, loading: ratesLoading } = useExchangeRates({
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
 
   const groupedEntries = useMemo(() => {
+    if (ratesLoading || !ratesByMonth) {
+      return {} as Record<string, { entries: Entry[]; net: number }>;
+    }
     return entries.reduce((acc, entry) => {
       const category = entry.category;
       if (!acc[category]) {
@@ -70,17 +73,18 @@ export function DailyView() {
       }
       acc[category].entries.push(entry);
       // Convert to display currency using the entry's date
-      const amount = convert(
+      const amount = convertAmount(
         entry.originalAmount,
         entry.currency,
         displayCurrency,
-        entry.date
+        entry.date,
+        ratesByMonth
       );
       // Add as positive for income, negative for expense
       acc[category].net += entry.type === 'income' ? amount : -amount;
       return acc;
     }, {} as Record<string, { entries: Entry[]; net: number }>);
-  }, [entries, convert, displayCurrency]);
+  }, [entries, ratesByMonth, ratesLoading, displayCurrency]);
 
   const dailyNet = useMemo(() => {
     return Object.values(groupedEntries).reduce((sum, group) => {
@@ -136,7 +140,7 @@ export function DailyView() {
       <CardContent>
         <DataState
           loading={entriesLoading || ratesLoading}
-          error={entriesError || conversionError}
+          error={entriesError || ratesError}
           empty={Object.keys(groupedEntries).length === 0}
           loadingVariant="skeleton"
           emptyTitle="No entries for this day"
