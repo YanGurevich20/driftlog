@@ -10,7 +10,8 @@ import {
   where, 
   serverTimestamp,
   Timestamp,
-  runTransaction
+  runTransaction,
+  arrayUnion
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { convertFirestoreDoc } from '@/lib/firestore-utils';
@@ -179,10 +180,6 @@ export class UserGroupsService {
       const currentGroupSnap = currentGroupRef ? await tx.get(currentGroupRef) : null;
 
       const newGroupRef = doc(db, 'userGroups', invitation.groupId);
-      const newGroupSnap = await tx.get(newGroupRef);
-      if (!newGroupSnap.exists()) {
-        throw new Error('Target group not found');
-      }
 
       // All reads are complete above. Perform writes below.
 
@@ -199,10 +196,8 @@ export class UserGroupsService {
         }
       }
 
-      // Add to new group
-      const newGroup = newGroupSnap.data() as UserGroup;
-      const ensuredMembers = Array.from(new Set([...(newGroup.memberIds || []), userId]));
-      tx.update(newGroupRef, { memberIds: ensuredMembers });
+      // Add to new group (no read needed)
+      tx.update(newGroupRef, { memberIds: arrayUnion(userId) });
 
       // Update user groupId
       tx.update(userRef, { groupId: invitation.groupId });

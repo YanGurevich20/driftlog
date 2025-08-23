@@ -45,7 +45,7 @@ export function ConnectedUsersInviteButton() {
     
     // Prevent self-invitation
     if (inviteEmail.toLowerCase() === user.email?.toLowerCase()) {
-      toast.error('You cannot invite yourself to the group');
+      toast.warning('You cannot invite yourself to the group');
       return;
     }
     
@@ -63,8 +63,7 @@ export function ConnectedUsersInviteButton() {
       toast.success(`Invitation sent to ${inviteEmail}`);
     } catch (error) {
       console.error('Error inviting user:', error);
-      const message = error instanceof Error ? error.message : 'Failed to send invitation';
-      toast.error(message);
+      toast.error('Failed to send invitation');
     } finally {
       setIsInviting(false);
     }

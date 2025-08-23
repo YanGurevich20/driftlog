@@ -142,7 +142,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
       const selectedLocalDate = form.watch('date') || new Date();
       const selectedUtcDate = toUTCMidnight(selectedLocalDate);
       if (selectedUtcDate < SERVICE_START_DATE) {
-        toast.error('Date cannot be before Jan 1, 2025');
+        toast.warning('Date cannot be before Jan 1, 2025');
         setIsSubmitting(false);
         return;
       }
@@ -152,7 +152,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
         const pickedUtc = selectedUtcDate;
         // Enforce endDate is not before start
         if (toUTCMidnight(endDate) < pickedUtc) {
-          toast.error('End date cannot be before start date');
+          toast.warning('End date cannot be before start date');
           setIsSubmitting(false);
           return;
         }

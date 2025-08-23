@@ -100,7 +100,7 @@ export function DailyView() {
       setDeleteDialogOpen(false);
       setEntryToDelete(null);
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') console.error('Failed to delete:', error);
+      console.error('Failed to delete:', error);
       toast.error('Failed to delete entry');
     }
   };
