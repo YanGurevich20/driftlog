@@ -45,8 +45,6 @@ export const scheduledUpdateExchangeRates = onSchedule({
   timeZone: "UTC",
   secrets: [exchangeRateApiKey],
 }, async () => {
-  const db = admin.firestore();
-
   try {
     const apiKey = exchangeRateApiKey.value();
     if (!apiKey) {
