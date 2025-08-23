@@ -46,7 +46,10 @@ service cloud.firestore {
          (request.resource.data.memberIds.hasAny([request.auth.uid]) &&
           request.resource.data.memberIds.hasAll(resource.data.memberIds)));
       allow delete: if isAuthenticated() && 
-        resource.data.memberIds.size() == 0; // Can only delete empty groups
+        (
+          resource.data.memberIds.size() == 0 ||
+          (resource.data.memberIds.size() == 1 && resource.data.memberIds.hasAny([request.auth.uid]))
+        );
     }
     
     // Entries - users can access own and group members' entries
