@@ -1,18 +1,7 @@
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
 import type { MonthlyExchangeRates, DailyRates } from '@/types';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
-interface GetMonthlyRatesRequest {
-  months: string[];
-}
-
-interface GetMonthlyRatesResponse {
-  monthlyRates: {
-    [month: string]: {
-      [date: string]: DailyRates;
-    };
-  };
-}
 
 export class CurrencyService {
   private static instance: CurrencyService;
@@ -62,6 +51,13 @@ export class CurrencyService {
     return (now - timestamp) < 60 * 60 * 1000;
   }
 
+  private async loadMonthFromFirestore(monthKey: string): Promise<MonthlyExchangeRates | null> {
+    const ref = doc(db, 'exchangeRates', monthKey);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    return snap.data() as MonthlyExchangeRates;
+  }
+
   async getMonthlyRates(months: string[]): Promise<Map<string, MonthlyExchangeRates>> {
     const result = new Map<string, MonthlyExchangeRates>();
     const monthsToFetch: string[] = [];
@@ -78,35 +74,30 @@ export class CurrencyService {
       monthsToFetch.push(month);
     }
 
-    // Fetch missing months
+    // Fetch missing months directly from Firestore
     if (monthsToFetch.length > 0) {
-      const getMonthlyRates = httpsCallable<GetMonthlyRatesRequest, GetMonthlyRatesResponse>(
-        functions,
-        'getMonthlyRates'
-      );
-
-      try {
-        const response = await getMonthlyRates({ months: monthsToFetch });
-        const { monthlyRates } = response.data;
-
-        for (const [month, data] of Object.entries(monthlyRates)) {
-          const monthData: MonthlyExchangeRates = data;
-          
-          // Update cache
-          this.monthlyCache.set(month, monthData);
-          this.cacheTimestamps.set(month, Date.now());
-          result.set(month, monthData);
-        }
-      } catch (error) {
-        console.error('Failed to fetch monthly rates:', error);
-        // Return what we have in cache even if expired
-        for (const month of monthsToFetch) {
+      await Promise.all(monthsToFetch.map(async (month) => {
+        try {
+          const monthData = await this.loadMonthFromFirestore(month);
+          if (monthData) {
+            this.monthlyCache.set(month, monthData);
+            this.cacheTimestamps.set(month, Date.now());
+            result.set(month, monthData);
+          } else {
+            // Cache empty object to avoid repeated reads; conversions will estimate/fail gracefully
+            const empty: MonthlyExchangeRates = {};
+            this.monthlyCache.set(month, empty);
+            this.cacheTimestamps.set(month, Date.now());
+            result.set(month, empty);
+          }
+        } catch (error) {
+          console.error(`Failed to read exchangeRates/${month} from Firestore:`, error);
           const cached = this.monthlyCache.get(month);
           if (cached) {
             result.set(month, cached);
           }
         }
-      }
+      }));
     }
 
     return result;
@@ -155,26 +146,26 @@ export class CurrencyService {
     const monthData = monthlyRates.get(monthKey);
     
     if (!monthData || Object.keys(monthData).length === 0) {
-      // No rates available for this month - use today's rates as fallback
+      // Fallback: try using today's month from Firestore as an estimate
       const today = new Date();
       const todayMonth = this.getMonthKey(today);
       const todayRates = await this.getMonthlyRates([todayMonth]);
       const todayData = todayRates.get(todayMonth);
-      
+
       if (todayData) {
         const todayKey = this.getDateKey(today);
         const rates = this.findNearestRates(todayData, todayKey);
         if (rates && rates[from] && rates[to]) {
           const amountInUSD = from === 'USD' ? amount : amount / rates[from];
           const converted = to === 'USD' ? amountInUSD : amountInUSD * rates[to];
-          return { 
+          return {
             converted: Math.round(converted * 100) / 100,
             rateDate: todayKey,
-            isEstimate: true
+            isEstimate: true,
           };
         }
       }
-      
+
       throw new Error(`No exchange rates available for ${monthKey}`);
     }
 

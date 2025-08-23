@@ -1,5 +1,6 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {logger} from "firebase-functions/v2";
+import {onSchedule} from "firebase-functions/v2/scheduler";
 import {defineSecret} from "firebase-functions/params";
 import * as admin from "firebase-admin";
 
@@ -145,5 +146,37 @@ export const getMonthlyRates = onCall<GetMonthlyRatesRequest>({
       throw error;
     }
     throw new HttpsError("internal", "Failed to fetch monthly rates");
+  }
+});
+
+// Scheduled job to store today's exchange rates under exchangeRates/YYYY-MM[YYYY-MM-DD]
+export const scheduledUpdateExchangeRates = onSchedule({
+  region: "asia-southeast1",
+  schedule: "0 0 * * *", // 00:00 UTC daily
+  timeZone: "UTC",
+  secrets: [exchangeRateApiKey],
+}, async () => {
+  const db = admin.firestore();
+
+  try {
+    const apiKey = exchangeRateApiKey.value();
+    if (!apiKey) {
+      logger.warn("Exchange rate API key not configured - skipping scheduled update");
+      return;
+    }
+
+    const now = new Date();
+    const todayKey = getDateKey(now); // UTC date string YYYY-MM-DD
+    const monthKey = todayKey.slice(0, 7); // UTC month YYYY-MM
+
+    logger.info(`Scheduled update: fetching rates for ${todayKey}`);
+    const todaysRates = await fetchTodaysRates(apiKey);
+
+    const monthRef = db.doc(`exchangeRates/${monthKey}`);
+    // Merge in today's rates; avoid adding metadata keys that could confuse clients
+    await monthRef.set({ [todayKey]: todaysRates }, { merge: true });
+    logger.info(`Stored rates for ${todayKey} under month ${monthKey}`);
+  } catch (error) {
+    logger.error("Scheduled exchange rate update failed", error);
   }
 });

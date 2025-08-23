@@ -84,9 +84,10 @@ service cloud.firestore {
          request.auth.token.email == resource.data.invitedEmail); // Recipient can delete when accepting/rejecting
     }
     
-    // Exchange rates - all authenticated users can read/write
+    // Exchange rates - authenticated users can read; writes restricted to Admin SDK (functions)
     match /exchangeRates/{document=**} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if false; // Clients cannot write exchange rates
     }
     
     // Recurring templates - users and their group members can fully manage
