@@ -8,6 +8,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Entry } from '@/types';
 import { convertFirestoreDoc } from '@/lib/firestore-utils';
+import { toast } from 'sonner';
 
 export default function EditEntryPage({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useAuth();
@@ -24,16 +25,10 @@ export default function EditEntryPage({ params }: { params: Promise<{ id: string
         const entryDoc = await getDoc(doc(db, 'entries', id));
         if (entryDoc.exists()) {
           const entryData = convertFirestoreDoc<Entry>(entryDoc);
-          
-          // Check if user has access to this entry (must be the creator)
-          if (entryData.userId === user.id) {
-            setEntry(entryData);
-          } else {
-            console.error('User does not have access to this entry');
-            router.push('/dashboard');
-          }
+          setEntry(entryData);
         } else {
           console.error('Entry not found');
+          toast.error('Entry not found');
           router.push('/dashboard');
         }
       } catch (error) {
