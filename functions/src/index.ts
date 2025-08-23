@@ -187,9 +187,9 @@ export const scheduledUpdateExchangeRates = onSchedule({
 });
 
 // Connections: accept invitation
-export const acceptConnectionInvitation = onCall<{ invitationId: string; userId: string }, { ok: boolean }>({
+export const acceptConnectionInvitation = onCall<{ invitationId: string; userId: string }>({
   region: "asia-southeast1",
-}, async (request) => {
+}, async (request): Promise<{ ok: boolean }> => {
   if (!request.auth) throw new HttpsError("unauthenticated", "User must be authenticated");
   const { invitationId, userId } = request.data;
   if (!invitationId || !userId) throw new HttpsError("invalid-argument", "invitationId and userId are required");
@@ -198,13 +198,13 @@ export const acceptConnectionInvitation = onCall<{ invitationId: string; userId:
   const invitationRef = db.doc(`connectionInvitations/${invitationId}`);
   const recipientRef = db.doc(`users/${userId}`);
 
-  return await db.runTransaction(async (tx) => {
+  const result = await db.runTransaction(async (tx) => {
     const invSnap = await tx.get(invitationRef);
     if (!invSnap.exists) throw new HttpsError("not-found", "Invitation not found");
     const invitation = invSnap.data() as { invitedEmail: string; invitedBy: string; inviterName: string; expiresAt: admin.firestore.Timestamp };
 
     // Validate recipient matches invitation
-    const authEmail = request.auth.token.email as string | undefined;
+    const authEmail = request.auth?.token.email;
     if (!authEmail || authEmail.toLowerCase() !== invitation.invitedEmail.toLowerCase()) {
       throw new HttpsError("permission-denied", "Invitation not addressed to this user");
     }
@@ -245,19 +245,20 @@ export const acceptConnectionInvitation = onCall<{ invitationId: string; userId:
     tx.delete(invitationRef);
     return { ok: true };
   });
+  return result;
 });
 
 // Connections: leave all connections
-export const leaveConnections = onCall<{ userId: string }, { ok: boolean }>({
+export const leaveConnections = onCall<{ userId: string }>({
   region: "asia-southeast1",
-}, async (request) => {
+}, async (request): Promise<{ ok: boolean }> => {
   if (!request.auth) throw new HttpsError("unauthenticated", "User must be authenticated");
   const { userId } = request.data;
   if (!userId || userId !== request.auth.uid) throw new HttpsError("permission-denied", "Only self can leave");
 
   const db = admin.firestore();
   const userRef = db.doc(`users/${userId}`);
-  return await db.runTransaction(async (tx) => {
+  const result = await db.runTransaction(async (tx) => {
     const userSnap = await tx.get(userRef);
     if (!userSnap.exists) throw new HttpsError("not-found", "User not found");
     const userData = userSnap.data() as { connectedUserIds?: string[] };
@@ -276,4 +277,5 @@ export const leaveConnections = onCall<{ userId: string }, { ok: boolean }>({
     tx.update(userRef, { connectedUserIds: [] });
     return { ok: true };
   });
+  return result;
 });
