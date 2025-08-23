@@ -173,30 +173,33 @@ export class UserGroupsService {
       }
       const userData = userSnap.data() as { groupId?: string };
 
-      // Remove from current group if applicable
+      // Read any potentially involved groups BEFORE any writes
       const currentGroupId: string | undefined = userData.groupId;
-      if (currentGroupId) {
-        const currentGroupRef = doc(db, 'userGroups', currentGroupId);
-        const currentGroupSnap = await tx.get(currentGroupRef);
-        if (currentGroupSnap.exists()) {
-          const currentGroup = currentGroupSnap.data() as UserGroup;
-          if (currentGroup.memberIds.includes(userId)) {
-            const nextMembers = currentGroup.memberIds.filter((id: string) => id !== userId);
-            if (nextMembers.length === 0) {
-              tx.delete(currentGroupRef);
-            } else {
-              tx.update(currentGroupRef, { memberIds: nextMembers });
-            }
-          }
-        }
-      }
+      const currentGroupRef = currentGroupId ? doc(db, 'userGroups', currentGroupId) : null;
+      const currentGroupSnap = currentGroupRef ? await tx.get(currentGroupRef) : null;
 
-      // Add to new group
       const newGroupRef = doc(db, 'userGroups', invitation.groupId);
       const newGroupSnap = await tx.get(newGroupRef);
       if (!newGroupSnap.exists()) {
         throw new Error('Target group not found');
       }
+
+      // All reads are complete above. Perform writes below.
+
+      // Remove from current group if applicable
+      if (currentGroupRef && currentGroupSnap && currentGroupSnap.exists()) {
+        const currentGroup = currentGroupSnap.data() as UserGroup;
+        if (currentGroup.memberIds.includes(userId)) {
+          const nextMembers = currentGroup.memberIds.filter((id: string) => id !== userId);
+          if (nextMembers.length === 0) {
+            tx.delete(currentGroupRef);
+          } else {
+            tx.update(currentGroupRef, { memberIds: nextMembers });
+          }
+        }
+      }
+
+      // Add to new group
       const newGroup = newGroupSnap.data() as UserGroup;
       const ensuredMembers = Array.from(new Set([...(newGroup.memberIds || []), userId]));
       tx.update(newGroupRef, { memberIds: ensuredMembers });
