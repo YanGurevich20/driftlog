@@ -247,7 +247,18 @@ export class UserGroupsService {
       }
       const userData = userSnap.data() as { groupId?: string };
 
-      // Remove from current group if applicable
+      // Create new solo group id and doc
+      const newGroupRef = doc(collection(db, 'userGroups'));
+      tx.set(newGroupRef, {
+        memberIds: [userId],
+        createdAt: serverTimestamp(),
+        createdBy: userId,
+      });
+
+      // Update user to point to new group FIRST so UI can switch listeners immediately
+      tx.update(userRef, { groupId: newGroupRef.id });
+
+      // Now remove from current group if applicable
       const currentGroupId: string | undefined = userData.groupId;
       if (currentGroupId) {
         const currentGroupRef = doc(db, 'userGroups', currentGroupId);
@@ -264,17 +275,6 @@ export class UserGroupsService {
           }
         }
       }
-
-      // Create new solo group id and doc
-      const newGroupRef = doc(collection(db, 'userGroups'));
-      tx.set(newGroupRef, {
-        memberIds: [userId],
-        createdAt: serverTimestamp(),
-        createdBy: userId,
-      });
-
-      // Update user to point to new group
-      tx.update(userRef, { groupId: newGroupRef.id });
 
       return newGroupRef.id;
     });
