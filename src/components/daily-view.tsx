@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
@@ -98,6 +98,11 @@ export function DailyView() {
     }, 0);
   }, [groupedEntries]);
 
+  // Open all categories by default
+  useEffect(() => {
+    setOpenCategories(Object.keys(groupedEntries));
+  }, [groupedEntries]);
+
   const handleEdit = (entry: Entry) => {
     router.push(`/dashboard/entry/${entry.id}`);
   };
@@ -189,7 +194,10 @@ export function DailyView() {
                         const bAmount = b.type === 'income' ? b.originalAmount : -b.originalAmount;
                         return aAmount - bAmount;
                       })
-                      .map((entry) => (
+                      .map((entry) => {
+                        const isRecent = entry.createdAt && 
+                          (Date.now() - entry.createdAt.getTime()) < 5 * 60 * 1000; // 5 minutes
+                        return (
                       <div key={entry.id} className="flex justify-between items-start gap-2 pl-10 pr-1">
                         <div className="flex items-center gap-1">
                           {entry.isRecurringInstance && (
@@ -200,7 +208,7 @@ export function DailyView() {
                             )
                           )}
                           <span className="text-muted-foreground text-sm">
-                            {entry.description || 'No description'}
+                            {`${isRecent ? '•' : ''} ${entry.description || 'No description'}`}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -237,7 +245,7 @@ export function DailyView() {
                           </DropdownMenu>
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 </AccordionContent>
               </AccordionItem>
