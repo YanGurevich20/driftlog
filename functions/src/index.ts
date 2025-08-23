@@ -219,25 +219,41 @@ export const acceptConnectionInvitation = onCall<{ invitationId: string; userId:
       throw new HttpsError("failed-precondition", "Invitation expired");
     }
 
-    // Load inviter and recipient
+    // Load inviter and recipient - do all reads first
     const inviterRef = db.doc(`users/${invitation.invitedBy}`);
     const inviterSnap = await tx.get(inviterRef);
     const recipientSnap = await tx.get(recipientRef);
-    if (!inviterSnap.exists) {
-      tx.set(inviterRef, { connectedUserIds: [] }, { merge: true });
-    }
-    if (!recipientSnap.exists) {
-      tx.set(recipientRef, { connectedUserIds: [] }, { merge: true });
-    }
-
+    
     const inviterData = inviterSnap.exists ? inviterSnap.data() as { connectedUserIds?: string[] } : { connectedUserIds: [] };
     const recipientData = recipientSnap.exists ? recipientSnap.data() as { connectedUserIds?: string[] } : { connectedUserIds: [] };
     const clique = Array.from(new Set([invitation.invitedBy, ...(inviterData.connectedUserIds || [])]));
 
+    // Read all member documents that we'll need to update
+    const memberSnapshots = new Map<string, FirebaseFirestore.DocumentSnapshot>();
+    memberSnapshots.set(invitation.invitedBy, inviterSnap);
+    
+    for (const memberId of clique) {
+      if (memberId !== invitation.invitedBy) {
+        const memberRef = db.doc(`users/${memberId}`);
+        const memberSnap = await tx.get(memberRef);
+        memberSnapshots.set(memberId, memberSnap);
+      }
+    }
+
+    // Now do all writes
+    // Ensure inviter exists
+    if (!inviterSnap.exists) {
+      tx.set(inviterRef, { connectedUserIds: [] }, { merge: true });
+    }
+    // Ensure recipient exists
+    if (!recipientSnap.exists) {
+      tx.set(recipientRef, { connectedUserIds: [] }, { merge: true });
+    }
+
     // Update mutual connections
     for (const memberId of clique) {
       const memberRef = db.doc(`users/${memberId}`);
-      const memberSnap = memberId === invitation.invitedBy ? inviterSnap : await tx.get(memberRef);
+      const memberSnap = memberSnapshots.get(memberId)!;
       const member = (memberSnap.data() || {}) as { connectedUserIds?: string[] };
       const memberSet = new Set(member.connectedUserIds || []);
       memberSet.add(userId);
