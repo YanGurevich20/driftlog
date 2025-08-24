@@ -64,9 +64,9 @@ export function RecurringView() {
     return monthEntries.filter((e) => !!e.recurringTemplateId);
   }, [monthEntries]);
 
-  const monthlyRecurringNet = useMemo(() => {
-    if (ratesLoading || !ratesByMonth) return 0;
-    return recurringMonthEntries.reduce((sum, entry) => {
+  const monthlyRecurringTotals = useMemo(() => {
+    if (ratesLoading || !ratesByMonth) return { income: 0, expenses: 0 };
+    return recurringMonthEntries.reduce((acc, entry) => {
       const converted = convertAmount(
         entry.originalAmount,
         entry.currency,
@@ -74,8 +74,13 @@ export function RecurringView() {
         entry.date,
         ratesByMonth
       );
-      return sum + (entry.type === 'income' ? converted : -converted);
-    }, 0);
+      if (entry.type === 'income') {
+        acc.income += converted;
+      } else {
+        acc.expenses += converted;
+      }
+      return acc;
+    }, { income: 0, expenses: 0 });
   }, [recurringMonthEntries, ratesByMonth, ratesLoading, displayCurrency]);
 
   // Real-time aggregation data
@@ -89,14 +94,14 @@ export function RecurringView() {
     try {
       if (mode === 'stop') {
         await stopRecurring(deleteDialog.templateId, ownerId);
-        toast.success('Recurring entry stopped');
+        toast.success('Recurrence stopped');
       } else {
         await deleteRecurringSeries(deleteDialog.templateId, ownerId);
-        toast.success('Recurring series deleted');
+        toast.success('Recurrence deleted');
       }
     } catch (err) {
       console.error('Failed to delete recurring:', err);
-      toast.error('Failed to delete recurring entry');
+      toast.error('Failed to delete recurrence');
     } finally {
       setDeleteDialog({ open: false, templateId: '', mode: 'stop' });
     }
@@ -140,7 +145,7 @@ export function RecurringView() {
     <>
       <CollapsibleCard defaultCollapsed={true}>
         <CollapsibleCardHeader>
-          <CollapsibleCardTitle className="text-primary">Recurring Entries</CollapsibleCardTitle>
+          <CollapsibleCardTitle className="text-primary">This Month's Recurrences</CollapsibleCardTitle>
         </CollapsibleCardHeader>
         
         <CollapsibleCardContent>
@@ -149,8 +154,8 @@ export function RecurringView() {
             error={error}
             empty={visibleTemplates.length === 0}
             loadingVariant="skeleton"
-            emptyTitle="No recurring entries"
-            emptyDescription="Create your first recurring entry from the entry form"
+            emptyTitle="No recurrences"
+            emptyDescription="Create your first recurrence from the entry form"
             emptyIcon={Repeat}
           >
             <div className="divide-y">
@@ -229,11 +234,23 @@ export function RecurringView() {
         </CollapsibleCardContent>
         {recurringMonthEntries.length > 0 && !entriesLoading && !ratesLoading && (
           <CollapsibleCardFooter>
-            <div className="flex justify-between w-full">
-              <span className="font-medium">{format(monthRange.start, 'MMMM')} Recurring Net</span>
-              <span className={`text-lg font-bold ${monthlyRecurringNet >= 0 ? 'text-primary' : ''}`}>
-                {formatCurrency(Math.abs(monthlyRecurringNet), displayCurrency, monthlyRecurringNet < 0)}
-              </span>
+            <div className="space-y-2 w-full">
+              {monthlyRecurringTotals.income > 0 && (
+                <div className="flex justify-between">
+                  <span className="font-medium">Recurring Income</span>
+                  <span className="text-lg font-bold text-primary">
+                    {formatCurrency(monthlyRecurringTotals.income, displayCurrency, false, true)}
+                  </span>
+                </div>
+              )}
+              {monthlyRecurringTotals.expenses > 0 && (
+                <div className="flex justify-between">
+                  <span className="font-medium">Recurring Expenses</span>
+                  <span className="text-lg font-bold">
+                    {formatCurrency(monthlyRecurringTotals.expenses, displayCurrency, true)}
+                  </span>
+                </div>
+              )}
             </div>
           </CollapsibleCardFooter>
         )}
@@ -246,12 +263,12 @@ export function RecurringView() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {deleteDialog.mode === 'stop' ? 'Stop Recurring Entry' : 'Delete Recurring Series'}
+              {deleteDialog.mode === 'stop' ? 'Stop Recurrence' : 'Delete Recurrence'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteDialog.mode === 'stop' 
-                ? 'This will delete all future entries (including today) and keep the template for history. Proceed?'
-                : 'This will delete the template and all entries. Proceed?'}
+                ? 'This will delete all future recurring entries (including today) and keep the recurrence for history. Proceed?'
+                : 'This will delete the recurrence and all recurring entries. Proceed?'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
