@@ -185,3 +185,8 @@ Multi-currency expense tracking with real-time collaboration.
 - Entries cache note:
   - Real-time listener over `entries` with `where('userId','in', memberIds)` and optional date bounds; ordered by `date desc`.
   - If cache provider is absent, direct query fallback not implemented.
+
+## Terminology
+- entry: a single financial transaction, can be income or expense
+- recurring template: a template for a recurring transaction, can be daily, weekly, monthly, or yearly
+- recurring entry: a single instance of a recurring transaction, created from a recurring template

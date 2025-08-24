@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { MoreVertical, Edit2, Trash2, Repeat, StopCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -14,6 +14,7 @@ import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useAuth } from '@/lib/auth-context';
 import { stopRecurring, deleteRecurringSeries } from '@/services/recurring';
 import { useRecurringTemplates } from '@/hooks/use-recurring-templates';
+import { useRecurringAggregates } from '@/hooks/use-recurring-aggregates';
 import type { RecurringTemplate } from '@/types';
 import { toast } from 'sonner';
 import {
@@ -36,10 +37,6 @@ import { DataState } from '@/components/ui/data-state';
 import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
-import { getCountFromServer } from 'firebase/firestore';
-import { toUTCMidnight } from '@/lib/date-utils';
 
 export function RecurringView() {
   const { user } = useAuth();
@@ -81,67 +78,8 @@ export function RecurringView() {
     }, 0);
   }, [recurringMonthEntries, ratesByMonth, ratesLoading, displayCurrency]);
 
-  // Actual next occurrence and remaining per template, based on entries
-  const [nextByTemplate, setNextByTemplate] = useState<Record<string, Date | null>>({});
-  const [remainingByTemplate, setRemainingByTemplate] = useState<Record<string, number>>({});
-  const [aggLoading, setAggLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchAggregates = async () => {
-      if (!templates.length || !user?.id) {
-        setNextByTemplate({});
-        setRemainingByTemplate({});
-        return;
-      }
-      setAggLoading(true);
-      try {
-        const todayUtc = toUTCMidnight(new Date());
-        const entriesColl = collection(db, 'entries');
-
-        const tasks = templates.map(async (t) => {
-          // Next occurrence
-          const nextQ = query(
-            entriesColl,
-            where('userId', '==', t.userId),
-            where('recurringTemplateId', '==', t.id),
-            where('date', '>', Timestamp.fromDate(todayUtc)),
-            orderBy('date', 'asc'),
-            limit(1)
-          );
-          const nextSnap = await getDocs(nextQ);
-          const nextDate = nextSnap.empty ? null : nextSnap.docs[0].data().date.toDate();
-
-          // Remaining count
-          const remainingQ = query(
-            entriesColl,
-            where('userId', '==', t.userId),
-            where('recurringTemplateId', '==', t.id),
-            where('date', '>', Timestamp.fromDate(todayUtc))
-          );
-          const remainingSnap = await getCountFromServer(remainingQ);
-          const remaining = Number(remainingSnap.data().count || 0);
-
-          return { id: t.id, nextDate, remaining };
-        });
-
-        const results = await Promise.all(tasks);
-        const nextMap: Record<string, Date | null> = {};
-        const remMap: Record<string, number> = {};
-        results.forEach(({ id, nextDate, remaining }) => {
-          nextMap[id] = nextDate;
-          remMap[id] = remaining;
-        });
-        setNextByTemplate(nextMap);
-        setRemainingByTemplate(remMap);
-      } catch (e) {
-        console.error('Failed to compute recurring aggregates:', e);
-      } finally {
-        setAggLoading(false);
-      }
-    };
-
-    fetchAggregates();
-  }, [templates, user?.id]);
+  // Real-time aggregation data
+  const { nextByTemplate, remainingByTemplate, loading: aggLoading } = useRecurringAggregates(templates);
 
 
   const handleDelete = async (mode: 'stop' | 'delete-all') => {
