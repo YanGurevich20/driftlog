@@ -27,13 +27,22 @@ export function useExchangeRates(options?: UseExchangeRatesOptions) {
       if (startDateStr && endDateStr) {
         const start = new Date(startDateStr);
         const end = new Date(endDateStr);
-        const current = new Date(start.getFullYear(), start.getMonth(), 1);
-        while (current <= end) {
-          const year = current.getFullYear();
-          const month = String(current.getMonth() + 1).padStart(2, '0');
+        
+        // Use UTC dates for month calculation to avoid timezone issues
+        const current = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+        const endUTC = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
+        
+        while (current <= endUTC) {
+          const year = current.getUTCFullYear();
+          const month = String(current.getUTCMonth() + 1).padStart(2, '0');
           months.add(`${year}-${month}`);
-          current.setMonth(current.getMonth() + 1);
+          current.setUTCMonth(current.getUTCMonth() + 1);
         }
+        
+        // Always include current month as fallback for conversions
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        months.add(currentMonth);
       } else {
         const now = new Date();
         const year = now.getFullYear();
@@ -53,9 +62,12 @@ export function useExchangeRates(options?: UseExchangeRatesOptions) {
         const map = await currencyService.getMonthlyRates(requiredMonths);
 
         // Accept empty future months (we'll fall back to nearest past in convertAmount)
-        // Only error if all months are empty (i.e., nothing to convert against)
+        // Only error if all months are empty AND we have no historical data to fall back on
         const hasAnyRates = Array.from(map.values()).some((m) => m && Object.keys(m).length > 0);
-        if (!hasAnyRates) {
+        const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+        const hasCurrentOrPastMonth = requiredMonths.some(month => month <= currentMonth);
+        
+        if (!hasAnyRates && hasCurrentOrPastMonth) {
           setRatesByMonth(null);
           throw new Error('No exchange rates data available');
         }

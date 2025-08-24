@@ -50,19 +50,23 @@ export function convertAmount(
 
   const monthKey = getMonthKey(date);
   const dateKey = getDateKey(date);
+  
+  // Try target month first
   let monthly = ratesByMonth.get(monthKey);
-  if (!monthly) {
-    // Cross-month fallback: use nearest previous month available
+  let rates = monthly ? findNearestRates(monthly, dateKey) : null;
+  
+  // If target month is empty/missing, search all months for nearest rates
+  if (!rates) {
     const monthKeys = Array.from(ratesByMonth.keys()).sort();
-    const previousMonthKey = monthKeys.filter((m) => m < monthKey).pop();
-    if (previousMonthKey) {
-      monthly = ratesByMonth.get(previousMonthKey)!;
+    for (const fallbackMonthKey of monthKeys.reverse()) { // Start with most recent
+      const fallbackMonthly = ratesByMonth.get(fallbackMonthKey);
+      if (fallbackMonthly && Object.keys(fallbackMonthly).length > 0) {
+        rates = findNearestRates(fallbackMonthly, dateKey);
+        if (rates) break;
+      }
     }
   }
-  if (!monthly) {
-    throw new Error(`Rates for month ${monthKey} are not loaded`);
-  }
-  const rates = findNearestRates(monthly, dateKey);
+  
   if (!rates) {
     throw new Error(`No exchange rates available near ${dateKey}`);
   }
