@@ -80,12 +80,12 @@ function generateOccurrenceDates(
 
 function shouldIncludeDate(date: Date, recurrence: RecurrenceRule): boolean {
   if (recurrence.frequency === 'daily' && recurrence.daysOfWeek?.length) {
-    const dayOfWeek = date.getDay();
+    const dayOfWeek = date.getUTCDay();
     return recurrence.daysOfWeek.includes(dayOfWeek);
   }
 
   if (recurrence.frequency === 'weekly' && recurrence.daysOfWeek?.length) {
-    const dayOfWeek = date.getDay();
+    const dayOfWeek = date.getUTCDay();
     return recurrence.daysOfWeek.includes(dayOfWeek);
   }
 
@@ -106,11 +106,11 @@ function getNextDate(date: Date, recurrence: RecurrenceRule): Date {
       // Monthly by day-of-month with automatic rollback for short months
       const nextMonth = addMonths(date, interval);
       const baseDay = recurrence.dayOfMonth || date.getDate();
-      const lastDayOfMonth = new Date(
-        nextMonth.getFullYear(),
-        nextMonth.getMonth() + 1,
+      const lastDayOfMonth = new Date(Date.UTC(
+        nextMonth.getUTCFullYear(),
+        nextMonth.getUTCMonth() + 1,
         0
-      ).getDate();
+      )).getUTCDate();
       const targetDay = Math.min(baseDay, lastDayOfMonth);
       nextMonth.setDate(targetDay);
       return nextMonth;

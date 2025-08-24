@@ -32,6 +32,12 @@ Multi-currency expense tracking with real-time collaboration.
 - Security rules enforce mutual-connection-based access
 - Real-time listeners for entries and connected users
 
+### Date/Timezone Handling
+- **All date operations must use UTC methods** (`getUTCFullYear()`, `getUTCMonth()`, `getUTCDay()`, etc.)
+- Month keys for exchange rates: use `getUTCFullYear()` and `getUTCMonth()`
+- Day-of-week calculations for recurring entries: use `getUTCDay()`
+- Date range calculations: use UTC methods to avoid timezone boundary issues
+
 ### UI Patterns
 - DataState component for loading/empty/error states  
 - Three-dot menu on entries for edit/delete

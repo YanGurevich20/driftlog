@@ -9,8 +9,8 @@ export function formatCurrency(amount: number, currencyCode: string, isNegative:
 }
 
 function getMonthKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   return `${year}-${month}`;
 }
 
@@ -52,7 +52,7 @@ export function convertAmount(
   const dateKey = getDateKey(date);
   
   // Try target month first
-  let monthly = ratesByMonth.get(monthKey);
+  const monthly = ratesByMonth.get(monthKey);
   let rates = monthly ? findNearestRates(monthly, dateKey) : null;
   
   // If target month is empty/missing, search all months for nearest rates

@@ -18,8 +18,8 @@ export class CurrencyService {
   }
 
   private getMonthKey(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
     return `${year}-${month}`;
   }
 
