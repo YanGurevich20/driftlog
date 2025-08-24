@@ -1,8 +1,7 @@
 import { 
   collection, 
   doc, 
-  setDoc, 
-  getDoc, 
+  getDoc,
   serverTimestamp, 
   writeBatch,
   query,
@@ -14,7 +13,7 @@ import { format, addDays, addWeeks, addMonths, addYears } from 'date-fns';
 import { toUTCMidnight } from '@/lib/date-utils';
 import { SERVICE_START_DATE } from '@/lib/config';
 import { convertFirestoreDoc } from '@/lib/firestore-utils';
-import type { RecurringTemplate, RecurrenceRule, Entry } from '@/types';
+import type { RecurringTemplate, RecurrenceRule } from '@/types';
 
 function getRecurringEntryId(templateId: string, date: Date): string {
   const dateStr = format(date, 'yyyyMMdd');
@@ -124,7 +123,7 @@ function getNextDate(date: Date, recurrence: RecurrenceRule): Date {
 }
 
 export async function createRecurringTemplate(
-  template: Omit<RecurringTemplate, 'id' | 'createdAt' | 'instancesCreated'>
+  template: Omit<RecurringTemplate, 'id' | 'createdAt'>
 ): Promise<string> {
   const templateRef = doc(collection(db, 'recurringTemplates'));
   const templateId = templateRef.id;
@@ -138,7 +137,6 @@ export async function createRecurringTemplate(
   // Add template to batch
   batch.set(templateRef, {
     ...template,
-    instancesCreated: dates.length,
     createdAt: serverTimestamp(),
   });
 
@@ -206,165 +204,17 @@ export async function createRecurringTemplate(
   return templateId;
 }
 
-export async function materializeRecurringEntries(
-  templateId: string,
-  template: Omit<RecurringTemplate, 'id' | 'createdAt' | 'instancesCreated'>,
-  options?: { 
-    regenerate?: boolean;
-    fromDate?: Date;
-  }
-): Promise<number> {
-  const dates = generateOccurrenceDates(
-    options?.fromDate || template.startDate,
-    template.recurrence
-  );
 
-  // For regeneration, prefetch all existing instances
-  const existingEntries = new Map<string, { isModified: boolean }>();
-  if (options?.regenerate) {
-    const existingQuery = await getDocs(
-      query(
-        collection(db, 'entries'),
-        where('userId', '==', template.userId),
-        where('recurringTemplateId', '==', templateId)
-      )
-    );
-    existingQuery.forEach(doc => {
-      existingEntries.set(doc.id, { 
-        isModified: doc.data().isModified || false 
-      });
-    });
-  }
 
-  let batch = writeBatch(db);
-  let createdCount = 0;
-  let batchCount = 0;
-
-  for (const date of dates) {
-    if (options?.fromDate && date < options.fromDate) {
-      continue;
-    }
-
-    const entryId = getRecurringEntryId(templateId, date);
-    const entryRef = doc(db, 'entries', entryId);
-
-    if (options?.regenerate) {
-      // Check prefetched data
-      const existing = existingEntries.get(entryId);
-      if (existing) {
-        if (!existing.isModified) {
-          // Update unmodified entries
-          const entryData = {
-            ...template.entryTemplate,
-            userId: template.userId,
-            date: toUTCMidnight(date),
-            recurringTemplateId: templateId,
-            originalDate: toUTCMidnight(date),
-            isRecurringInstance: true,
-            isModified: false,
-            updatedBy: template.createdBy,
-            updatedAt: serverTimestamp(),
-          };
-          batch.set(entryRef, entryData, { merge: true });
-          createdCount++;
-          batchCount++;
-        }
-        // Skip modified entries
-      }
-      // Skip non-existing entries during regeneration (deleted entries)
-    } else {
-      // Initial creation
-      const entryData = {
-        ...template.entryTemplate,
-        userId: template.userId,
-        date: toUTCMidnight(date),
-        recurringTemplateId: templateId,
-        originalDate: toUTCMidnight(date),
-        isRecurringInstance: true,
-        isModified: false,
-        createdBy: template.createdBy,
-        createdAt: serverTimestamp(),
-      };
-      batch.set(entryRef, entryData);
-      createdCount++;
-      batchCount++;
-    }
-
-    if (batchCount >= 200) {
-      await batch.commit();
-      batch = writeBatch(db);
-      batchCount = 0;
-    }
-  }
-
-  if (batchCount > 0) {
-    await batch.commit();
-  }
-
-  await setDoc(
-    doc(db, 'recurringTemplates', templateId),
-    { 
-      instancesCreated: createdCount,
-      updatedAt: serverTimestamp() 
-    },
-    { merge: true }
-  );
-
-  return createdCount;
-}
-
-export async function updateRecurringTemplate(
-  templateId: string,
-  userId: string,
-  updates: Partial<RecurringTemplate>
-): Promise<void> {
+export async function stopRecurring(templateId: string, userId: string): Promise<void> {
   const batch = writeBatch(db);
-
-  batch.update(doc(db, 'recurringTemplates', templateId), {
-    ...updates,
-    updatedAt: serverTimestamp(),
-  });
-
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
 
   const futureEntries = await getDocs(
     query(
       collection(db, 'entries'),
       where('userId', '==', userId),
       where('recurringTemplateId', '==', templateId),
-      where('date', '>=', toUTCMidnight(tomorrow)),
-      where('isModified', '==', false)
-    )
-  );
-
-  futureEntries.forEach(doc => batch.delete(doc.ref));
-  await batch.commit();
-
-  const templateDoc = await getDoc(doc(db, 'recurringTemplates', templateId));
-  if (templateDoc.exists()) {
-    const fullTemplate = convertFirestoreDoc<RecurringTemplate>(templateDoc);
-    await materializeRecurringEntries(
-      templateId, 
-      { ...fullTemplate, ...updates },
-      { regenerate: true, fromDate: tomorrow }
-    );
-  }
-}
-
-export async function stopRecurring(templateId: string, userId: string, fromDate?: Date): Promise<void> {
-  const batch = writeBatch(db);
-
-  // If no date provided, default to today (inclusive)
-  const effectiveDate = fromDate || new Date();
-  
-  const futureEntries = await getDocs(
-    query(
-      collection(db, 'entries'),
-      where('userId', '==', userId),
-      where('recurringTemplateId', '==', templateId),
-      where('date', '>=', toUTCMidnight(effectiveDate)),
-      where('isModified', '==', false)
+      where('date', '>=', toUTCMidnight(new Date()))
     )
   );
 
@@ -390,20 +240,6 @@ export async function deleteRecurringSeries(templateId: string, userId: string):
   await batch.commit();
 }
 
-export async function editRecurringInstance(
-  entryId: string,
-  updates: Partial<Entry>
-): Promise<void> {
-  await setDoc(
-    doc(db, 'entries', entryId),
-    {
-      ...updates,
-      isModified: true,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
-}
 
 export async function getRecurringTemplates(userId: string): Promise<RecurringTemplate[]> {
   // Resolve member IDs using mutual connections

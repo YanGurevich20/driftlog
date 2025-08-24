@@ -70,11 +70,11 @@ Multi-currency expense tracking with real-time collaboration.
     - `recurringTemplateId`, `isRecurringInstance = true`, `isModified = false`, `originalDate`
   - Entry IDs use stable format `rt_{templateId}_{yyyyMMdd}`
   - Dates are clamped to `SERVICE_START_DATE` and stored via `toUTCMidnight()`
-- Updating a template:
-  - Future unmodified instances (>= tomorrow) are deleted and rematerialized
-  - Modified instances (`isModified = true`) are preserved
+- **Template editing removed**: Editing creates too many edge cases. Users delete/stop and recreate instead.
 - Stopping a series:
-  - Deletes future unmodified instances from a given date forward (default: today)
+  - Deletes future unmodified instances from a given date forward (default: today inclusive)
+  - Preserves modified instances; keeps template for history
+  - Designed for reactive use case: user sees unwanted recurring entry and stops it
 - Deleting a series:
   - Deletes the template and all instances (modified and unmodified)
 - Limits:
@@ -178,9 +178,9 @@ Multi-currency expense tracking with real-time collaboration.
 
 - Recurring specifics:
   - Entry ID format: `rt_{templateId}_{yyyyMMdd}`; instances store `originalDate`, `isRecurringInstance`, `isModified`.
-  - Update template: delete future unmodified instances then rematerialize; preserve modified ones.
-  - Stop series: delete future unmodified instances from provided date (default today inclusive).
-  - Delete series: remove template and all unmodified instances.
+  - Template editing removed for simplicity - users delete/stop and recreate instead.
+  - Stop series: delete future unmodified instances from provided date (default today inclusive); preserves template for history.
+  - Delete series: remove template and all instances (modified and unmodified).
 
 - Entries cache note:
   - Real-time listener over `entries` with `where('userId','in', memberIds)` and optional date bounds; ordered by `date desc`.

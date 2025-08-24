@@ -29,11 +29,8 @@ export interface RecurringTemplate {
   recurrence: RecurrenceRule;
   startDate: Date;
   
-  instancesCreated: number;
-  
   createdBy: string;
   createdAt: Date;
-  updatedAt?: Date;
 }
 
 export const RECURRENCE_LIMITS = {

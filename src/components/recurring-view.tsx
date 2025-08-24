@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { MoreVertical, Edit2, Trash2, Repeat, StopCircle } from 'lucide-react';
+import { MoreVertical, Trash2, Repeat, StopCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   CollapsibleCard, 
@@ -198,14 +198,6 @@ export function RecurringView() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => {
-                              toast.info('Edit functionality coming soon');
-                            }}
-                          >
-                            <Edit2 className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
                             onClick={() => setDeleteDialog({ 
                               open: true, 
                               templateId: template.id, 
@@ -258,8 +250,8 @@ export function RecurringView() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteDialog.mode === 'stop' 
-                ? 'This will delete all future unmodified entries (including today) and keep the template for history. Proceed?'
-                : 'This will delete the template and all unmodified entries. Modified entries will be preserved. Proceed?'}
+                ? 'This will delete all future entries (including today) and keep the template for history. Proceed?'
+                : 'This will delete the template and all entries. Proceed?'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

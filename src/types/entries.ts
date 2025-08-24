@@ -20,5 +20,3 @@ export interface Entry  {
   isRecurringInstance?: boolean;
   isModified?: boolean;
 }
-
-
