@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { RECURRENCE_LIMITS } from "@/types";
 import type { RecurrenceFrequency } from "@/types";
-import { format, addDays } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { SERVICE_START_DATE } from "@/lib/config";
@@ -58,11 +58,11 @@ export function RecurringSection({
   );
 
   const getMaxEndDate = (frequency?: RecurrenceFrequency) => {
-    return addDays(selectedDate, RECURRENCE_LIMITS[frequency || recurringFrequency].maxDays);
+    return addMonths(selectedDate, RECURRENCE_LIMITS[frequency || recurringFrequency].maxMonths);
   };
 
   const getDefaultEndDate = (frequency?: RecurrenceFrequency) => {
-    return addDays(selectedDate, RECURRENCE_LIMITS[frequency || recurringFrequency].defaultDays);
+    return addMonths(selectedDate, RECURRENCE_LIMITS[frequency || recurringFrequency].defaultMonths);
   };
 
   return (
@@ -158,6 +158,7 @@ export function RecurringSection({
                   captionLayout="dropdown"
                   startMonth={SERVICE_START_DATE}
                   endMonth={getMaxEndDate()}
+                  defaultMonth={endDate}
                 />
               </PopoverContent>
             </Popover>

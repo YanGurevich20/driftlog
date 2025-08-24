@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent } from '@/components/ui/card';
-import { format, addDays } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toUTCMidnight, fromUTCMidnight } from '@/lib/date-utils';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, RECURRENCE_LIMITS } from '@/types';
@@ -34,7 +34,7 @@ import { useRouter } from 'next/navigation';
 import { createRecurringTemplate } from '@/services/recurring';
 import RecurringSection from '@/components/entry-form/recurrence-form';
 import { SERVICE_START_DATE } from '@/lib/config';
-import { Input } from './ui/input';
+import { Input } from '../ui/input';
 
 const formSchema = z.object({
   type: z.enum(['expense', 'income']),
@@ -68,7 +68,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringFrequency, setRecurringFrequency] = useState<RecurrenceFrequency>('monthly');
   const [endDate, setEndDate] = useState<Date>(() => {
-    return addDays(new Date(), RECURRENCE_LIMITS.monthly.defaultDays);
+    return addMonths(new Date(), RECURRENCE_LIMITS.monthly.defaultMonths);
   });
   const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>([]);
   const [interval, setInterval] = useState<number>(1);
@@ -127,6 +127,17 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
       setSelectedWeekdays([d.getDay()]);
     }
   }, [isRecurring, recurringFrequency, form, selectedWeekdays.length]);
+
+  const watchedDate = form.watch('date');
+  
+  // Update end date when start date changes
+  useEffect(() => {
+    if (isRecurring) {
+      const selectedDate = watchedDate || new Date();
+      const newEndDate = addMonths(selectedDate, RECURRENCE_LIMITS[recurringFrequency].defaultMonths);
+      setEndDate(newEndDate);
+    }
+  }, [watchedDate, isRecurring, recurringFrequency]);
 
   // No-op: toggling handled in RecurringSection
 
@@ -397,7 +408,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
               setSelectedWeekdays={setSelectedWeekdays}
               interval={interval}
               setInterval={setInterval}
-              selectedDate={form.watch('date') || new Date()}
+              selectedDate={watchedDate || new Date()}
             />
           )}
 

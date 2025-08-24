@@ -35,20 +35,20 @@ export interface RecurringTemplate {
 
 export const RECURRENCE_LIMITS = {
   daily: { 
-    maxDays: 365,      // 1 year
-    defaultDays: 90,   // 3 months
+    maxMonths: 12,
+    defaultMonths: 3,   // 3 months
   },
   weekly: { 
-    maxDays: 365,      // 1 year
-    defaultDays: 180,  // 6 months
+    maxMonths: 12,      // 1 year
+    defaultMonths: 6,   // 6 months
   },
   monthly: { 
-    maxDays: 365 * 5,     // 5 years
-    defaultDays: 365,  // 1 year
+    maxMonths: 60,      // 5 years
+    defaultMonths: 12,  // 1 year
   },
   yearly: {
-    maxDays: 365 * 5,     // 5 years
-    defaultDays: 365 * 2,  // 2 years
+    maxMonths: 60,      // 5 years
+    defaultMonths: 24,  // 2 years
   }
 } as const;
 
