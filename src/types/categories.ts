@@ -9,7 +9,7 @@ import {
   Zap, 
   Wallet,
   Gift,
-  MoreHorizontal,
+  Squirrel,
   Home,
   ShoppingCart,
   Martini,
@@ -24,6 +24,7 @@ import {
   Landmark,
   Repeat,
   Baby,
+  FileQuestion,
 } from "lucide-react";
 
 export const CATEGORIES = {
@@ -50,7 +51,7 @@ export const CATEGORIES = {
   'Taxes': Percent,
   'Charity': HandHeart,
   'Rental': Home,
-  'Other': MoreHorizontal,
+  'Other': Squirrel,
 } as const
 
 export type CategoryName = keyof typeof CATEGORIES;
@@ -73,5 +74,5 @@ export const DEFAULT_CATEGORIES: Record<'expense' | 'income', CategoryName[]> = 
 }
 
 export const getCategoryIcon = (name: string): LucideIcon => {
-  return CATEGORIES[name as CategoryName] || MoreHorizontal;
+  return CATEGORIES[name as CategoryName] || FileQuestion;
 }
