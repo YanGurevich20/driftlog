@@ -14,7 +14,6 @@ export interface Entry  {
   updatedAt?: Date;
   updatedBy?: string;
   location?: { lat: number; lng: number };
-  // Recurring fields
   recurringTemplateId?: string;
   originalDate?: Date;
   isRecurringInstance?: boolean;

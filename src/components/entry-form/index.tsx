@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -28,13 +28,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { format, addMonths } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toUTCMidnight, fromUTCMidnight } from '@/lib/date-utils';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, RECURRENCE_LIMITS } from '@/types';
+import { RECURRENCE_LIMITS } from '@/types';
 import type { Entry, RecurrenceFrequency } from '@/types';
+import type { CategoryName } from '@/types/categories';
 import { useRouter } from 'next/navigation';
 import { createRecurringTemplate } from '@/services/recurring';
 import RecurringSection from '@/components/entry-form/recurrence-form';
 import { SERVICE_START_DATE } from '@/lib/config';
 import { Input } from '../ui/input';
+import { useCategories } from '@/hooks/use-categories';
 
 const formSchema = z.object({
   type: z.enum(['expense', 'income']),
@@ -73,6 +75,17 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
   const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>([]);
   const [interval, setInterval] = useState<number>(1);
 
+  // Get current user categories - this will automatically update when categories change
+  const { getCategories } = useCategories();
+
+  // Get smart default category
+  const getSmartDefaultCategory = useCallback((type: 'expense' | 'income') => {
+    if (entry?.category) return entry.category;
+    const availableCategories = getCategories(type);
+    if (availableCategories.length > 0) return availableCategories[0];
+    return type === 'income' ? 'Salary' : 'Food & Dining';
+  }, [entry?.category, getCategories]);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -81,7 +94,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
         amount: entry ? entry.originalAmount.toString() : '',
         currency: entry?.currency || lastUsedCurrency || 'USD',
       },
-      category: entry?.category || 'Food & Dining',
+      category: getSmartDefaultCategory(entry?.type || 'expense'),
       description: entry?.description || '',
       date: entry ? fromUTCMidnight(entry.date) : new Date(),
     },
@@ -97,27 +110,18 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
 
   const transactionType = form.watch('type');
 
-  // Update category when entry type changes
+  // Update category when entry type changes or user categories change
   useEffect(() => {
-    if (!entry) {
-      // For new entries, set default category
-      if (transactionType === 'income') {
-        form.setValue('category', 'Salary');
-      } else {
-        form.setValue('category', 'Food & Dining');
-      }
-    } else {
-      // For edit mode, check if current category exists in new type's categories
-      const currentCategory = form.getValues('category');
-      const availableCategories = transactionType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-      
-      // If current category doesn't exist in new type's categories, set a default
-      if (!(availableCategories as readonly string[]).includes(currentCategory)) {
-        const defaultCategory = transactionType === 'income' ? 'Salary' : 'Food & Dining';
-        form.setValue('category', defaultCategory);
-      }
+    const currentCategory = form.getValues('category');
+    const availableCategories = getCategories(transactionType);
+    const hasValidCategory = availableCategories.includes(currentCategory as CategoryName);
+
+    // If current category is not available, set a smart default
+    if (!hasValidCategory) {
+      const smartDefault = getSmartDefaultCategory(transactionType);
+      form.setValue('category', smartDefault);
     }
-  }, [transactionType, form, entry]);
+  }, [transactionType, getSmartDefaultCategory, form, getCategories]);
 
   // Default weekly selection to the picked date's weekday when enabling weekly
   useEffect(() => {
@@ -323,7 +327,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
                   <CategorySelector
                     value={field.value}
                     onChange={field.onChange}
-                    categories={transactionType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES}
+                    type={transactionType}
                     placeholder="Select a category"
                   />
                 </FormControl>

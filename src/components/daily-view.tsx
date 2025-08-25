@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { getDateRangeForDay } from '@/lib/date-range-utils';
 import type { Entry } from '@/types';
 import { cn } from '@/lib/utils';
+import { CategoryIcon } from '@/components/ui/category-icon';
 import { DataState } from '@/components/ui/data-state';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -174,7 +175,10 @@ export function DailyView() {
                   // index === array.length - 1 && !openCategories.includes(category) && "pb-0"
                 )}>
                   <div className="flex items-center justify-between w-full">
-                    <span className="font-medium">{category}</span>
+                    <div className="flex items-center gap-2">
+                      <CategoryIcon category={category} />
+                      <span className="font-medium">{category}</span>
+                    </div>
                     <span className={`font-semibold ${
                       group.net >= 0 ? 'text-primary' : ''
                     }`}>

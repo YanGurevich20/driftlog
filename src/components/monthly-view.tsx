@@ -20,6 +20,7 @@ import { DataState } from '@/components/ui/data-state';
 import { format } from 'date-fns';
 import { Receipt } from 'lucide-react';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
+import { CategoryIcon } from '@/components/ui/category-icon';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { Entry } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -158,7 +159,10 @@ export function MonthlyView() {
               <AccordionItem key={category} value={category}>
                 <AccordionTrigger>
                   <div className="flex items-center justify-between w-full">
-                    <span className="font-medium">{category}</span>
+                    <div className="flex items-center gap-2">
+                      <CategoryIcon category={category} />
+                      <span className="font-medium">{category}</span>
+                    </div>
                     <span className={`font-semibold ${
                       group.net >= 0 ? 'text-primary' : ''
                     }`}>

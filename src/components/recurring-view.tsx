@@ -35,6 +35,7 @@ import {
 import { format } from 'date-fns';
 import { DataState } from '@/components/ui/data-state';
 import { useEntries } from '@/hooks/use-entries';
+import { CategoryIcon } from '@/components/ui/category-icon';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
 
@@ -167,8 +168,15 @@ export function RecurringView() {
                   <div key={template.id} className={`flex justify-between items-start gap-2 py-2 first:pt-0 last:pb-0`}>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">
-                          {template.entryTemplate.description || template.entryTemplate.category}
+                        <span className="text-sm flex items-center gap-2">
+                          {template.entryTemplate.description ? (
+                            template.entryTemplate.description
+                          ) : (
+                            <>
+                              <CategoryIcon category={template.entryTemplate.category} />
+                              {template.entryTemplate.category}
+                            </>
+                          )}
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">

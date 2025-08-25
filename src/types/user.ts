@@ -1,3 +1,5 @@
+import { CategoryName } from "./categories";
+
 // User types
 export interface User {
   id: string;
@@ -8,4 +10,8 @@ export interface User {
   displayCurrency: string;
   connectedUserIds: string[];
   createdAt: Date;
+  categories: {
+    expense: CategoryName[]
+    income: CategoryName[]
+  }
 }

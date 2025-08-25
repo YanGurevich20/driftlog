@@ -1,18 +1,19 @@
 'use client';
 
 import * as React from 'react';
-import { useMediaQuery } from '@/hooks/use-media-query';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CategoryName } from '@/types/categories';
+import { CategoryIcon } from '@/components/ui/category-icon';
+import { useCategories } from '@/hooks/use-categories';
 
 interface CategorySelectorProps {
   value: string;
   onChange: (value: string) => void;
-  categories: readonly string[];
+  type: 'income' | 'expense';
   placeholder?: string;
   className?: string;
   triggerClassName?: string;
@@ -22,15 +23,17 @@ interface CategorySelectorProps {
 export function CategorySelector({
   value,
   onChange,
-  categories,
+  type,
   placeholder = "Select a category",
   className,
   triggerClassName,
   disabled
 }: CategorySelectorProps) {
+  const { getCategories } = useCategories();
   const [open, setOpen] = React.useState(false);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-  
+
+  const categories = getCategories(type);
+
   const selectedCategory = value || placeholder;
 
   const trigger = (
@@ -42,57 +45,30 @@ export function CategorySelector({
       disabled={disabled}
     >
       <span className="flex items-center gap-2">
+        {value && <CategoryIcon category={value} />}
         <span className={cn("font-medium", !value && "text-muted-foreground")}>{selectedCategory}</span>
       </span>
       <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
     </Button>
   );
 
-  if (isDesktop) {
-    return (
-      <div className={className}>
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            {trigger}
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-[300px] p-0">
-            <CategoryList 
-              value={value}
-              categories={categories}
-              onSelect={(category) => {
-                onChange(category);
-                setOpen(false);
-              }}
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-    );
-  }
-
   return (
     <div className={className}>
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerTrigger asChild>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
           {trigger}
-        </DrawerTrigger>
-        <DrawerContent>
-          <DrawerHeader className="sr-only">
-            <DrawerTitle>Select Category</DrawerTitle>
-            <DrawerDescription>Choose a category from the list</DrawerDescription>
-          </DrawerHeader>
-          <div className="mt-4 border-t">
-            <CategoryList 
-              value={value}
-              categories={categories}
-              onSelect={(category) => {
-                onChange(category);
-                setOpen(false);
-              }}
-            />
-          </div>
-        </DrawerContent>
-      </Drawer>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-[300px] p-0">
+          <CategoryList
+            value={value}
+            categories={categories}
+            onSelect={(category) => {
+              onChange(category);
+              setOpen(false);
+            }}
+          />
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
@@ -103,7 +79,7 @@ function CategoryList({
   onSelect,
 }: {
   value: string;
-  categories: readonly string[];
+  categories: readonly CategoryName[];
   onSelect: (category: string) => void;
 }) {
   const [search, setSearch] = React.useState('');
@@ -138,6 +114,7 @@ function CategoryList({
               }}
               className="flex items-center gap-3"
             >
+              <CategoryIcon category={category} />
               <span className="flex-1">{category}</span>
               {value === category && (
                 <span className="text-primary">✓</span>

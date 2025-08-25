@@ -66,6 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 displayCurrency: 'USD',
                 connectedUserIds: [],
                 createdAt: new Date(),
+                categories: {
+                  expense: [],
+                  income: [],
+                },
               } as User);
             }
             // Mark ready when snapshot is from server (not cache)

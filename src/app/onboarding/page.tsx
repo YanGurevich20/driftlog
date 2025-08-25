@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Info } from 'lucide-react';
 import { db } from '@/lib/firebase';
+import { DEFAULT_CATEGORIES } from '@/types/categories';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { CurrencySelector } from '@/components/currency-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -48,6 +49,7 @@ export default function Onboarding() {
         connectedUserIds: [],
         createdAt: serverTimestamp(),
         onboardingCompleted: true,
+        categories: DEFAULT_CATEGORIES,
       });
 
       router.push('/dashboard');
