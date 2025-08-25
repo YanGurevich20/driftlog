@@ -9,5 +9,3 @@ export interface User {
   connectedUserIds: string[];
   createdAt: Date;
 }
-
-
