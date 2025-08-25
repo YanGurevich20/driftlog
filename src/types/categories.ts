@@ -25,6 +25,8 @@ import {
   Repeat,
   Baby,
   FileQuestion,
+  HousePlug,
+  Droplets,
 } from "lucide-react";
 
 export const CATEGORIES = {
@@ -39,8 +41,10 @@ export const CATEGORIES = {
   'Bills': Zap,
   'Fitness': Dumbbell,
   'Education': GraduationCap,
-  'Personal Care': Sparkles,
+  'Personal Care': Droplets,
+  'Beauty': Sparkles,
   'Insurance': Shield,
+  'Household': HousePlug,
   'Pets': PawPrint,
   'Children': Baby,
   'Subscriptions': Repeat,
