@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useIsDesktop } from '@/hooks/use-media-query';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
@@ -24,7 +24,7 @@ export function CurrencySelector({
   disabled
 }: CurrencySelectorProps) {
   const [open, setOpen] = React.useState(false);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   
   const selectedCurrency = getCurrencyByCode(value) || CURRENCIES[0];
 

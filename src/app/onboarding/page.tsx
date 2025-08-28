@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { DEFAULT_CATEGORIES } from '@/types/categories';
@@ -72,67 +74,83 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-card border rounded-lg p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">Welcome to DriftLog!</h1>
+        <Card>
+          <CardHeader className="text-center space-y-2 flex-col">
+            <CardTitle className="text-3xl">Welcome to DriftLog!</CardTitle>
             <p className="text-muted-foreground">
               Let&apos;s set up your expense tracking
             </p>
-          </div>
+          </CardHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name">Your Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
-                required
-                autoFocus
-              />
-            </div>
-
-            <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="currency">Display Currency</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="size-5 p-0">
-                      <Info className="size-4 text-muted-foreground" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80">
-                    <div className="text-sm">
-                      <p className="font-medium mb-1">About Display Currency</p>
-                      <p className="text-muted-foreground">
-                        All amounts will be displayed in this currency for easy tracking. 
-                        You can change this anytime in settings.
-                      </p>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="name">Your Name</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your name"
+                  required
+                  autoFocus
+                />
               </div>
-              <CurrencySelector
-                value={currency}
-                onChange={setCurrency}
-              />
-            </div>
 
-            <div className="flex items-center justify-between py-2">
-              <Label>Theme Preference</Label>
-              <ThemeToggle />
-            </div>
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="currency">Display Currency</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="size-5 p-0">
+                        <Info className="size-4 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="text-sm">
+                        <p className="font-medium mb-1">About Display Currency</p>
+                        <p className="text-muted-foreground">
+                          All amounts will be displayed in this currency for easy tracking. 
+                          You can change this anytime in settings.
+                        </p>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <CurrencySelector
+                  value={currency}
+                  onChange={setCurrency}
+                />
+              </div>
 
+              <div className="flex items-center justify-between py-2">
+                <Label>Theme Preference</Label>
+                <ThemeToggle />
+              </div>
+            </form>
+          </CardContent>
+
+          <CardFooter className="flex-col space-y-4">
             <Button 
               type="submit" 
               className="w-full" 
               disabled={isSubmitting || !name.trim()}
+              onClick={handleSubmit}
             >
               {isSubmitting ? 'Setting up...' : 'Get Started'}
             </Button>
-          </form>
-        </div>
+            
+            <p className="text-xs text-muted-foreground text-center">
+              By continuing, you agree to our{' '}
+              <Link href="/terms" className="underline hover:text-foreground">
+                Terms
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy" className="underline hover:text-foreground">
+                Privacy Policy
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
-'use client';
+  'use client';
 
-import * as React from "react";
+import React, { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -48,7 +48,10 @@ function CollapsibleCard({
   ...props 
 }: CollapsibleCardProps) {
   const [isOpen, setIsOpen] = React.useState(!defaultCollapsed);
-
+  
+  React.useEffect(() => {
+    setIsOpen(!defaultCollapsed);
+  }, [defaultCollapsed]);
   return (
     <CollapsibleCardContext.Provider value={{ isOpen, setIsOpen }}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>

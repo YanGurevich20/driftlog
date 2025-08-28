@@ -31,7 +31,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <header className="bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/dashboard" className="text-2xl font-bold hover:opacity-80">
@@ -48,9 +48,22 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </header>
       
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 flex-1">
         {children}
       </main>
+      
+      <footer>
+        <div className="py-2 text-center text-xs text-muted-foreground">
+          © 2025 DriftLog • All rights reserved •{' '}
+          <Link href="/terms" className="hover:text-foreground">
+            Terms
+          </Link>{' '}
+          •{' '}
+          <Link href="/privacy" className="hover:text-foreground">
+            Privacy
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

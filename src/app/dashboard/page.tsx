@@ -59,7 +59,7 @@ export default function Dashboard() {
       <div className="mb-6">
         <h1 className="text-xl pl-2 font-light">{greetingMessage}</h1>
       </div>
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start pb-20">
+      <div className="grid gap-6 md:grid-cols-2 md:items-start pb-20">
         <div className="space-y-6">
           <BudgetView />
           <div className="px-2">

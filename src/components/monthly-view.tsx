@@ -42,10 +42,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useIsDesktop } from '@/hooks/use-media-query';
 
 export function MonthlyView() {
   const { user } = useAuth();
   const router = useRouter();
+  const isDesktop = useIsDesktop();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [openCategories, setOpenCategories] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -115,7 +117,7 @@ export function MonthlyView() {
 
   return (
     <>
-    <CollapsibleCard defaultCollapsed={true}>
+    <CollapsibleCard defaultCollapsed={!isDesktop}>
       <CollapsibleCardHeader
         actions={
           <Popover>
