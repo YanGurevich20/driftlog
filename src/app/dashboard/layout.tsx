@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { AppLayout } from '@/components/app-layout';
 import { EntriesCacheProvider } from '@/lib/entries-cache';
+import { Wallet } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,10 +27,28 @@ export default function DashboardLayout({
     }
   }, [user, loading, needsOnboarding, router]);
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse">Loading...</div>
+        <div className="flex flex-col items-center space-y-4">
+          <div className="bg-secondary p-4 rounded-full animate-pulse">
+            <Wallet className="size-8 text-secondary-foreground" />
+          </div>
+          <div className="text-muted-foreground animate-pulse">Preparing your dashboard...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="bg-secondary p-4 rounded-full animate-pulse">
+            <Wallet className="size-8 text-secondary-foreground" />
+          </div>
+          <div className="text-muted-foreground animate-pulse">Redirecting...</div>
+        </div>
       </div>
     );
   }

@@ -3,10 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm dev:emulators & pnpm dev:next & pnpm dev:seed",
-    "dev:next": "next dev --turbopack",
-    "dev:emus": "pnpm --prefix functions run build && dotenv -e functions/.env.local -- firebase emulators:start --only functions,firestore,auth",
-    "dev:seed": "node scripts/seed-exchange-rates.js",
+    "dev": "next dev --turbopack",
+    "emus": "pnpm --prefix functions run build && dotenv -e functions/.env.local -- firebase emulators:start --only functions,firestore,auth",
+    "seed": "node scripts/seed-exchange-rates.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
