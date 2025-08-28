@@ -38,7 +38,6 @@ export default function RootLayout({
           <TopologyBackground />
           {children}
           <Toaster position="bottom-left" />
-          <div id="recaptcha-container"></div>
         </Providers>
       </body>
     </html>

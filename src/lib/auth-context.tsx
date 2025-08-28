@@ -11,7 +11,6 @@ import {
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { User } from '@/types';
-import { getRecaptchaVerifier, initializeRecaptcha } from '@/lib/recaptcha';
 
 interface AuthContextType {
   user: User | null;
@@ -33,11 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userReady, setUserReady] = useState(false);
 
   useEffect(() => {
-    // Initialize reCAPTCHA in production
-    if (process.env.NODE_ENV === 'production') {
-      initializeRecaptcha();
-    }
-    
     let unsubscribeUser: (() => void) | null = null;
     
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -107,13 +101,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      // Initialize reCAPTCHA for production
-      const recaptchaVerifier = getRecaptchaVerifier();
-      if (recaptchaVerifier) {
-        // Set the reCAPTCHA verifier for the auth instance
-        auth.settings.appVerificationDisabledForTesting = false;
-      }
-      
       await signInWithPopup(auth, provider);
     } catch (error) {
       console.error('Error signing in with Google:', error);
