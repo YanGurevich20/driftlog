@@ -1,6 +1,8 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
+import { REGISTRATIONS_CLOSED } from '@/lib/config';
+import WaitlistForm from '@/components/waitlist-form';
 import { Button } from '@/components/ui/button';
 import { Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -44,24 +46,30 @@ export default function Home() {
           </div>
 
           <div className="space-y-4 pt-8">
-            <Button
-              onClick={async () => {
-                setIsSigningIn(true);
-                try {
-                  await signInWithGoogle();
-                } catch {
-                  setIsSigningIn(false);
-                }
-              }}
-              size="lg"
-              className="w-full"
-              disabled={isSigningIn}
-            >
-              {isSigningIn ? 'Signing in...' : 'Sign in with Google'}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              By signing in, you agree to our Terms of Service and Privacy Policy
-            </p>
+            {REGISTRATIONS_CLOSED ? (
+              <WaitlistForm />
+            ) : (
+              <>
+                <Button
+                  onClick={async () => {
+                    setIsSigningIn(true);
+                    try {
+                      await signInWithGoogle();
+                    } catch {
+                      setIsSigningIn(false);
+                    }
+                  }}
+                  size="lg"
+                  className="w-full"
+                  disabled={isSigningIn}
+                >
+                  {isSigningIn ? 'Signing in...' : 'Sign in with Google'}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  By signing in, you agree to our Terms of Service and Privacy Policy
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
