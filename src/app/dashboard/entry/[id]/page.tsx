@@ -28,12 +28,11 @@ export default function EditEntryPage({ params }: { params: Promise<{ id: string
           const entryData = convertFirestoreDoc<Entry>(entryDoc);
           setEntry(entryData);
         } else {
-          console.error('Entry not found');
           toast.error('Entry not found');
           router.push('/dashboard');
         }
       } catch (error) {
-        console.error('Error fetching entry:', error);
+        toast.error('Error fetching entry');
         router.push('/dashboard');
       } finally {
         setEntryLoading(false);

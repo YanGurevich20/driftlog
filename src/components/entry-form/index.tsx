@@ -32,6 +32,7 @@ import { RECURRENCE_LIMITS } from '@/types';
 import type { Entry, RecurrenceFrequency } from '@/types';
 import type { CategoryName } from '@/types/categories';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createRecurringTemplate } from '@/services/recurring';
 import RecurringSection from '@/components/entry-form/recurrence-form';
 import { SERVICE_START_DATE } from '@/lib/config';
@@ -245,20 +246,18 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
     }
   };
 
-  const handleCancel = () => {
-    router.push('/dashboard');
-  };
-
   return (
     <>
       <div className="flex items-center gap-4 mb-8">
         <Button
           variant="ghost"
           size="icon"
-          onClick={handleCancel}
           className="h-10 w-10"
+          asChild
         >
-          <ArrowLeft className="h-5 w-5" />
+          <Link href="/dashboard">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
         </Button>
         <h1 className="text-2xl font-bold">{entry ? 'Edit Entry' : 'New Entry'}</h1>
       </div>
@@ -422,10 +421,12 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
               type="button"
               variant="outline"
               className="flex-1"
-              onClick={handleCancel}
               disabled={isSubmitting}
+              asChild
             >
-              Cancel
+              <Link href="/dashboard">
+                Cancel
+              </Link>
             </Button>
             <Button 
               type="submit" 

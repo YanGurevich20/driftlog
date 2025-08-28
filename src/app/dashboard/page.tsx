@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { DailyView } from '@/components/daily-view';
@@ -50,7 +50,6 @@ function getGreeting(userName: string): string {
 }
 
 export default function Dashboard() {
-  const router = useRouter();
   const { user } = useAuth();
   const firstName = user?.name?.split(' ')[0] || user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
   const greetingMessage = getGreeting(firstName);
@@ -67,10 +66,12 @@ export default function Dashboard() {
             <Button 
               className="w-full rounded-full" 
               size="lg"
-              onClick={() => router.push('/dashboard/entry')}
+              asChild
             >
-              <Plus className="mr-2" />
-              Add Entry
+              <Link href="/dashboard/entry">
+                <Plus className="mr-2" />
+                Add Entry
+              </Link>
             </Button>
           </div>
           <DailyView />
@@ -84,9 +85,11 @@ export default function Dashboard() {
       <div className="fixed bottom-6 right-6">
         <Button 
           className="rounded-full size-14"
-          onClick={() => router.push('/dashboard/entry')}
+          asChild
         >
-          <Plus className="size-8" />
+          <Link href="/dashboard/entry">
+            <Plus className="size-8" />
+          </Link>
         </Button>
       </div>
     </>

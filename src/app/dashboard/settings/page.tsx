@@ -1,8 +1,8 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import Link from 'next/link';
 import { ConnectedUsers, ConnectedUsersInviteButton, ConnectedUsersLeaveButton } from '@/components/connected-users';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { CurrencySelector } from '@/components/currency-selector';
@@ -26,7 +26,6 @@ import {
 
 export default function Settings() {
   const { user, logout } = useAuth();
-  const router = useRouter();
   const [isUpdatingCurrency, setIsUpdatingCurrency] = useState(false);
   const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
 
@@ -56,9 +55,11 @@ export default function Settings() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push('/dashboard')}
+            asChild
           >
-            <ArrowLeft className="h-5 w-5" />
+            <Link href="/dashboard">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
           </Button>
           <h1 className="text-2xl font-bold">Settings</h1>
         </div>
