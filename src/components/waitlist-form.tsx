@@ -47,16 +47,8 @@ export default function WaitlistForm() {
         { merge: false }
       );
       setSubmitted(true);
-    } catch (err: unknown) {
-      // Improve visibility for debugging
-      // eslint-disable-next-line no-console
-      console.error('Waitlist submit failed:', err);
-      const anyErr = err as { code?: string; message?: string };
-      if (anyErr?.code === 'permission-denied') {
-        setError('This email may already be on the waitlist or the request was blocked.');
-      } else {
-        setError('Failed to join the waitlist. Please try again.');
-      }
+    } catch {
+      setError('Failed to join the waitlist. Please try again.');
     } finally {
       setSubmitting(false);
     }
