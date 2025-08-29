@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Paperclip, Camera, Mic, Send, X, Square, FileText, Image, Volume2 } from 'lucide-react';
+import { CameraCapture, useCameraCapture } from './camera-capture';
 import { toast } from 'sonner';
 
 interface ComboInputProps {
@@ -28,8 +29,6 @@ interface FileState {
 
 interface MediaState {
   isRecording: boolean;
-  isCameraActive: boolean;
-  cameraStream: MediaStream | null;
   mediaRecorder: MediaRecorder | null;
 }
 
@@ -60,8 +59,6 @@ export function ComboInput({
 
   const [mediaState, setMediaState] = useState<MediaState>({
     isRecording: false,
-    isCameraActive: false,
-    cameraStream: null,
     mediaRecorder: null
   });
 
@@ -78,14 +75,54 @@ export function ComboInput({
 
   const {
     isRecording,
-    isCameraActive,
-    cameraStream,
     mediaRecorder
   } = mediaState;
+
+  // Camera capture hook
+  const {
+    isOpen: isCameraOpen,
+    capturedFile: capturedPhoto,
+    openCamera,
+    closeCamera,
+    handleCapture: handlePhotoCapture
+  } = useCameraCapture();
+
+  console.log('📷 ComboInput: Camera state', {
+    isCameraOpen,
+    hasCapturedPhoto: !!capturedPhoto,
+    capturedPhotoName: capturedPhoto?.name
+  });
 
   const currentFile = selectedImage || selectedAudio || selectedPDF;
   const hasFile = !!currentFile;
   const hasContent = value.trim() || hasFile;
+
+  // Handle captured photo from camera
+  React.useEffect(() => {
+    if (capturedPhoto) {
+      // Process the captured photo like any other file
+      updateFileState({
+        selectedImage: null,
+        selectedAudio: null,
+        selectedPDF: null,
+        imagePreview: null,
+        audioUrl: null,
+        cameraPhoto: null
+      });
+
+      // Create a data URL for preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateFileState({
+          selectedImage: capturedPhoto,
+          cameraPhoto: reader.result as string,
+          imagePreview: reader.result as string
+        });
+        onFileSelect?.(capturedPhoto);
+      };
+      reader.readAsDataURL(capturedPhoto);
+    }
+  }, [capturedPhoto, onFileSelect]);
 
   const getFileIcon = () => {
     if (selectedImage) return <Image className="h-4 w-4" />;
@@ -157,80 +194,7 @@ export function ComboInput({
     }
   };
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-      updateMediaState({
-        cameraStream: stream,
-        isCameraActive: true
-      });
-      toast.success('Camera started');
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      toast.error('Failed to access camera. Please check permissions.');
-    }
-  };
 
-  const stopCamera = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
-      updateMediaState({
-        cameraStream: null,
-        isCameraActive: false
-      });
-      toast.success('Camera stopped');
-    }
-  };
-
-  const takePhoto = () => {
-    if (!cameraStream) return;
-
-    const video = document.createElement('video');
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) return;
-
-    video.srcObject = cameraStream;
-    video.play();
-
-    video.onloadedmetadata = () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      ctx.drawImage(video, 0, 0);
-
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' });
-
-          updateFileState({
-            selectedImage: null,
-            selectedAudio: null,
-            selectedPDF: null,
-            imagePreview: null,
-            audioUrl: null,
-            cameraPhoto: null
-          });
-
-
-
-          updateFileState({
-            selectedImage: file,
-            cameraPhoto: canvas.toDataURL('image/jpeg'),
-            imagePreview: canvas.toDataURL('image/jpeg')
-          });
-
-          // Don't fill input with filename - keep it editable for text
-          onFileSelect?.(file);
-        }
-      }, 'image/jpeg', 0.8);
-
-      stopCamera();
-    };
-  };
 
   const startRecording = async () => {
     try {
@@ -373,25 +337,17 @@ export function ComboInput({
             </div>
 
             {/* Camera */}
-            {!isCameraActive ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={startCamera}
-                disabled={isLoading}
-              >
-                <Camera />
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={takePhoto}
-                disabled={isLoading}
-              >
-                <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse" />
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                console.log('📷 ComboInput: Camera button clicked');
+                openCamera();
+              }}
+              disabled={isLoading}
+            >
+              <Camera />
+            </Button>
 
             {/* Microphone */}
             {!isRecording ? (
@@ -428,46 +384,15 @@ export function ComboInput({
           </Button>
         )}
       </div>
-      </div>
+    </div>
 
-      {/* Camera Preview */}
-      {isCameraActive && cameraStream && (
-        <div className="border rounded-lg p-3 mt-2">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Camera Preview</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={stopCamera}
-            >
-              <X />
-            </Button>
-          </div>
-          <div className="max-w-xs mx-auto">
-            <video
-              ref={(video) => {
-                if (video && cameraStream) {
-                  video.srcObject = cameraStream;
-                  video.play();
-                }
-              }}
-              className="w-full h-auto rounded border"
-              autoPlay
-              muted
-              playsInline
-            />
-          </div>
-          <div className="flex justify-center mt-2">
-            <Button
-              onClick={takePhoto}
-              size="sm"
-              disabled={isLoading}
-            >
-              Take Photo
-            </Button>
-          </div>
-        </div>
-      )}
+    {/* Camera Capture Modal */}
+    <CameraCapture
+      isOpen={isCameraOpen}
+      onClose={closeCamera}
+      onCapture={handlePhotoCapture}
+      fullscreen={true}
+    />
     </div>
   );
 }
