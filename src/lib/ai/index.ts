@@ -34,26 +34,22 @@ const fileToGenerativePart = async (file: File) => {
     },
   };
 }
-const getAnalysisPrompt = (type: 'file' | 'text', text?: string) => 
-`You are analyzing a ${type} to extract financial entry information. 
-Extract the following information from the file:
+
+const getAnalysisPrompt = (text?: string) => 
+`You are analyzing a ${text ? 'text' : 'file'} to extract financial entry information. 
+Extract the following information from the data:
 - type: "expense" (receipts are typically expenses)
 - amount: the total amount paid (number only, no currency symbols)
 - currency: the currency code (USD, EUR, etc.)
 - category: categorize based on merchant/items (Food & Dining, Shopping, Transportation, etc.)
 - description: brief description of the merchant or main items
 - confidence: your confidence in the extraction (0.0 to 1.0)
-Analyze this ${type}: ${text}`;
+Analyze this: ${text}`;
 
-export const processEnrtyFromFile = async (file: File) => {
+export const processEntry = async (text?: string, file?: File) => {
+  if (!text && !file) throw new Error('No text or file provided');
   const model = getEntryParserModel();
-  const filePart = await fileToGenerativePart(file);
-  const result = await model.generateContent([getAnalysisPrompt('file'), filePart]);
-  return result.response.text();
-}
-
-export const processEnrtyFromText = async (text: string) => {
-  const model = getEntryParserModel();
-  const result = await model.generateContent([getAnalysisPrompt('text', text)]);
+  const filePart = file ? await fileToGenerativePart(file) : '';
+  const result = await model.generateContent([getAnalysisPrompt(text), filePart]);
   return result.response.text();
 }
