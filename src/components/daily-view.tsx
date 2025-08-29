@@ -45,10 +45,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SERVICE_START_DATE } from '@/lib/config';
 
-export function DailyView() {
+interface DailyViewProps {
+  selectedDate?: Date;
+  onDateChange?: (date: Date) => void;
+}
+
+export function DailyView({ selectedDate: propSelectedDate, onDateChange }: DailyViewProps = {}) {
   const { user } = useAuth();
   const router = useRouter();
-  const [selectedDate, setSelectedDate] = useState(() => {
+  const [internalSelectedDate, setInternalSelectedDate] = useState(() => {
     // Check if there's a date stored in sessionStorage from toast action
     if (typeof window !== 'undefined') {
       const storedDate = sessionStorage.getItem('dailyViewDate');
@@ -59,6 +64,10 @@ export function DailyView() {
     }
     return new Date();
   });
+
+  // Use prop if provided, otherwise use internal state
+  const selectedDate = propSelectedDate || internalSelectedDate;
+  const setSelectedDate = onDateChange || setInternalSelectedDate;
   const [openCategories, setOpenCategories] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);

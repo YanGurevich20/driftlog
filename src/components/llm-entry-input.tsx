@@ -11,7 +11,6 @@ import { toUTCMidnight } from '@/lib/date-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, FileText, Image, Volume2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
 interface ParsedEntry {
@@ -44,9 +43,12 @@ const getFileIcon = (file: File) => {
   return <FileText />;
 };
 
-export function LLMEntryInput() {
+interface LLMEntryInputProps {
+  onDateChange?: (date: Date) => void;
+}
+
+export function LLMEntryInput({ onDateChange }: LLMEntryInputProps) {
   const { user } = useAuth();
-  const router = useRouter();
   const [inputText, setInputText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,9 +104,8 @@ export function LLMEntryInput() {
             action: {
               label: 'View',
               onClick: () => {
-                // Navigate to dashboard and store the date to show
-                sessionStorage.setItem('dailyViewDate', entryDate.toISOString());
-                router.push('/dashboard');
+                // Update the daily view date directly
+                onDateChange?.(entryDate);
               },
             },
           });
@@ -156,7 +157,7 @@ export function LLMEntryInput() {
               <ComboInput
                 value={inputText}
                 onChange={setInputText}
-                placeholder={selectedFile ? '(optional) Add details...' : 'Describe the entry...'}
+                placeholder={selectedFile ? '(optional) Add details...' : 'Describe an entry...'}
                 onSubmit={handleSubmit}
                 selectedFile={selectedFile}
                 onFileSelect={setSelectedFile}

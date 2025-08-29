@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { DailyView } from '@/components/daily-view';
@@ -52,6 +53,7 @@ function getGreeting(userName: string): string {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const firstName = user?.name?.split(' ')[0] || user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
   const greetingMessage = getGreeting(firstName);
 
@@ -75,7 +77,7 @@ export default function Dashboard() {
               </Link>
             </Button>
           </div>
-          <DailyView />
+          <DailyView selectedDate={selectedDate} onDateChange={setSelectedDate} />
         </div>
         <div className="space-y-6">
           <MonthlyView />
@@ -83,7 +85,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <LLMEntryInput />
+      <LLMEntryInput onDateChange={setSelectedDate} />
     </>
   );
 }

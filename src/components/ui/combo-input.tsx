@@ -19,10 +19,17 @@ interface ComboInputProps {
   onFileSelect?: (file: File | null) => void;
 }
 
-interface MediaState {
-  isRecording: boolean;
-  mediaRecorder: MediaRecorder | null;
-}
+const ALLOWED_FILE_TYPES = [
+  // Images
+  'image/png', 'image/jpeg', 'image/webp',
+  // Audio
+  'audio/aac', 'audio/flac', 'audio/mp3', 'audio/m4a', 'audio/mpeg',
+  'audio/mpga', 'audio/mp4', 'audio/opus', 'audio/pcm', 'audio/wav', 'audio/webm',
+  // PDF
+  'application/pdf'
+];
+
+const DEFAULT_ACCEPT = ".pdf,image/png,image/jpeg,image/webp,audio/aac,audio/flac,audio/mp3,audio/m4a,audio/mpeg,audio/mpga,audio/mp4,audio/opus,audio/pcm,audio/wav,audio/webm,.mp4,.webm";
 
 export function ComboInput({
   value,
@@ -30,19 +37,14 @@ export function ComboInput({
   placeholder = "Enter text, upload a file, take a photo, or record audio...",
   onSubmit,
   isLoading = false,
-  accept = ".pdf,image/png,image/jpeg,image/webp,audio/aac,audio/flac,audio/mp3,audio/m4a,audio/mpeg,audio/mpga,audio/mp4,audio/opus,audio/pcm,audio/wav,audio/webm,.mp4,.webm",
+  accept = DEFAULT_ACCEPT,
   className = "",
   selectedFile = null,
   onFileSelect
 }: ComboInputProps) {
-  const [mediaState, setMediaState] = useState<MediaState>({
-    isRecording: false,
-    mediaRecorder: null
-  });
-
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const { isRecording, mediaRecorder } = mediaState;
   
   // Reset file input when selectedFile becomes null
   React.useEffect(() => {
@@ -70,25 +72,11 @@ export function ComboInput({
     }
   }, [capturedPhoto, onFileSelect]);
 
-  const updateMediaState = (updates: Partial<MediaState>) => {
-    setMediaState(prev => ({ ...prev, ...updates }));
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = [
-      // Images
-      'image/png', 'image/jpeg', 'image/webp',
-      // Audio
-      'audio/aac', 'audio/flac', 'audio/mp3', 'audio/m4a', 'audio/mpeg',
-      'audio/mpga', 'audio/mp4', 'audio/opus', 'audio/pcm', 'audio/wav', 'audio/webm',
-      // PDF
-      'application/pdf'
-    ];
-
-    if (allowedTypes.includes(file.type)) {
+    if (ALLOWED_FILE_TYPES.includes(file.type)) {
       onFileSelect?.(file);
     } else {
       toast.error('Please select a supported file type (image, audio, or PDF)');
@@ -114,10 +102,8 @@ export function ComboInput({
       };
 
       recorder.start();
-      updateMediaState({
-        mediaRecorder: recorder,
-        isRecording: true
-      });
+      setMediaRecorder(recorder);
+      setIsRecording(true);
       toast.success('Recording started');
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -128,20 +114,45 @@ export function ComboInput({
   const stopRecording = () => {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       mediaRecorder.stop();
-      updateMediaState({
-        isRecording: false,
-        mediaRecorder: null
-      });
+      setIsRecording(false);
+      setMediaRecorder(null);
       toast.success('Recording stopped');
     }
   };
 
 
   const handleSubmit = () => {
-    if (onSubmit) {
-      onSubmit();
-    }
+    onSubmit?.();
   };
+
+  const actionButtons = [
+    {
+      key: 'file',
+      icon: <Paperclip />,
+      onClick: () => fileInputRef.current?.click(),
+      show: !hasFile
+    },
+    {
+      key: 'camera', 
+      icon: <Camera />,
+      onClick: openCamera,
+      show: !hasFile
+    },
+    {
+      key: 'mic',
+      icon: isRecording ? <Square /> : <Mic />,
+      onClick: isRecording ? stopRecording : startRecording,
+      show: !hasFile
+    },
+    {
+      key: 'send',
+      icon: <Send />,
+      onClick: handleSubmit,
+      show: hasContent
+    }
+  ].filter(button => button.show);
+
+  const paddingClass = actionButtons.length === 4 ? 'pr-40' : 'pr-32';
 
   return (
     <div className="space-y-2">
@@ -150,80 +161,32 @@ export function ComboInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`pr-32 ${className}`}
+          className={`${paddingClass} ${className}`}
         />
 
-      {/* Action Buttons */}
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex">
-        {/* Action buttons when no file exists (can coexist with send button) */}
-        {!hasFile && (
-          <>
-            {/* File Upload */}
-            <div className="relative">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
-              >
-                <Paperclip />
-              </Button>
-              <Input
-                ref={fileInputRef}
-                type="file"
-                accept={accept}
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-
-            {/* Camera */}
+        {/* Action Buttons */}
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex">
+          {actionButtons.map(({ key, icon, onClick }) => (
             <Button
+              key={key}
               size="sm"
               variant="ghost"
-              onClick={() => {
-                openCamera();
-              }}
+              onClick={onClick}
               disabled={isLoading}
             >
-              <Camera />
+              {icon}
             </Button>
+          ))}
+        </div>
 
-            {/* Microphone */}
-            {!isRecording ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={startRecording}
-                disabled={isLoading}
-              >
-                <Mic />
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={stopRecording}
-                disabled={isLoading}
-              >
-                <Square />
-              </Button>
-            )}
-          </>
-        )}
-
-        {/* Send button when there's any content (text or file) */}
-        {hasContent && (
-          <Button
-            size="sm"
-            onClick={handleSubmit}
-            disabled={isLoading}
-            variant="ghost"
-          >
-            <Send />
-          </Button>
-        )}
-      </div>
+        {/* Hidden file input */}
+        <Input
+          ref={fileInputRef}
+          type="file"
+          accept={accept}
+          onChange={handleFileChange}
+          className="hidden"
+        />
     </div>
 
     {/* Camera Capture Modal */}
