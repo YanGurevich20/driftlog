@@ -1,11 +1,11 @@
 import { Schema } from 'firebase/ai';
 import { CATEGORY_NAMES } from '@/types/categories';
-import { EntryType } from '@/types/entries';
+import { SERVICE_START_DATE } from '@/lib/config';
 
 export const entrySchema = Schema.object({
     properties: {
       type: Schema.enumString({
-        enum: Object.values(EntryType)
+        enum: ['expense', 'income']
       }),
       amount: Schema.number({minimum: 0}),
       currency: Schema.string(),

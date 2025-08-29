@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Paperclip, Camera, Mic, Send, X, Square, FileText, Image, Volume2 } from 'lucide-react';
+import { Paperclip, Camera, Mic, Send, Square } from 'lucide-react';
 import { CameraCapture, useCameraCapture } from './camera-capture';
 import { toast } from 'sonner';
 
@@ -15,27 +15,13 @@ interface ComboInputProps {
   isLoading?: boolean;
   accept?: string;
   className?: string;
+  selectedFile?: File | null; // Controlled by parent
   onFileSelect?: (file: File | null) => void;
-}
-
-interface FileState {
-  selectedImage: File | null;
-  selectedAudio: File | null;
-  selectedPDF: File | null;
-  imagePreview: string | null;
-  audioUrl: string | null;
-  cameraPhoto: string | null;
 }
 
 interface MediaState {
   isRecording: boolean;
   mediaRecorder: MediaRecorder | null;
-}
-
-export interface ComboInputRef {
-  getFileState: () => FileState;
-  clearFiles: () => void;
-  hasFile: () => boolean;
 }
 
 export function ComboInput({
@@ -46,17 +32,9 @@ export function ComboInput({
   isLoading = false,
   accept = ".pdf,image/png,image/jpeg,image/webp,audio/aac,audio/flac,audio/mp3,audio/m4a,audio/mpeg,audio/mpga,audio/mp4,audio/opus,audio/pcm,audio/wav,audio/webm,.mp4,.webm",
   className = "",
+  selectedFile = null,
   onFileSelect
 }: ComboInputProps) {
-  const [fileState, setFileState] = useState<FileState>({
-    selectedImage: null,
-    selectedAudio: null,
-    selectedPDF: null,
-    imagePreview: null,
-    audioUrl: null,
-    cameraPhoto: null
-  });
-
   const [mediaState, setMediaState] = useState<MediaState>({
     isRecording: false,
     mediaRecorder: null
@@ -64,19 +42,14 @@ export function ComboInput({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const {
-    selectedImage,
-    selectedAudio,
-    selectedPDF,
-    imagePreview,
-    audioUrl,
-    cameraPhoto
-  } = fileState;
-
-  const {
-    isRecording,
-    mediaRecorder
-  } = mediaState;
+  const { isRecording, mediaRecorder } = mediaState;
+  
+  // Reset file input when selectedFile becomes null
+  React.useEffect(() => {
+    if (!selectedFile && fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [selectedFile]);
 
   // Camera capture hook
   const {
@@ -87,49 +60,15 @@ export function ComboInput({
     handleCapture: handlePhotoCapture
   } = useCameraCapture();
 
-  const currentFile = selectedImage || selectedAudio || selectedPDF;
-  const hasFile = !!currentFile;
+  const hasFile = !!selectedFile;
   const hasContent = value.trim() || hasFile;
 
   // Handle captured photo from camera
   React.useEffect(() => {
     if (capturedPhoto) {
-      // Process the captured photo like any other file
-      updateFileState({
-        selectedImage: null,
-        selectedAudio: null,
-        selectedPDF: null,
-        imagePreview: null,
-        audioUrl: null,
-        cameraPhoto: null
-      });
-
-      // Create a data URL for preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateFileState({
-          selectedImage: capturedPhoto,
-          cameraPhoto: reader.result as string,
-          imagePreview: reader.result as string
-        });
-        onFileSelect?.(capturedPhoto);
-      };
-      reader.readAsDataURL(capturedPhoto);
+      onFileSelect?.(capturedPhoto);
     }
   }, [capturedPhoto, onFileSelect]);
-
-  const getFileIcon = () => {
-    if (selectedImage) return <Image className="h-4 w-4" />;
-    if (selectedAudio) return <Volume2 className="h-4 w-4" />;
-    if (selectedPDF) return <FileText className="h-4 w-4" />;
-    return null;
-  };
-
-  // currentFile is now computed above
-
-  const updateFileState = (updates: Partial<FileState>) => {
-    setFileState(prev => ({ ...prev, ...updates }));
-  };
 
   const updateMediaState = (updates: Partial<MediaState>) => {
     setMediaState(prev => ({ ...prev, ...updates }));
@@ -150,39 +89,7 @@ export function ComboInput({
     ];
 
     if (allowedTypes.includes(file.type)) {
-      // Clear other files
-      updateFileState({
-        selectedImage: null,
-        selectedAudio: null,
-        selectedPDF: null,
-        imagePreview: null,
-        audioUrl: null,
-        cameraPhoto: null
-      });
-
-      // Don't fill input with filename - keep it editable for text
-
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          updateFileState({
-            selectedImage: file,
-            imagePreview: reader.result as string
-          });
-          onFileSelect?.(file);
-        };
-        reader.readAsDataURL(file);
-      } else if (file.type.startsWith('audio/') || file.type === 'video/mp4' || file.type === 'video/webm') {
-        const url = URL.createObjectURL(file);
-        updateFileState({
-          selectedAudio: file,
-          audioUrl: url
-        });
-        onFileSelect?.(file);
-      } else if (file.type === 'application/pdf') {
-        updateFileState({ selectedPDF: file });
-        onFileSelect?.(file);
-      }
+      onFileSelect?.(file);
     } else {
       toast.error('Please select a supported file type (image, audio, or PDF)');
     }
@@ -200,23 +107,6 @@ export function ComboInput({
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/webm' });
         const file = new File([blob], 'recording.webm', { type: 'audio/webm' });
-
-        updateFileState({
-          selectedImage: null,
-          selectedAudio: null,
-          selectedPDF: null,
-          imagePreview: null,
-          audioUrl: null,
-          cameraPhoto: null
-        });
-
-        // Don't fill input with filename - keep it editable for text
-
-        const url = URL.createObjectURL(blob);
-        updateFileState({
-          selectedAudio: file,
-          audioUrl: url
-        });
 
         onFileSelect?.(file);
 
@@ -246,28 +136,6 @@ export function ComboInput({
     }
   };
 
-  const removeFile = () => {
-
-    updateFileState({
-      selectedImage: null,
-      selectedAudio: null,
-      selectedPDF: null,
-      imagePreview: null,
-      cameraPhoto: null
-    });
-
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-      updateFileState({ audioUrl: null });
-    }
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-
-    onFileSelect?.(null);
-  };
 
   const handleSubmit = () => {
     if (onSubmit) {
@@ -277,27 +145,6 @@ export function ComboInput({
 
   return (
     <div className="space-y-2">
-      {/* File Display Section */}
-      {hasFile && (
-        <div className="flex items-center justify-between h-8 px-3 py-1 bg-muted/50 rounded-md border">
-          <div className="flex items-center gap-2">
-            {getFileIcon()}
-            <span className="text-sm font-medium">
-              {currentFile?.name}
-            </span>
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={removeFile}
-            disabled={isLoading}
-            className="h-6 w-6 p-0"
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      )}
-
       <div className="relative">
         <Input
           value={value}

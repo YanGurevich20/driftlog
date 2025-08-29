@@ -48,7 +48,17 @@ import { SERVICE_START_DATE } from '@/lib/config';
 export function DailyView() {
   const { user } = useAuth();
   const router = useRouter();
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Check if there's a date stored in sessionStorage from toast action
+    if (typeof window !== 'undefined') {
+      const storedDate = sessionStorage.getItem('dailyViewDate');
+      if (storedDate) {
+        sessionStorage.removeItem('dailyViewDate'); // Clear it after using
+        return new Date(storedDate);
+      }
+    }
+    return new Date();
+  });
   const [openCategories, setOpenCategories] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);

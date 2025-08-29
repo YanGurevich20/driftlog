@@ -8,6 +8,7 @@ import { MonthlyView } from '@/components/monthly-view';
 import { BudgetView } from '@/components/budget-view';
 import { RecurringView } from '@/components/recurring-view';
 import { useAuth } from '@/lib/auth-context';
+import { LLMEntryInput } from '@/components/llm-entry-input';
 
 const greetings = [
   "Welcome back",
@@ -59,7 +60,7 @@ export default function Dashboard() {
       <div className="mb-6">
         <h1 className="text-xl pl-2 font-light">{greetingMessage}</h1>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 md:items-start pb-20">
+      <div className="grid gap-6 md:grid-cols-2 md:items-start pb-32">
         <div className="space-y-6">
           <BudgetView />
           <div className="px-2">
@@ -82,16 +83,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="fixed bottom-6 right-6">
-        <Button 
-          className="rounded-full size-14"
-          asChild
-        >
-          <Link href="/dashboard/entry">
-            <Plus className="size-8" />
-          </Link>
-        </Button>
-      </div>
+      <LLMEntryInput />
     </>
   );
 }
