@@ -58,6 +58,7 @@ export const CATEGORIES = {
   'Other': Squirrel,
 } as const
 
+export const CATEGORY_NAMES = Object.keys(CATEGORIES) as CategoryName[];
 export type CategoryName = keyof typeof CATEGORIES;
 
 export const DEFAULT_CATEGORIES: Record<'expense' | 'income', CategoryName[]> = {

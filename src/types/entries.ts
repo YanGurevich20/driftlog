@@ -1,4 +1,9 @@
-export type EntryType = 'expense' | 'income';
+export const EntryType = {
+  expense: 'expense',
+  income: 'income',
+} as const;
+
+export type EntryType = (typeof EntryType)[keyof typeof EntryType];
 
 export interface Entry  {
   id: string;
