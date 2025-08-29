@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -14,16 +14,13 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_MEASUREMENT_ID,
 };
 
-if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
-  console.error('Firebase configuration is incomplete. Please check your environment variables.');
-}
+const firebaseApp = initializeApp(firebaseConfig);
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+export const auth = getAuth(firebaseApp);
+export const db = getFirestore(firebaseApp, 'asia-db');
+export const storage = getStorage(firebaseApp);
+export const functions = getFunctions(firebaseApp, 'asia-southeast1');
 
-export const auth = getAuth(app);
-export const db = getFirestore(app, 'asia-db');
-export const storage = getStorage(app);
-export const functions = getFunctions(app, 'asia-southeast1');
 
 // Use the Functions emulator in development
 if (process.env.NODE_ENV === 'development') {
@@ -32,4 +29,4 @@ if (process.env.NODE_ENV === 'development') {
   connectFirestoreEmulator(db, 'localhost', 8080);
 }
 
-export default app;
+export default firebaseApp;
