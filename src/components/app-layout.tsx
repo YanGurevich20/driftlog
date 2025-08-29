@@ -52,18 +52,20 @@ export function AppLayout({ children }: AppLayoutProps) {
         {children}
       </main>
       
-      <footer>
-        <div className="py-2 text-center text-xs text-muted-foreground">
-          © 2025 DriftLog • All rights reserved •{' '}
-          <Link href="/terms" className="hover:text-foreground">
-            Terms
-          </Link>{' '}
-          •{' '}
-          <Link href="/privacy" className="hover:text-foreground">
-            Privacy
-          </Link>
-        </div>
-      </footer>
+      {isSettingsPage && (
+        <footer>
+          <div className="py-2 text-center text-xs text-muted-foreground">
+            © 2025 DriftLog • All rights reserved •{' '}
+            <Link href="/terms" className="hover:text-foreground">
+              Terms
+            </Link>{' '}
+            •{' '}
+            <Link href="/privacy" className="hover:text-foreground">
+              Privacy
+            </Link>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

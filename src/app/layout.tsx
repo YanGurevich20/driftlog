@@ -37,7 +37,7 @@ export default function RootLayout({
         <Providers>
           <TopologyBackground />
           {children}
-          <Toaster position="bottom-left" />
+          <Toaster position="top-right" />
         </Providers>
       </body>
     </html>

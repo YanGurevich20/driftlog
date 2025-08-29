@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { DailyView } from '@/components/daily-view';
@@ -8,6 +9,7 @@ import { MonthlyView } from '@/components/monthly-view';
 import { BudgetView } from '@/components/budget-view';
 import { RecurringView } from '@/components/recurring-view';
 import { useAuth } from '@/lib/auth-context';
+import { LLMEntryInput } from '@/components/llm-entry-input';
 
 const greetings = [
   "Welcome back",
@@ -51,6 +53,7 @@ function getGreeting(userName: string): string {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const firstName = user?.name?.split(' ')[0] || user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
   const greetingMessage = getGreeting(firstName);
 
@@ -59,7 +62,7 @@ export default function Dashboard() {
       <div className="mb-6">
         <h1 className="text-xl pl-2 font-light">{greetingMessage}</h1>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 md:items-start pb-20">
+      <div className="grid gap-6 md:grid-cols-2 md:items-start pb-32">
         <div className="space-y-6">
           <BudgetView />
           <div className="px-2">
@@ -74,7 +77,7 @@ export default function Dashboard() {
               </Link>
             </Button>
           </div>
-          <DailyView />
+          <DailyView selectedDate={selectedDate} onDateChange={setSelectedDate} />
         </div>
         <div className="space-y-6">
           <MonthlyView />
@@ -82,16 +85,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="fixed bottom-6 right-6">
-        <Button 
-          className="rounded-full size-14"
-          asChild
-        >
-          <Link href="/dashboard/entry">
-            <Plus className="size-8" />
-          </Link>
-        </Button>
-      </div>
+      <LLMEntryInput onDateChange={setSelectedDate} />
     </>
   );
 }
