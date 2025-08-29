@@ -87,12 +87,6 @@ export function ComboInput({
     handleCapture: handlePhotoCapture
   } = useCameraCapture();
 
-  console.log('📷 ComboInput: Camera state', {
-    isCameraOpen,
-    hasCapturedPhoto: !!capturedPhoto,
-    capturedPhotoName: capturedPhoto?.name
-  });
-
   const currentFile = selectedImage || selectedAudio || selectedPDF;
   const hasFile = !!currentFile;
   const hasContent = value.trim() || hasFile;
@@ -341,7 +335,6 @@ export function ComboInput({
               size="sm"
               variant="ghost"
               onClick={() => {
-                console.log('📷 ComboInput: Camera button clicked');
                 openCamera();
               }}
               disabled={isLoading}

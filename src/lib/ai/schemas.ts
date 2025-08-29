@@ -13,6 +13,7 @@ export const entrySchema = Schema.object({
         enum: CATEGORY_NAMES
       }),
       description: Schema.string({ nullable: true }),
+      date: Schema.string(),
       confidence: Schema.number({minimum: 0, maximum: 1}),
     },
     optionalProperties: ["description"]

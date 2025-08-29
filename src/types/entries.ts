@@ -20,7 +20,6 @@ export interface Entry  {
   updatedBy?: string;
   location?: { lat: number; lng: number };
   recurringTemplateId?: string;
-  originalDate?: Date;
   isRecurringInstance?: boolean;
   isModified?: boolean;
 }

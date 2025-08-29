@@ -13,31 +13,41 @@ interface CameraCaptureProps {
 }
 
 export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }: CameraCaptureProps) {
-  console.log('🎥 CameraCapture: Component render', { isOpen, fullscreen, onCapture: !!onCapture, onClose: !!onClose });
 
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isTorchSupported, setIsTorchSupported] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const isMountedRef = useRef(true);
+  const sessionIdRef = useRef(0);
+
+  type TorchMediaTrackCapabilities = MediaTrackCapabilities & { torch?: boolean };
+  type TorchMediaTrackConstraintSet = MediaTrackConstraintSet & { torch?: boolean };
 
   const startCamera = useCallback(async () => {
-    console.log('🎥 CameraCapture: startCamera called', { isMounted: isMountedRef.current, facingMode });
-
     if (!isMountedRef.current) {
-      console.log('🎥 CameraCapture: Component not mounted, exiting');
       return;
     }
 
     try {
-      console.log('🎥 CameraCapture: Setting loading state');
       setIsLoading(true);
+      setIsVideoReady(false);
+      setIsTorchSupported(false);
+
+      // Feature preflight
+      const getUserMedia = navigator?.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
+      if (!getUserMedia) {
+        toast.error('Camera not supported in this browser');
+        onClose();
+        return;
+      }
 
       // Stop any existing stream first
-      console.log('🎥 CameraCapture: Stopping existing stream');
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
         setStream(null);
@@ -50,8 +60,9 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
       trackRef.current = null;
       setFlashEnabled(false);
 
-      console.log('🎥 CameraCapture: Requesting camera access', { facingMode });
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
+      const currentSessionId = ++sessionIdRef.current;
+
+      const mediaStream = await getUserMedia({
         video: {
           facingMode: facingMode,
           width: { ideal: 1920 },
@@ -59,69 +70,55 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
         }
       });
 
-      console.log('🎥 CameraCapture: Camera access granted', {
-        tracks: mediaStream.getTracks().length,
-        videoTracks: mediaStream.getVideoTracks().length,
-        audioTracks: mediaStream.getAudioTracks().length
-      });
-
-      if (!isMountedRef.current) {
-        console.log('🎥 CameraCapture: Component unmounted during camera access, cleaning up');
+      if (!isMountedRef.current || currentSessionId !== sessionIdRef.current) {
         mediaStream.getTracks().forEach(track => track.stop());
         return;
       }
 
       setStream(mediaStream);
       trackRef.current = mediaStream.getVideoTracks()[0];
-      console.log('🎥 CameraCapture: Stream set, video track available:', !!trackRef.current);
+
+      // Detect torch capability if present
+      try {
+        const capabilities = (trackRef.current.getCapabilities?.() ?? {}) as TorchMediaTrackCapabilities;
+        setIsTorchSupported(Boolean(capabilities.torch));
+      } catch {
+        setIsTorchSupported(false);
+      }
 
       if (videoRef.current && isMountedRef.current) {
-        console.log('🎥 CameraCapture: Setting video srcObject');
         videoRef.current.srcObject = mediaStream;
 
         // Wait for the video to be ready before playing
-        console.log('🎥 CameraCapture: Waiting for video metadata');
-        await new Promise((resolve) => {
-          if (videoRef.current && isMountedRef.current) {
-            videoRef.current.onloadedmetadata = () => {
-              console.log('🎥 CameraCapture: Video metadata loaded', {
-                videoWidth: videoRef.current?.videoWidth,
-                videoHeight: videoRef.current?.videoHeight,
-                readyState: videoRef.current?.readyState
-              });
-              resolve(void 0);
-            };
-          }
+        await new Promise<void>((resolve) => {
+          const video = videoRef.current!;
+          const handler = () => {
+            resolve();
+          };
+          video.addEventListener('loadedmetadata', handler, { once: true });
         });
 
         // Only play if the stream is still current and component is mounted
-        if (videoRef.current.srcObject === mediaStream && isMountedRef.current) {
-          console.log('🎥 CameraCapture: Attempting to play video');
+        if (videoRef.current.srcObject === mediaStream && isMountedRef.current && currentSessionId === sessionIdRef.current) {
           try {
             await videoRef.current.play();
-            console.log('🎥 CameraCapture: Video playing successfully');
+            setIsVideoReady(true);
           } catch (playError) {
-            console.log('🎥 CameraCapture: Video play error', playError);
             // Ignore AbortError as it's expected when switching streams
             if (!(playError instanceof DOMException && playError.name === 'AbortError')) {
-              throw playError;
+              // If play fails for other reasons, notify the user
+              toast.error('Failed to start camera preview');
             }
           }
-        } else {
-          console.log('🎥 CameraCapture: Skipping play - stream changed or component unmounted');
         }
-      } else {
-        console.log('🎥 CameraCapture: Video ref not available or component unmounted');
       }
     } catch (error) {
-      console.error('🎥 CameraCapture: Error accessing camera:', error);
       if (isMountedRef.current) {
         toast.error('Failed to access camera. Please check permissions.');
         onClose();
       }
     } finally {
       if (isMountedRef.current) {
-        console.log('🎥 CameraCapture: Clearing loading state');
         setIsLoading(false);
       }
     }
@@ -139,6 +136,8 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
 
     trackRef.current = null;
     setFlashEnabled(false);
+    setIsVideoReady(false);
+    setIsTorchSupported(false);
   }, []);
 
   const toggleCamera = useCallback(async () => {
@@ -156,17 +155,15 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
     if (!trackRef.current) return;
 
     try {
-      const capabilities = trackRef.current.getCapabilities() as any;
+      const capabilities = (trackRef.current.getCapabilities?.() ?? {}) as TorchMediaTrackCapabilities;
       if (capabilities.torch) {
-        await trackRef.current.applyConstraints({
-          advanced: [{ torch: !flashEnabled } as any]
-        });
+        const constraints: MediaTrackConstraints = { advanced: [{ torch: !flashEnabled } as TorchMediaTrackConstraintSet] };
+        await trackRef.current.applyConstraints(constraints);
         setFlashEnabled(!flashEnabled);
       } else {
         toast.error('Flash not supported on this device');
       }
     } catch (error) {
-      console.error('Error toggling flash:', error);
       toast.error('Failed to toggle flash');
     }
   }, [flashEnabled]);
@@ -195,12 +192,18 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
       canvas.height = video.videoHeight;
 
       // Draw current video frame to canvas
+      if (facingMode === 'user') {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // Reset transform for future operations (defensive)
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
 
       // Convert to blob and create file
       canvas.toBlob((blob) => {
         if (blob) {
-          const file = new File([blob], `camera-photo-${Date.now()}.jpg`, {
+          const file = new File([blob], `capture.jpg`, {
             type: 'image/jpeg'
           });
           onCapture(file);
@@ -216,26 +219,20 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
         }
       }, 'image/jpeg', 0.9);
     } catch (error) {
-      console.error('Error taking photo:', error);
       toast.error('Failed to take photo');
     }
-  }, [onCapture, onClose, isLoading]);
+  }, [onCapture, onClose, isLoading, facingMode]);
 
   // Handle camera start/stop based on isOpen
   useEffect(() => {
-    console.log('🎥 CameraCapture: useEffect triggered', { isOpen, isMounted: isMountedRef.current });
-
     const handleCameraState = async () => {
       if (!isMountedRef.current) {
-        console.log('🎥 CameraCapture: Component not mounted, skipping camera state change');
         return;
       }
 
       if (isOpen) {
-        console.log('🎥 CameraCapture: Opening camera');
         await startCamera();
       } else {
-        console.log('🎥 CameraCapture: Closing camera');
         stopCamera();
       }
     };
@@ -243,7 +240,6 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
     handleCameraState();
 
     return () => {
-      console.log('🎥 CameraCapture: useEffect cleanup - stopping camera');
       stopCamera();
     };
   }, [isOpen, startCamera, stopCamera]);
@@ -258,11 +254,8 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
   }, []);
 
   if (!isOpen) {
-    console.log('🎥 CameraCapture: Component not rendered (isOpen=false)');
     return null;
   }
-
-  console.log('🎥 CameraCapture: Component rendering UI');
 
   const containerClasses = fullscreen
     ? "fixed inset-0 z-50 bg-black flex flex-col"
@@ -292,24 +285,12 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
         <video
           ref={(ref) => {
             videoRef.current = ref;
-            console.log('🎥 CameraCapture: Video ref set', {
-              hasRef: !!ref,
-              srcObject: ref?.srcObject,
-              readyState: ref?.readyState,
-              networkState: ref?.networkState,
-              error: ref?.error
-            });
           }}
           className={videoClasses}
+          style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : undefined }}
           autoPlay
           muted
           playsInline
-          onLoadStart={() => console.log('🎥 CameraCapture: Video load started')}
-          onLoadedData={() => console.log('🎥 CameraCapture: Video data loaded')}
-          onCanPlay={() => console.log('🎥 CameraCapture: Video can play')}
-          onPlay={() => console.log('🎥 CameraCapture: Video started playing')}
-          onPause={() => console.log('🎥 CameraCapture: Video paused')}
-          onError={(e) => console.log('🎥 CameraCapture: Video error', e)}
         />
 
         {/* Loading overlay */}
@@ -334,7 +315,7 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
           size="sm"
           onClick={toggleFlash}
           className="text-white hover:bg-white/20"
-          disabled={!trackRef.current}
+          disabled={!trackRef.current || !isTorchSupported}
         >
           {flashEnabled ? (
             <FlashlightOff className="h-6 w-6" />
@@ -347,7 +328,7 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
         <Button
           size="lg"
           onClick={takePhoto}
-          disabled={isLoading}
+          disabled={isLoading || !isVideoReady}
           className="rounded-full h-16 w-16 bg-white hover:bg-gray-200 text-black border-4 border-white"
         >
           <CameraIcon className="h-8 w-8" />
@@ -370,32 +351,21 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
 
 // Hook for using camera capture
 export function useCameraCapture() {
-  console.log('🎥 useCameraCapture: Hook initialized');
-
   const [isOpen, setIsOpen] = useState(false);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
 
   const openCamera = useCallback(() => {
-    console.log('🎥 useCameraCapture: openCamera called');
     setIsOpen(true);
     setCapturedFile(null);
   }, []);
 
   const closeCamera = useCallback(() => {
-    console.log('🎥 useCameraCapture: closeCamera called');
     setIsOpen(false);
   }, []);
 
   const handleCapture = useCallback((file: File) => {
-    console.log('🎥 useCameraCapture: handleCapture called', {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type
-    });
     setCapturedFile(file);
   }, []);
-
-  console.log('🎥 useCameraCapture: Hook state', { isOpen, hasCapturedFile: !!capturedFile });
 
   return {
     isOpen,
