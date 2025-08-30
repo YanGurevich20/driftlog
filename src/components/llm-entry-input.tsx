@@ -10,7 +10,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toUTCMidnight } from '@/lib/date-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, FileText, Image, Volume2 } from 'lucide-react';
+import { X, FileText, Volume2, ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ParsedEntry {
@@ -38,7 +38,7 @@ const truncateFileName = (fileName: string, maxLength: number = 20): string => {
 
 // Get file icon based on file type
 const getFileIcon = (file: File) => {
-  if (file.type.startsWith('image/')) return <Image />;
+  if (file.type.startsWith('image/')) return <ImageIcon />;
   if (file.type.startsWith('audio/')) return <Volume2 />;
   return <FileText />;
 };

@@ -2,7 +2,6 @@ import { getAI, getGenerativeModel, GoogleAIBackend } from 'firebase/ai';
 import app from '../firebase';
 import { entrySchema } from './schemas';
 import { CATEGORY_NAMES } from '@/types/categories';
-import { SERVICE_START_DATE } from '@/lib/config';
 
 // Initialize the Gemini Developer API backend service
 export const ai = getAI(app, { backend: new GoogleAIBackend() });

@@ -31,7 +31,7 @@ export default function EditEntryPage({ params }: { params: Promise<{ id: string
           toast.error('Entry not found');
           router.push('/dashboard');
         }
-      } catch (error) {
+      } catch {
         toast.error('Error fetching entry');
         router.push('/dashboard');
       } finally {
