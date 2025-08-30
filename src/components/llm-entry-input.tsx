@@ -10,8 +10,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toUTCMidnight } from '@/lib/date-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, FileText, Volume2 } from 'lucide-react';
-import {Image as ImageIcon} from 'lucide-react';
+import { X, FileText, Volume2, ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ParsedEntry {
