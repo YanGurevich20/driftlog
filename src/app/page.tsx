@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 export default function Home() {
   const { user, loading, signInWithGoogle, needsOnboarding } = useAuth();
@@ -66,7 +67,14 @@ export default function Home() {
                   {isSigningIn ? 'Signing in...' : 'Sign in with Google'}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">
-                  By signing in, you agree to our Terms of Service and Privacy Policy
+                  By signing in, you agree to our{' '}
+                  <Link href="/terms" className="underline hover:text-foreground">
+                    Terms of Service
+                  </Link>{' '}
+                  and{' '}
+                  <Link href="/privacy" className="underline hover:text-foreground">
+                    Privacy Policy
+                  </Link>
                 </p>
               </>
             )}

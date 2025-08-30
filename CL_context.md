@@ -4,7 +4,8 @@ Multi-currency expense tracking with real-time collaboration.
 
 ## Tech Stack
 - **Frontend**: Next.js 15, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Firebase (Firestore, Auth, Functions)
+- **Backend**: Firebase (Firestore, Auth, Functions, AI)
+- **AI**: Firebase AI with Gemini 2.5 Flash Lite for structured entry parsing
 - **State**: React hooks, real-time Firestore listeners
 
 ## Architecture
@@ -21,6 +22,7 @@ Multi-currency expense tracking with real-time collaboration.
 3. **Connections**: Users share expenses with mutually connected users (≤6)
 4. **Simple invitations**: Email-based with accept/reject via Cloud Functions
 5. **Recurring entries**: Create schedules that auto-generate future entries; edit a single instance or the whole series
+6. **AI entry generation**: Natural language and multimodal entry creation via Firebase AI
 
 ## Development Guidelines
 
@@ -80,6 +82,18 @@ Multi-currency expense tracking with real-time collaboration.
 - Limits:
   - Practical horizons per frequency (see `RECURRENCE_LIMITS`): daily/weekly up to 1 year, monthly/yearly up to 5 years
 
+### AI Entry Generation
+- **Model**: Gemini 2.5 Flash Lite via Firebase AI with structured output
+- **Schema validation**: Uses Firestore Schema for consistent JSON responses  
+- **Input types**: Natural language text, images (receipts), audio recordings, PDFs
+- **Multimodal support**: File processing via base64 encoding to GenerativePart
+- **Auto-creation**: Entries with confidence ≥ 0.3 are automatically created
+- **Smart parsing**: Extracts type, amount, currency, category, date, description with confidence score
+- **UI integration**: Fixed bottom input with ComboInput component (text + file upload + camera + microphone)
+- **Category matching**: Maps to existing CATEGORY_NAMES enum for consistency
+- **Date handling**: Defaults to today, parses transaction dates when available
+- **Toast feedback**: Success notifications with date display and navigation to daily view
+
 ## Project Structure
 ```
 /src
@@ -87,7 +101,9 @@ Multi-currency expense tracking with real-time collaboration.
   /components   - React components  
   /hooks        - Custom hooks (use-entries, use-connected-users)
   /services     - Firebase services
-  /lib          - Utilities
+  /lib
+    /ai         - AI processing (ai.ts, schemas.ts)
+    /*          - Other utilities
 /functions      - Cloud Functions (acceptConnectionInvitation, leaveConnections)
 /scripts        - Utility scripts (seed-exchange-rates.js)
 ```
@@ -136,6 +152,12 @@ Multi-currency expense tracking with real-time collaboration.
   - Template editing removed for simplicity - users delete/stop and recreate instead.
   - Stop series: delete future unmodified instances from provided date (default today inclusive); preserves template for history.
   - Delete series: remove template and all instances (modified and unmodified).
+
+- AI entry parsing:
+  - Schema-based: `entrySchema` defines structured output format (type, amount, currency, category, description, date, confidence).
+  - Multimodal: Processes text, images, audio via `fileToGenerativePart()` base64 conversion.
+  - Confidence threshold: Auto-creates entries with confidence ≥ 0.3; rejects lower confidence results.
+  - Component integration: `LLMEntryInput` at dashboard bottom, uses `ComboInput` for unified text/file interface.
 
 - Entries cache note:
   - Real-time listener over `entries` with `where('userId','in', memberIds)` and optional date bounds; ordered by `date desc`.

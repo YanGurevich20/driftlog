@@ -1,6 +1,5 @@
 import { Schema } from 'firebase/ai';
 import { CATEGORY_NAMES } from '@/types/categories';
-import { SERVICE_START_DATE } from '@/lib/config';
 
 export const entrySchema = Schema.object({
     properties: {

@@ -112,7 +112,7 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
           }
         }
       }
-    } catch (error) {
+    } catch {
       if (isMountedRef.current) {
         toast.error('Failed to access camera. Please check permissions.');
         onClose();
@@ -122,7 +122,7 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
         setIsLoading(false);
       }
     }
-  }, [facingMode, onClose]);
+  }, [facingMode, onClose, stream]);
 
   const stopCamera = useCallback(() => {
     if (stream) {
@@ -138,7 +138,7 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
     setFlashEnabled(false);
     setIsVideoReady(false);
     setIsTorchSupported(false);
-  }, []);
+  }, [stream]);
 
   const toggleCamera = useCallback(async () => {
     if (isLoading) return; // Prevent rapid toggling
@@ -163,7 +163,7 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
       } else {
         toast.error('Flash not supported on this device');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to toggle flash');
     }
   }, [flashEnabled]);
@@ -218,10 +218,10 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
           toast.error('Failed to capture photo');
         }
       }, 'image/jpeg', 0.9);
-    } catch (error) {
+    } catch {
       toast.error('Failed to take photo');
     }
-  }, [onCapture, onClose, isLoading, facingMode]);
+  }, [onCapture, onClose, isLoading, facingMode, stopCamera, stream]);
 
   // Handle camera start/stop based on isOpen
   useEffect(() => {
@@ -251,7 +251,7 @@ export function CameraCapture({ onCapture, onClose, isOpen, fullscreen = false }
       isMountedRef.current = false;
       stopCamera();
     };
-  }, []);
+  }, [stopCamera]);
 
   if (!isOpen) {
     return null;
