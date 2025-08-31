@@ -4,7 +4,6 @@ import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, use } from 'react';
 import { EntryForm } from '@/components/entry-form';
-import { CategoriesSettings } from '@/components/categories-settings';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Entry } from '@/types';
@@ -61,9 +60,6 @@ export default function EditEntryPage({ params }: { params: Promise<{ id: string
   }
 
   return (
-    <div className="space-y-8">
-      <EntryForm entry={entry} />
-      <CategoriesSettings />
-    </div>
+    <EntryForm entry={entry} />
   );
 }

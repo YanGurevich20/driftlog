@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { ComboInput } from '@/components/ui/combo-input';
+import { useState, useRef } from 'react';
 import { processEntry } from '@/lib/ai/ai';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
@@ -10,7 +9,8 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toUTCMidnight } from '@/lib/date-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, FileText, Volume2, ImageIcon } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { X, FileText, Volume2, ImageIcon, Paperclip, Send, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ParsedEntry {
@@ -23,20 +23,17 @@ interface ParsedEntry {
   confidence: number;
 }
 
-// Utility function to truncate file names with ellipsis
+const ALLOWED_TYPES = 'image/png,image/jpeg,image/webp,audio/aac,audio/flac,audio/mp3,audio/m4a,audio/mpeg,audio/mpga,audio/mp4,audio/opus,audio/pcm,audio/wav,audio/webm,application/pdf';
+
 const truncateFileName = (fileName: string, maxLength: number = 20): string => {
   if (fileName.length <= maxLength) return fileName;
-  
   const extension = fileName.split('.').pop() || '';
   const nameWithoutExt = fileName.slice(0, -(extension.length + 1));
-  const availableLength = maxLength - extension.length - 4; // 4 for "..." and "."
-  
+  const availableLength = maxLength - extension.length - 4;
   if (availableLength <= 0) return `...${extension}`;
-  
   return `${nameWithoutExt.slice(0, availableLength)}...${extension}`;
 };
 
-// Get file icon based on file type
 const getFileIcon = (file: File) => {
   if (file.type.startsWith('image/')) return <ImageIcon />;
   if (file.type.startsWith('audio/')) return <Volume2 />;
@@ -52,6 +49,7 @@ export function LLMEntryInput({ onDateChange }: LLMEntryInputProps) {
   const [inputText, setInputText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -60,8 +58,19 @@ export function LLMEntryInput({ onDateChange }: LLMEntryInputProps) {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (ALLOWED_TYPES.split(',').includes(file.type)) {
+      setSelectedFile(file);
+    } else {
+      toast.error('Please select a supported file type (image, audio, or PDF)');
+    }
+  };
+
   const clearSelectedFile = () => {
     setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = async () => {
@@ -154,14 +163,40 @@ export function LLMEntryInput({ onDateChange }: LLMEntryInputProps) {
                 </div>
               )}
               
-              <ComboInput
-                value={inputText}
-                onChange={setInputText}
-                placeholder={selectedFile ? '(optional) Add details...' : 'Describe an entry...'}
-                onSubmit={handleSubmit}
-                selectedFile={selectedFile}
-                onFileSelect={setSelectedFile}
-                isLoading={isLoading}
+              <div className="flex items-center gap-2">
+                <Input
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder={selectedFile ? '(optional) Add details...' : 'Describe an entry...'}
+                  className="flex-1"
+                />
+                <div className="flex items-center gap-1">
+                  {!selectedFile && !isLoading && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Paperclip />
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleSubmit}
+                    disabled={(!inputText.trim() && !selectedFile) || isLoading}
+                  >
+                    {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
+                  </Button>
+                </div>
+              </div>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ALLOWED_TYPES}
+                onChange={handleFileChange}
+                className="hidden"
               />
             </div>
           </CardContent>

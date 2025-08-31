@@ -148,7 +148,7 @@ export function RecurringView() {
     <>
       <CollapsibleCard defaultCollapsed={!isDesktop}>
         <CollapsibleCardHeader>
-          <CollapsibleCardTitle className="text-primary">This Month&apos;s Recurrences</CollapsibleCardTitle>
+          <CollapsibleCardTitle className="text-primary">Recurrences</CollapsibleCardTitle>
         </CollapsibleCardHeader>
         
         <CollapsibleCardContent>
