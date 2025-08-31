@@ -13,8 +13,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { CategorySelector } from '@/components/category-selector';
+import { CurrencySelector } from '@/components/currency-selector';
 import { Button } from '@/components/ui/button';
-import { CurrencyInput } from '@/components/ui/currency-input';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, serverTimestamp, doc } from 'firebase/firestore';
@@ -37,7 +37,8 @@ import { createRecurringTemplate } from '@/services/recurring';
 import RecurringSection from '@/components/entry-form/recurrence-form';
 import { SERVICE_START_DATE } from '@/lib/config';
 import { Input } from '../ui/input';
-import { useCategories } from '@/hooks/use-categories';
+import { CATEGORY_NAMES } from '@/types/categories';
+import { useCategoryRanking } from '@/hooks/use-category-ranking';
 
 const formSchema = z.object({
   type: z.enum(['expense', 'income']),
@@ -68,6 +69,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { lastUsedCurrency, setLastUsedCurrency, addRecentCurrency } = usePreferences();
+  const { trackCategoryUsage, getDefaultCategory, recentCategories } = useCategoryRanking();
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringFrequency, setRecurringFrequency] = useState<RecurrenceFrequency>('monthly');
   const [endDate, setEndDate] = useState<Date>(() => {
@@ -76,16 +78,11 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
   const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>([]);
   const [interval, setInterval] = useState<number>(1);
 
-  // Get current user categories - this will automatically update when categories change
-  const { getCategories } = useCategories();
-
   // Get smart default category
   const getSmartDefaultCategory = useCallback((type: 'expense' | 'income') => {
     if (entry?.category) return entry.category;
-    const availableCategories = getCategories(type);
-    if (availableCategories.length > 0) return availableCategories[0];
-    return type === 'income' ? 'Salary' : 'Food & Dining';
-  }, [entry?.category, getCategories]);
+    return getDefaultCategory(type);
+  }, [entry?.category, getDefaultCategory]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -111,18 +108,22 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
 
   const transactionType = form.watch('type');
 
-  // Update category when entry type changes or user categories change
+  // Update category when entry type changes or when smart defaults are available
   useEffect(() => {
+    // Don't override category for existing entries
+    if (entry?.category) return;
+    
     const currentCategory = form.getValues('category');
-    const availableCategories = getCategories(transactionType);
-    const hasValidCategory = availableCategories.includes(currentCategory as CategoryName);
-
-    // If current category is not available, set a smart default
-    if (!hasValidCategory) {
-      const smartDefault = getSmartDefaultCategory(transactionType);
+    const smartDefault = getSmartDefaultCategory(transactionType);
+    
+    // Update if current category is invalid or if we have a better smart default
+    const hasValidCategory = CATEGORY_NAMES.includes(currentCategory as CategoryName);
+    const shouldUpdate = !hasValidCategory || currentCategory !== smartDefault;
+    
+    if (shouldUpdate) {
       form.setValue('category', smartDefault);
     }
-  }, [transactionType, getSmartDefaultCategory, form, getCategories]);
+  }, [transactionType, getSmartDefaultCategory, form, entry?.category, recentCategories]);
 
   // Default weekly selection to the picked date's weekday when enabling weekly
   useEffect(() => {
@@ -199,6 +200,9 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
         await createRecurringTemplate(templateData);
         toast.success(`Created recurring entries until ${format(endDate, 'MMM d, yyyy')}`);
         
+        // Track category usage
+        trackCategoryUsage(values.category as CategoryName, values.type);
+        
         setLastUsedCurrency(currency);
         addRecentCurrency(currency);
         onSuccess?.();
@@ -229,6 +233,9 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
           await addDoc(collection(db, 'entries'), entryData);
           toast.success('Entry added successfully');
         }
+        
+        // Track category usage
+        trackCategoryUsage(values.category as CategoryName, values.type);
         
         if (!entry) {
           setLastUsedCurrency(currency);
@@ -291,7 +298,7 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
             )}
           />
 
-          {/* Amount & Currency */}
+          {/* Currency & Amount */}
           <Controller
             name="amountCurrency"
             control={form.control}
@@ -299,10 +306,21 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
               <FormItem>
                 <FormLabel>Amount</FormLabel>
                 <FormControl>
-                  <CurrencyInput
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
+                  <div className="flex gap-2">
+                    <CurrencySelector
+                      value={field.value.currency}
+                      onChange={(currency) => field.onChange({ ...field.value, currency })}
+                    />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      value={field.value.amount}
+                      onChange={(e) => field.onChange({ ...field.value, amount: e.target.value })}
+                      className="flex-1"
+                    />
+                  </div>
                 </FormControl>
                 {fieldState.error && (
                   <FormMessage>
@@ -315,45 +333,45 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
             )}
           />
 
-          {/* Category */}
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <FormControl>
-                  <CategorySelector
-                    value={field.value}
-                    onChange={field.onChange}
-                    type={transactionType}
-                    placeholder="Select a category"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Description */}
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Add an optional note..." 
-                    type='text'
-                    autoComplete='entry-description'
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Category & Description */}
+          <div className="space-y-2">
+            <FormLabel>Details</FormLabel>
+            <div className="flex gap-2">
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <CategorySelector
+                        value={field.value}
+                        onChange={field.onChange}
+                        type={transactionType}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <div className="flex-1">
+                    <FormControl>
+                      <Input
+                        placeholder="Add an optional note..." 
+                        type='text'
+                        autoComplete='entry-description'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </div>
+                )}
+              />
+            </div>
+          </div>
 
           {/* Date */}
           <FormField

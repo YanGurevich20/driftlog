@@ -47,7 +47,7 @@ export function CurrencySelector({
           <PopoverTrigger asChild>
             {trigger}
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-[300px] p-0">
+          <PopoverContent align="start" className="w-[300px] p-0">
             <CurrencyList 
               value={value}
               onSelect={(currency) => {
@@ -63,7 +63,7 @@ export function CurrencySelector({
 
   return (
     <div className={className}>
-      <Drawer open={open} onOpenChange={setOpen}>
+      <Drawer open={open} onOpenChange={setOpen} autoFocus={false}>
         <DrawerTrigger asChild>
           {trigger}
         </DrawerTrigger>
