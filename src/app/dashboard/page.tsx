@@ -54,8 +54,13 @@ function getGreeting(userName: string): string {
 export default function Dashboard() {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [animatingEntryId, setAnimatingEntryId] = useState<string | undefined>();
   const firstName = user?.name?.split(' ')[0] || user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
   const greetingMessage = getGreeting(firstName);
+
+  const handleAnimationComplete = () => {
+    setAnimatingEntryId(undefined);
+  };
 
   return (
     <>
@@ -77,7 +82,7 @@ export default function Dashboard() {
               </Link>
             </Button>
           </div>
-          <DailyView selectedDate={selectedDate} onDateChange={setSelectedDate} />
+          <DailyView selectedDate={selectedDate} onDateChange={setSelectedDate} animatingEntryId={animatingEntryId} onAnimationComplete={handleAnimationComplete} />
         </div>
         <div className="space-y-6">
           <MonthlyView />
@@ -85,7 +90,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <LLMEntryInput onDateChange={setSelectedDate} />
+      <LLMEntryInput onDateChange={setSelectedDate} onEntryCreated={setAnimatingEntryId} />
     </>
   );
 }

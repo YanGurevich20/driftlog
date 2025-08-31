@@ -44,13 +44,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SERVICE_START_DATE } from '@/lib/config';
+import { TypingText } from '@/components/ui/typing-text';
 
 interface DailyViewProps {
   selectedDate?: Date;
   onDateChange?: (date: Date) => void;
+  animatingEntryId?: string;
+  onAnimationComplete?: () => void;
 }
 
-export function DailyView({ selectedDate: propSelectedDate, onDateChange }: DailyViewProps = {}) {
+export function DailyView({ selectedDate: propSelectedDate, onDateChange, animatingEntryId, onAnimationComplete }: DailyViewProps = {}) {
   const { user } = useAuth();
   const router = useRouter();
   const [internalSelectedDate, setInternalSelectedDate] = useState(() => {
@@ -220,6 +223,7 @@ export function DailyView({ selectedDate: propSelectedDate, onDateChange }: Dail
                       .map((entry) => {
                         const isRecent = entry.createdAt && 
                           (Date.now() - entry.createdAt.getTime()) < 5 * 60 * 1000; // 5 minutes
+                        const shouldAnimate = animatingEntryId === entry.id;
                         return (
                       <div key={entry.id} className="flex justify-between items-start">
                         <div className="flex items-center gap-1">
@@ -230,12 +234,27 @@ export function DailyView({ selectedDate: propSelectedDate, onDateChange }: Dail
                               <Repeat className="h-3 w-3 text-muted-foreground" />
                             )
                           )}
-                          <span className="text-muted-foreground text-sm">
-                            {`${entry.description || 'No description'} ${isRecent ? '•' : ''}`}
-                          </span>
+                          {shouldAnimate ? (
+                            <TypingText
+                              text={`${entry.description || 'No description'} ${isRecent ? '•' : ''}`}
+                              delay={70}
+                              repeat={false}
+                              hideCursorOnComplete={true}
+                              className="text-muted-foreground text-sm"
+                              grow={true}
+                              onComplete={onAnimationComplete}
+                            />
+                          ) : (
+                            <span className="text-muted-foreground text-sm">
+                              {`${entry.description || 'No description'} ${isRecent ? '•' : ''}`}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-sm whitespace-nowrap ${entry.type === 'income' ? 'text-primary' : ''}`}>
+                          <span className={cn(
+                            "text-sm whitespace-nowrap",
+                            entry.type === 'income' ? 'text-primary' : ''
+                          )}>
                             {formatCurrency(entry.originalAmount, entry.currency, entry.type === 'expense')}
                           </span>
                           <DropdownMenu>

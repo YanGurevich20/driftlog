@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, FileText, Volume2, ImageIcon, Paperclip, Send, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { LLMEntryDebug } from '@/components/llm-entry-debug';
 
 interface ParsedEntry {
   type: 'expense' | 'income';
@@ -42,9 +42,10 @@ const getFileIcon = (file: File) => {
 
 interface LLMEntryInputProps {
   onDateChange?: (date: Date) => void;
+  onEntryCreated?: (entryId: string) => void;
 }
 
-export function LLMEntryInput({ onDateChange }: LLMEntryInputProps) {
+export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputProps) {
   const { user } = useAuth();
   const [inputText, setInputText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -71,6 +72,11 @@ export function LLMEntryInput({ onDateChange }: LLMEntryInputProps) {
   const clearSelectedFile = () => {
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const clearForm = () => {
+    setInputText('');
+    setSelectedFile(null);
   };
 
   const handleSubmit = async () => {
@@ -105,23 +111,18 @@ export function LLMEntryInput({ onDateChange }: LLMEntryInputProps) {
             createdAt: serverTimestamp(),
           };
 
-          await addDoc(collection(db, 'entries'), entryData);
+          const docRef = await addDoc(collection(db, 'entries'), entryData);
           
           const entryDate = new Date(parsed.date);
-          toast.success('Entry created successfully', {
-            description: format(entryDate, 'EEEE, MMMM d, yyyy'),
-            action: {
-              label: 'View',
-              onClick: () => {
-                // Update the daily view date directly
-                onDateChange?.(entryDate);
-              },
-            },
-          });
+          
+          // Automatically navigate to the entry date
+          onDateChange?.(entryDate);
+          
+          // Trigger flash animation for the new entry
+          onEntryCreated?.(docRef.id);
           
           // Clear the form
-          setInputText('');
-          setSelectedFile(null);
+          clearForm();
         } else {
           toast.error("Model couldn't figure out an entry from the request");
         }
@@ -180,6 +181,14 @@ export function LLMEntryInput({ onDateChange }: LLMEntryInputProps) {
                   >
                     <Paperclip />
                   </Button>
+                  <LLMEntryDebug
+                    inputText={inputText}
+                    isLoading={isLoading}
+                    setIsLoading={setIsLoading}
+                    onDateChange={onDateChange}
+                    onEntryCreated={onEntryCreated}
+                    clearForm={clearForm}
+                  />
                   <Button
                     size="sm"
                     variant="ghost"
