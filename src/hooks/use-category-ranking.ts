@@ -76,9 +76,9 @@ export function useCategoryRanking() {
     
     return [
       ...recent,                    // 1. Recent usage
-      ...affiliated.sort(),         // 2. Type affiliation (alphabetical)
-      ...both.sort(),               // 3. Both categories (alphabetical)
-      ...otherAffiliated.sort()     // 4. Other affiliated categories (alphabetical)
+      ...affiliated,                // 2. Type affiliation
+      ...both,                      // 3. Both categories
+      ...otherAffiliated            // 4. Other affiliated categories
     ];
   }, [recentCategories]);
 

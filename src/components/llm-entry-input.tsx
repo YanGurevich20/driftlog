@@ -23,7 +23,7 @@ interface ParsedEntry {
   confidence: number;
 }
 
-const ALLOWED_TYPES = 'image/png,image/jpeg,image/webp,audio/aac,audio/flac,audio/mp3,audio/m4a,audio/mpeg,audio/mpga,audio/mp4,audio/opus,audio/pcm,audio/wav,audio/webm,application/pdf';
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'audio/aac', 'audio/flac', 'audio/mp3', 'audio/m4a', 'audio/mpeg', 'audio/mpga', 'audio/mp4', 'audio/opus', 'audio/pcm', 'audio/wav', 'audio/webm', 'application/pdf'];
 
 const truncateFileName = (fileName: string, maxLength: number = 20): string => {
   if (fileName.length <= maxLength) return fileName;
@@ -61,7 +61,7 @@ export function LLMEntryInput({ onDateChange }: LLMEntryInputProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (ALLOWED_TYPES.split(',').includes(file.type)) {
+    if (ALLOWED_TYPES.includes(file.type)) {
       setSelectedFile(file);
     } else {
       toast.error('Please select a supported file type (image, audio, or PDF)');
@@ -165,21 +165,21 @@ export function LLMEntryInput({ onDateChange }: LLMEntryInputProps) {
               
               <div className="flex items-center gap-2">
                 <Input
+                  type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   placeholder={selectedFile ? '(optional) Add details...' : 'Describe an entry...'}
                   className="flex-1"
                 />
                 <div className="flex items-center gap-1">
-                  {!selectedFile && !isLoading && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Paperclip />
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!!selectedFile || isLoading}
+                  >
+                    <Paperclip />
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -191,10 +191,10 @@ export function LLMEntryInput({ onDateChange }: LLMEntryInputProps) {
                 </div>
               </div>
               
-              <input
+              <Input
                 ref={fileInputRef}
                 type="file"
-                accept={ALLOWED_TYPES}
+                accept={ALLOWED_TYPES.join(',')}
                 onChange={handleFileChange}
                 className="hidden"
               />

@@ -35,43 +35,34 @@ interface CategoryConfig {
 }
 
 export const CATEGORIES: Record<string, CategoryConfig> = {
-  // Most common expense categories (daily/weekly)
   'Food & Dining': { icon: Utensils, affiliation: 'expense' },
   'Transportation': { icon: Car, affiliation: 'expense' },
   'Groceries': { icon: ShoppingCart, affiliation: 'expense' },
   'Shopping': { icon: ShoppingBag, affiliation: 'expense' },
-  
-  // Regular recurring expenses (monthly)
   'Bills': { icon: Zap, affiliation: 'expense' },
-  'Subscriptions': { icon: Repeat, affiliation: 'expense' },
   'Insurance': { icon: Shield, affiliation: 'expense' },
-  
-  // Common discretionary expenses
   'Entertainment': { icon: Martini, affiliation: 'expense' },
   'Health': { icon: BriefcaseMedical, affiliation: 'expense' },
-  'Fitness': { icon: Dumbbell, affiliation: 'expense' },
   'Personal Care': { icon: Droplets, affiliation: 'expense' },
-  'Beauty': { icon: Sparkles, affiliation: 'expense' },
   'Household': { icon: HousePlug, affiliation: 'expense' },
+  'Beauty': { icon: Sparkles, affiliation: 'expense' },
+  'Accommodation': { icon: Hotel, affiliation: 'expense' },
+  'Flights': { icon: Plane, affiliation: 'expense' },
+  'Subscriptions': { icon: Repeat, affiliation: 'expense' },
+  'Fitness': { icon: Dumbbell, affiliation: 'expense' },
+  'Education': { icon: GraduationCap, affiliation: 'expense' },
+  'Taxes': { icon: Percent, affiliation: 'expense' },
+  'Pets': { icon: PawPrint, affiliation: 'expense' },
+  'Children': { icon: Baby, affiliation: 'expense' },
+  'Charity': { icon: HandHeart, affiliation: 'expense' },
   
-  // Most common income categories
   'Salary': { icon: HandCoins, affiliation: 'income' },
   'Work & Business': { icon: Briefcase, affiliation: 'income' },
   'Investment': { icon: PiggyBank, affiliation: 'income' },
   'Rental': { icon: Home, affiliation: 'income' },
   
-  // Universal categories
   'Gift': { icon: Gift, affiliation: 'both' },
   'Other': { icon: Squirrel, affiliation: 'both' },
-  
-  // Less common expense categories
-  'Flights': { icon: Plane, affiliation: 'expense' },
-  'Accommodation': { icon: Hotel, affiliation: 'expense' },
-  'Education': { icon: GraduationCap, affiliation: 'expense' },
-  'Pets': { icon: PawPrint, affiliation: 'expense' },
-  'Children': { icon: Baby, affiliation: 'expense' },
-  'Taxes': { icon: Percent, affiliation: 'expense' },
-  'Charity': { icon: HandHeart, affiliation: 'expense' },
 } as const
 
 export const CATEGORY_NAMES = Object.keys(CATEGORIES) as CategoryName[];
