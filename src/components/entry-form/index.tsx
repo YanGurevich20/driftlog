@@ -39,6 +39,7 @@ import { SERVICE_START_DATE } from '@/lib/config';
 import { Input } from '../ui/input';
 import { CATEGORY_NAMES } from '@/types/categories';
 import { useCategoryRanking } from '@/hooks/use-category-ranking';
+import { useEntryAnimation } from '@/contexts/entry-animation-context';
 
 const formSchema = z.object({
   type: z.enum(['expense', 'income']),
@@ -67,6 +68,7 @@ interface EntryFormProps {
 export function EntryForm({ entry, onSuccess }: EntryFormProps) {
   const { user } = useAuth();
   const router = useRouter();
+  const { setAnimationData } = useEntryAnimation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { lastUsedCurrency, setLastUsedCurrency, addRecentCurrency } = usePreferences();
   const { trackCategoryUsage, getDefaultCategory, recentCategories } = useCategoryRanking();
@@ -230,8 +232,12 @@ export function EntryForm({ entry, onSuccess }: EntryFormProps) {
           await updateDoc(doc(db, 'entries', entry.id), entryData);
           toast.success('Entry updated successfully');
         } else {
-          await addDoc(collection(db, 'entries'), entryData);
-          toast.success('Entry added successfully');
+          const docRef = await addDoc(collection(db, 'entries'), entryData);
+          // Pre-set animation state before navigation
+          setAnimationData({
+            entryId: docRef.id,
+            date: selectedLocalDate
+          });
         }
         
         // Track category usage

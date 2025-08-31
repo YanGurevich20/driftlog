@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { DailyView } from '@/components/daily-view';
@@ -10,6 +10,7 @@ import { BudgetView } from '@/components/budget-view';
 import { RecurringView } from '@/components/recurring-view';
 import { useAuth } from '@/lib/auth-context';
 import { LLMEntryInput } from '@/components/llm-entry-input';
+import { useEntryAnimation } from '@/contexts/entry-animation-context';
 
 const greetings = [
   "Welcome back",
@@ -53,19 +54,25 @@ function getGreeting(userName: string): string {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { animationData, setAnimationData } = useEntryAnimation();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [animatingEntryId, setAnimatingEntryId] = useState<string | undefined>();
+  const [animatingEntryId, setAnimatingEntryId] = useState<string | undefined>(() => animationData?.entryId);
+  
   const firstName = user?.name?.split(' ')[0] || user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
-  const greetingMessage = getGreeting(firstName);
 
-  const handleAnimationComplete = () => {
-    setAnimatingEntryId(undefined);
-  };
+  // Handle animation data
+  useEffect(() => {
+    if (animationData) {
+      setAnimatingEntryId(animationData.entryId);
+      setSelectedDate(animationData.date);
+      setAnimationData(null);
+    }
+  }, [animationData, setAnimationData]);
 
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-xl pl-2 font-light">{greetingMessage}</h1>
+        <h1 className="text-xl pl-2 font-light">{getGreeting(firstName)}</h1>
       </div>
       <div className="grid gap-6 md:grid-cols-2 md:items-start pb-32">
         <div className="space-y-6">
@@ -82,7 +89,12 @@ export default function Dashboard() {
               </Link>
             </Button>
           </div>
-          <DailyView selectedDate={selectedDate} onDateChange={setSelectedDate} animatingEntryId={animatingEntryId} onAnimationComplete={handleAnimationComplete} />
+          <DailyView 
+            selectedDate={selectedDate} 
+            onDateChange={setSelectedDate} 
+            animatingEntryId={animatingEntryId} 
+            onAnimationComplete={() => setAnimatingEntryId(undefined)} 
+          />
         </div>
         <div className="space-y-6">
           <MonthlyView />
@@ -90,7 +102,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <LLMEntryInput onDateChange={setSelectedDate} onEntryCreated={setAnimatingEntryId} />
+      <LLMEntryInput 
+        onDateChange={setSelectedDate} 
+        onEntryCreated={setAnimatingEntryId} 
+      />
     </>
   );
 }

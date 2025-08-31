@@ -272,7 +272,7 @@ export function TypingText({
   delay = 32,
   className,
   grow = false,
-  alwaysVisibleCount = 1,
+  alwaysVisibleCount = 0,
   smooth = false,
   waitTime,
   onComplete,
