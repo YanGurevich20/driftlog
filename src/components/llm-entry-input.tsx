@@ -7,15 +7,9 @@ import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toUTCMidnight } from '@/lib/date-utils';
-import { 
-  CollapsibleCard, 
-  CollapsibleCardContent, 
-  CollapsibleCardHeader, 
-  CollapsibleCardTitle 
-} from '@/components/ui/collapsible-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, FileText, Volume2, ImageIcon, Paperclip, Send, Loader2, Sparkle } from 'lucide-react';
+import { X, FileText, Volume2, ImageIcon, Paperclip, SendHorizonal, Loader2 } from 'lucide-react';
 import { LLMEntryDebug } from '@/components/llm-entry-debug';
 
 interface ParsedEntry {
@@ -45,12 +39,12 @@ const getFileIcon = (file: File) => {
   return <FileText className="size-4" />;
 };
 
-interface LLMEntryInputProps {
+interface LLMEntryInputInlineProps {
   onDateChange?: (date: Date) => void;
   onEntryCreated?: (entryId: string) => void;
 }
 
-export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputProps) {
+export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputInlineProps) {
   const { user } = useAuth();
   const [inputText, setInputText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -145,81 +139,70 @@ export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputPro
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4">
-      <div className="mx-auto max-w-full md:max-w-lg">
-        <CollapsibleCard defaultCollapsed={true}>
-          <CollapsibleCardHeader>
-            <Sparkle className="size-4 mr-2" />
-            <CollapsibleCardTitle>Auto entry</CollapsibleCardTitle>
-          </CollapsibleCardHeader>
-          <CollapsibleCardContent>
-            <div onKeyDown={handleKeyDown}>
-              {selectedFile && (
-                <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 mb-3">
-                  <div className="flex items-center gap-2">
-                    {getFileIcon(selectedFile)}
-                    <span className="text-sm text-muted-foreground">
-                      {truncateFileName(selectedFile.name)}
-                    </span>
-                  </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={clearSelectedFile}
-                    disabled={isLoading}
-                  >
-                    <X />
-                  </Button>
-                </div>
-              )}
-              
-              <div className="flex items-center gap-2">
-                <Input
-                  type="text"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder={selectedFile ? '(optional) Add details...' : 'Describe an entry...'}
-                  className="flex-1"
-                />
-                <div className="flex items-center gap-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={!!selectedFile || isLoading}
-                  >
-                    <Paperclip />
-                  </Button>
-                  <LLMEntryDebug
-                    inputText={inputText}
-                    isLoading={isLoading}
-                    setIsLoading={setIsLoading}
-                    onDateChange={onDateChange}
-                    onEntryCreated={onEntryCreated}
-                    clearForm={clearForm}
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleSubmit}
-                    disabled={(!inputText.trim() && !selectedFile) || isLoading}
-                  >
-                    {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
-                  </Button>
-                </div>
-              </div>
-              
-              <Input
-                ref={fileInputRef}
-                type="file"
-                accept={ALLOWED_TYPES.join(',')}
-                onChange={handleFileChange}
-                className="hidden"
-              />
+    <>
+      <div className="space-y-2">
+        {selectedFile && (
+          <div className="flex items-center justify-between bg-muted/50 rounded-md">
+            <div className="flex items-center gap-2">
+              <span className="ml-3">{getFileIcon(selectedFile)}</span>
+              <span className="text-sm text-muted-foreground">
+                {truncateFileName(selectedFile.name)}
+              </span>
             </div>
-          </CollapsibleCardContent>
-        </CollapsibleCard>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={clearSelectedFile}
+              disabled={isLoading}
+            >
+              <X />
+            </Button>
+          </div>
+        )}
+        
+        <div className="flex items-center gap-2" onKeyDown={handleKeyDown}>
+          <Input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder={selectedFile ? '(optional) Add details...' : 'Describe an entry...'}
+            className="flex-1"
+          />
+          <div className="flex items-center gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!!selectedFile || isLoading}
+            >
+              <Paperclip />
+            </Button>
+            <LLMEntryDebug
+              inputText={inputText}
+              isLoading={isLoading}
+              setIsLoading={setIsLoading}
+              onDateChange={onDateChange}
+              onEntryCreated={onEntryCreated}
+              clearForm={clearForm}
+            />
+            <Button
+              size="icon"
+              onClick={handleSubmit}
+              disabled={(!inputText.trim() && !selectedFile) || isLoading}
+            >
+              {isLoading ? <Loader2 className="animate-spin" /> : <SendHorizonal />}
+            </Button>
+          </div>
+        </div>
       </div>
-    </div>
+      
+      <Input
+        ref={fileInputRef}
+        type="file"
+        accept={ALLOWED_TYPES.join(',')}
+        onChange={handleFileChange}
+        className="hidden"
+      />
+    </>
   );
 }

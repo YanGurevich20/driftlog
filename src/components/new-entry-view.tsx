@@ -1,10 +1,10 @@
 'use client';
 
 import { useContext } from 'react';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus, WandSparkles } from 'lucide-react';
 import { DualModeCard, DualModeCardHeader, DualModeCardContent, DualModeCardContext } from '@/components/ui/dual-mode-card';
 import { EntryFormInline } from '@/components/entry-form-inline';
-import { LLMEntryInputInline } from '@/components/llm-entry-input-inline';
+import { LLMEntryInput } from '@/components/llm-entry-input';
 
 function DualModeCardContentRenderer({ 
   onDateChange, 
@@ -17,7 +17,7 @@ function DualModeCardContentRenderer({
 
   if (activeMode === 'auto') {
     return (
-      <LLMEntryInputInline
+      <LLMEntryInput
         onDateChange={onDateChange}
         onEntryCreated={onEntryCreated}
       />
@@ -46,7 +46,7 @@ export function NewEntryView({ onDateChange, onEntryCreated }: NewEntryViewProps
     <DualModeCard defaultCollapsed={true}>
       <DualModeCardHeader
         leftTrigger={{
-          icon: <Sparkles className="size-4" />,
+          icon: <WandSparkles className="size-4" />,
           label: "Auto Entry",
           onClick: () => {}
         }}

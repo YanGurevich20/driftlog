@@ -98,7 +98,6 @@ function DualModeCardHeader({
   return (
     <CardHeader 
       className={cn(
-        "py-0 rounded-t-lg overflow-hidden",
         className,
         !isOpen && "border-b-0 dark:border-b-0"
       )} 

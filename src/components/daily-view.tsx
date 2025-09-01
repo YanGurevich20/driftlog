@@ -167,7 +167,7 @@ export function DailyView({ selectedDate: propSelectedDate, onDateChange, animat
           </Popover>
         }
       >
-        <CollapsibleCardTitle className="text-primary">
+        <CollapsibleCardTitle>
           {format(selectedDate, 'EEEE, MMMM d')}
         </CollapsibleCardTitle>
       </CollapsibleCardHeader>

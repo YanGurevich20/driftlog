@@ -57,7 +57,7 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   'Charity': { icon: HandHeart, affiliation: 'expense' },
   
   'Salary': { icon: HandCoins, affiliation: 'income' },
-  'Work & Business': { icon: Briefcase, affiliation: 'income' },
+  'Business': { icon: Briefcase, affiliation: 'income' },
   'Investment': { icon: PiggyBank, affiliation: 'income' },
   'Rental': { icon: Home, affiliation: 'income' },
   

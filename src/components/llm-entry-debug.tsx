@@ -42,7 +42,7 @@ export function LLMEntryDebug({
         type: 'expense' as const,
         amount: Math.floor(Math.random() * 100) + 10, // Random amount between 10-110
         currency: 'USD',
-        category: ['Food', 'Transportation', 'Entertainment', 'Shopping'][Math.floor(Math.random() * 4)],
+        category: ['Food & Dining', 'Transportation', 'Entertainment', 'Shopping'][Math.floor(Math.random() * 4)],
         description: inputText.trim() || `Debug entry ${new Date().toLocaleTimeString()}`,
         date: new Date().toISOString(),
         confidence: 0.9

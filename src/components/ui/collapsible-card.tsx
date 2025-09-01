@@ -10,6 +10,7 @@ interface CollapsibleCardProps {
   children?: React.ReactNode;
   className?: string;
   defaultCollapsed?: boolean;
+  hideFooterWhenCollapsed?: boolean;
 }
 
 interface CollapsibleCardHeaderProps {
@@ -36,15 +37,18 @@ interface CollapsibleCardTitleProps {
 const CollapsibleCardContext = React.createContext<{
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  hideFooterWhenCollapsed: boolean;
 }>({
   isOpen: true,
   setIsOpen: () => {},
+  hideFooterWhenCollapsed: true,
 });
 
 function CollapsibleCard({ 
   children, 
   className,
   defaultCollapsed = false,
+  hideFooterWhenCollapsed = true,
   ...props 
 }: CollapsibleCardProps) {
   const [isOpen, setIsOpen] = React.useState(!defaultCollapsed);
@@ -53,7 +57,7 @@ function CollapsibleCard({
     setIsOpen(!defaultCollapsed);
   }, [defaultCollapsed]);
   return (
-    <CollapsibleCardContext.Provider value={{ isOpen, setIsOpen }}>
+    <CollapsibleCardContext.Provider value={{ isOpen, setIsOpen, hideFooterWhenCollapsed }}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <Card className={className} {...props}>
           {children}
@@ -136,6 +140,20 @@ function CollapsibleCardFooter({
   className,
   ...props 
 }: CollapsibleCardFooterProps) {
+  const { hideFooterWhenCollapsed } = React.useContext(CollapsibleCardContext);
+
+  if (hideFooterWhenCollapsed) {
+    return (
+      <CollapsibleContent
+        className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down duration-200 ease-out"
+      >
+        <CardFooter className={className} {...props}>
+          {children}
+        </CardFooter>
+      </CollapsibleContent>
+    );
+  }
+
   return (
     <CardFooter className={className} {...props}>
       {children}

@@ -109,7 +109,7 @@ export function BudgetView() {
   return (
     <CollapsibleCard defaultCollapsed={dailyBudget === 0}>
       <CollapsibleCardHeader>
-        <CollapsibleCardTitle className="text-primary">Today&apos;s Budget</CollapsibleCardTitle>
+        <CollapsibleCardTitle>Today&apos;s Budget</CollapsibleCardTitle>
       </CollapsibleCardHeader>
       
       <CollapsibleCardContent>
