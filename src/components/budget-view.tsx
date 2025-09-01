@@ -166,7 +166,7 @@ export function BudgetView() {
         .filter(([id]) => existingAllocationIds.has(id));
       
       // Validate that all amounts are not empty and are valid numbers
-      const invalidEntries = validEntries.filter(([id, form]) => {
+      const invalidEntries = validEntries.filter(([, form]) => {
         const amount = form.amount.trim();
         return !amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0;
       });

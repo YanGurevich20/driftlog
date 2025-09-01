@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { convertFirestoreDoc } from '@/lib/firestore-utils';
@@ -48,13 +48,11 @@ export function useBudgetAllocations() {
             setError(null);
           },
           (err) => {
-            console.error('Failed to fetch budget allocations:', err);
             setError(err as Error);
             setLoading(false);
           }
         );
       } catch (err) {
-        console.error('Failed to fetch user connections:', err);
         setError(err as Error);
         setLoading(false);
       }

@@ -73,7 +73,6 @@ function DualModeCard({
 }
 
 function DualModeCardHeader({ 
-  children, 
   className,
   leftTrigger,
   rightTrigger,

@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
