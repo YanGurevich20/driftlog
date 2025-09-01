@@ -44,12 +44,12 @@ const editSchema = z.object({
 
 type EditFormValues = z.infer<typeof editSchema>;
 
-interface EntryEditInlineProps {
+interface EntryEditDialogProps {
   entry: Entry;
   onSuccess?: () => void;
 }
 
-export function EntryEditInline({ entry, onSuccess }: EntryEditInlineProps) {
+export function EntryEditDialog({ entry, onSuccess }: EntryEditDialogProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -98,7 +98,7 @@ export function EntryEditInline({ entry, onSuccess }: EntryEditInlineProps) {
       <DialogHeader>
         <DialogTitle>Edit Entry</DialogTitle>
         <DialogDescription>
-          Make changes to your entry here. Click save when you're done.
+          Make changes to your entry here. Click save when you&apos;re done.
         </DialogDescription>
       </DialogHeader>
       

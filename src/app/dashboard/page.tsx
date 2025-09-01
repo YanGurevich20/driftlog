@@ -1,10 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { DailyView } from '@/components/daily-view';
-import { MonthlyView } from '@/components/monthly-view';
+import { EntriesView } from '@/components/entries-view';
 import { BudgetView } from '@/components/budget-view';
 import { RecurringView } from '@/components/recurring-view';
 import { NewEntryView } from '@/components/new-entry-view';
@@ -80,15 +77,16 @@ export default function Dashboard() {
             onDateChange={setSelectedDate}
             onEntryCreated={setAnimatingEntryId}
           />
-          <DailyView 
-            selectedDate={selectedDate} 
-            onDateChange={setSelectedDate} 
-            animatingEntryId={animatingEntryId} 
-            onAnimationComplete={() => setAnimatingEntryId(undefined)} 
+          <EntriesView
+            mode="daily"
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            animatingEntryId={animatingEntryId}
+            onAnimationComplete={() => setAnimatingEntryId(undefined)}
           />
         </div>
         <div className="space-y-6">
-          <MonthlyView />
+          <EntriesView mode="monthly" />
           <RecurringView />
         </div>
       </div>
