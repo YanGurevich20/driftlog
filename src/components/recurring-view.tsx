@@ -38,10 +38,8 @@ import { useEntries } from '@/hooks/use-entries';
 import { CategoryIcon } from '@/components/ui/category-icon';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
-import { useIsDesktop } from '@/hooks/use-media-query';
 
 export function RecurringView() {
-  const isDesktop = useIsDesktop();
   const { user } = useAuth();
   const { templates, loading, error } = useRecurringTemplates();
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -146,9 +144,9 @@ export function RecurringView() {
 
   return (
     <>
-      <CollapsibleCard defaultCollapsed={!isDesktop}>
+      <CollapsibleCard defaultCollapsed={true}>
         <CollapsibleCardHeader>
-          <CollapsibleCardTitle className="text-primary">Recurrences</CollapsibleCardTitle>
+          <CollapsibleCardTitle>Recurring</CollapsibleCardTitle>
         </CollapsibleCardHeader>
         
         <CollapsibleCardContent>

@@ -3,13 +3,12 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 import { DailyView } from '@/components/daily-view';
 import { MonthlyView } from '@/components/monthly-view';
 import { BudgetView } from '@/components/budget-view';
 import { RecurringView } from '@/components/recurring-view';
+import { NewEntryView } from '@/components/new-entry-view';
 import { useAuth } from '@/lib/auth-context';
-import { LLMEntryInput } from '@/components/llm-entry-input';
 import { useEntryAnimation } from '@/contexts/entry-animation-context';
 
 const greetings = [
@@ -77,18 +76,10 @@ export default function Dashboard() {
       <div className="grid gap-6 md:grid-cols-2 md:items-start pb-32">
         <div className="space-y-6">
           <BudgetView />
-          <div className="px-2">
-            <Button 
-              className="w-full rounded-full" 
-              size="lg"
-              asChild
-            >
-              <Link href="/dashboard/entry">
-                <Plus className="mr-2" />
-                Add Entry
-              </Link>
-            </Button>
-          </div>
+          <NewEntryView
+            onDateChange={setSelectedDate}
+            onEntryCreated={setAnimatingEntryId}
+          />
           <DailyView 
             selectedDate={selectedDate} 
             onDateChange={setSelectedDate} 
@@ -102,10 +93,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <LLMEntryInput 
-        onDateChange={setSelectedDate} 
-        onEntryCreated={setAnimatingEntryId} 
-      />
     </>
   );
 }
