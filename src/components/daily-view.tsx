@@ -22,9 +22,11 @@ import { CategoryIcon } from '@/components/ui/category-icon';
 import { DataState } from '@/components/ui/data-state';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { CalendarDays } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { deleteEntry } from '@/services/entries';
+import { EntryEditInline } from '@/components/entry-edit-inline';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -74,6 +76,8 @@ export function DailyView({ selectedDate: propSelectedDate, onDateChange, animat
   const [openCategories, setOpenCategories] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [entryToEdit, setEntryToEdit] = useState<Entry | null>(null);
   
   const dateRange = getDateRangeForDay(selectedDate);
   
@@ -127,7 +131,8 @@ export function DailyView({ selectedDate: propSelectedDate, onDateChange, animat
   }, [groupedEntries]);
 
   const handleEdit = (entry: Entry) => {
-    router.push(`/dashboard/entry/${entry.id}`);
+    setEntryToEdit(entry);
+    setEditDialogOpen(true);
   };
 
   const handleDelete = async () => {
@@ -328,6 +333,20 @@ export function DailyView({ selectedDate: propSelectedDate, onDateChange, animat
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <DialogContent className="sm:max-w-[425px]">
+        {entryToEdit && (
+          <EntryEditInline
+            entry={entryToEdit}
+            onSuccess={() => {
+              setEditDialogOpen(false);
+              setEntryToEdit(null);
+            }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
     </>
   );
 }

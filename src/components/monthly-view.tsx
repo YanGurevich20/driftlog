@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/collapsible-card';
 import { MonthPicker } from '@/components/ui/month-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CalendarIcon, MoreVertical, Edit2, Trash2, Repeat, Repeat1 } from 'lucide-react';
 import { DataState } from '@/components/ui/data-state';
@@ -25,6 +26,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import type { Entry } from '@/types';
 import { useRouter } from 'next/navigation';
 import { deleteEntry } from '@/services/entries';
+import { EntryEditInline } from '@/components/entry-edit-inline';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -50,6 +52,8 @@ export function MonthlyView() {
   const [openCategories, setOpenCategories] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [entryToEdit, setEntryToEdit] = useState<Entry | null>(null);
   
   const dateRange = getDateRangeForMonth(selectedMonth);
   
@@ -96,7 +100,8 @@ export function MonthlyView() {
   }, [groupedEntries]);
 
   const handleEdit = (entry: Entry) => {
-    router.push(`/dashboard/entry/${entry.id}`);
+    setEntryToEdit(entry);
+    setEditDialogOpen(true);
   };
 
   const handleDelete = async () => {
@@ -271,6 +276,20 @@ export function MonthlyView() {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <DialogContent className="sm:max-w-[425px]">
+        {entryToEdit && (
+          <EntryEditInline
+            entry={entryToEdit}
+            onSuccess={() => {
+              setEditDialogOpen(false);
+              setEntryToEdit(null);
+            }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
