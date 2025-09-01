@@ -52,7 +52,7 @@ async function seedExchangeRates() {
   try {
     const SERVICE_START_DATE = new Date(Date.UTC(2025, 0, 1, 0, 0, 0, 0));
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
     
     // Group dates by month
     const monthsData = {};
