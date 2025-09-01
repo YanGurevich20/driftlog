@@ -7,10 +7,15 @@ import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toUTCMidnight } from '@/lib/date-utils';
-import { Card, CardContent } from '@/components/ui/card';
+import { 
+  CollapsibleCard, 
+  CollapsibleCardContent, 
+  CollapsibleCardHeader, 
+  CollapsibleCardTitle 
+} from '@/components/ui/collapsible-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, FileText, Volume2, ImageIcon, Paperclip, Send, Loader2 } from 'lucide-react';
+import { X, FileText, Volume2, ImageIcon, Paperclip, Send, Loader2, Sparkle } from 'lucide-react';
 import { LLMEntryDebug } from '@/components/llm-entry-debug';
 
 interface ParsedEntry {
@@ -35,9 +40,9 @@ const truncateFileName = (fileName: string, maxLength: number = 20): string => {
 };
 
 const getFileIcon = (file: File) => {
-  if (file.type.startsWith('image/')) return <ImageIcon />;
-  if (file.type.startsWith('audio/')) return <Volume2 />;
-  return <FileText />;
+  if (file.type.startsWith('image/')) return <ImageIcon className="size-4" />;
+  if (file.type.startsWith('audio/')) return <Volume2 className="size-4" />;
+  return <FileText className="size-4" />;
 };
 
 interface LLMEntryInputProps {
@@ -142,11 +147,15 @@ export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputPro
   return (
     <div className="fixed bottom-0 left-0 right-0 p-4">
       <div className="mx-auto max-w-full md:max-w-lg">
-        <Card className="border-2">
-          <CardContent>
+        <CollapsibleCard defaultCollapsed={true}>
+          <CollapsibleCardHeader>
+            <Sparkle className="size-4 mr-2" />
+            <CollapsibleCardTitle>Auto entry</CollapsibleCardTitle>
+          </CollapsibleCardHeader>
+          <CollapsibleCardContent>
             <div onKeyDown={handleKeyDown}>
               {selectedFile && (
-                <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2 mb-3">
+                <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 mb-3">
                   <div className="flex items-center gap-2">
                     {getFileIcon(selectedFile)}
                     <span className="text-sm text-muted-foreground">
@@ -154,7 +163,7 @@ export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputPro
                     </span>
                   </div>
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
                     onClick={clearSelectedFile}
                     disabled={isLoading}
@@ -208,8 +217,8 @@ export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputPro
                 className="hidden"
               />
             </div>
-          </CardContent>
-        </Card>
+          </CollapsibleCardContent>
+        </CollapsibleCard>
       </div>
     </div>
   );

@@ -69,7 +69,7 @@ export default function Home() {
                 <p className="text-xs text-muted-foreground text-center">
                   By signing in, you agree to our{' '}
                   <Link href="/terms" className="underline hover:text-foreground">
-                    Terms of Service
+                    ToS
                   </Link>{' '}
                   and{' '}
                   <Link href="/privacy" className="underline hover:text-foreground">
