@@ -57,13 +57,13 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface EntryFormInlineProps {
+interface EntryFormProps {
   onSuccess?: () => void;
   onDateChange?: (date: Date) => void;
   onEntryCreated?: (entryId: string) => void;
 }
 
-export function EntryFormInline({ onSuccess, onDateChange, onEntryCreated }: EntryFormInlineProps) {
+export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryFormProps) {
   const { user } = useAuth();
   const { setAnimationData } = useEntryAnimation();
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -3,7 +3,7 @@
 import { useContext } from 'react';
 import { Plus, WandSparkles } from 'lucide-react';
 import { DualModeCard, DualModeCardHeader, DualModeCardContent, DualModeCardContext } from '@/components/ui/dual-mode-card';
-import { EntryFormInline } from '@/components/entry-form-inline';
+import { EntryForm } from '@/components/entry-form';
 import { LLMEntryInput } from '@/components/llm-entry-input';
 
 function DualModeCardContentRenderer({ 
@@ -26,7 +26,7 @@ function DualModeCardContentRenderer({
 
   if (activeMode === 'manual') {
     return (
-      <EntryFormInline
+      <EntryForm
         onDateChange={onDateChange}
         onEntryCreated={onEntryCreated}
       />
