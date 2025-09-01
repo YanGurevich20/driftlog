@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
 const db = getFirestore(admin.app(), "asia-db");
 
@@ -46,7 +46,7 @@ export const acceptConnectionInvitation = onCall<{ invitationId: string; userId:
   const result = await db.runTransaction(async (tx) => {
     const invSnap = await tx.get(invitationRef);
     if (!invSnap.exists) throw new HttpsError("not-found", "Invitation not found");
-    const invitation = invSnap.data() as { invitedEmail: string; invitedBy: string; inviterName: string; expiresAt: admin.firestore.Timestamp | Date };
+    const invitation = invSnap.data() as { invitedEmail: string; invitedBy: string; inviterName: string; expiresAt: Timestamp | Date };
 
     // Validate recipient matches invitation
     const authEmail = request.auth?.token.email;
@@ -55,7 +55,7 @@ export const acceptConnectionInvitation = onCall<{ invitationId: string; userId:
     }
 
     // Validate expiry
-    const expMs = invitation.expiresAt instanceof admin.firestore.Timestamp
+    const expMs = invitation.expiresAt instanceof Timestamp
       ? invitation.expiresAt.toMillis()
       : new Date(invitation.expiresAt).getTime();
     if (expMs < Date.now()) {

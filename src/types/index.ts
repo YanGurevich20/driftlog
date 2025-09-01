@@ -5,3 +5,4 @@ export * from './recurring';
 export * from './currency';
 export * from './rates';
 export * from './categories';
+export * from './budget';

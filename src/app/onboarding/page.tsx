@@ -140,7 +140,7 @@ export default function Onboarding() {
             <p className="text-xs text-muted-foreground text-center">
               By continuing, you agree to our{' '}
               <Link href="/terms" className="underline hover:text-foreground">
-                Terms
+                ToS
               </Link>{' '}
               and{' '}
               <Link href="/privacy" className="underline hover:text-foreground">

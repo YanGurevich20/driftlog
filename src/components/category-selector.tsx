@@ -15,6 +15,8 @@ interface CategorySelectorProps {
   value: string;
   onChange: (value: string) => void;
   type: 'expense' | 'income';
+  categories?: readonly CategoryName[];
+  disabledCategories?: readonly string[];
   className?: string;
   disabled?: boolean;
 }
@@ -23,6 +25,8 @@ export function CategorySelector({
   value,
   onChange,
   type,
+  categories: customCategories,
+  disabledCategories = [],
   className,
   disabled
 }: CategorySelectorProps) {
@@ -30,8 +34,8 @@ export function CategorySelector({
   const isDesktop = useIsDesktop();
   const { getRankedCategories } = useCategoryRanking();
 
-  // Get ranked categories for this type
-  const categories = getRankedCategories(type);
+  // Use custom categories if provided, otherwise get ranked categories for this type
+  const categories = customCategories || getRankedCategories(type);
 
   const trigger = (
     <Button
@@ -56,6 +60,7 @@ export function CategorySelector({
             <CategoryList
               value={value}
               categories={categories}
+              disabledCategories={disabledCategories}
               onSelect={(category) => {
                 onChange(category);
                 setOpen(false);
@@ -70,7 +75,7 @@ export function CategorySelector({
 
   return (
     <div className={className}>
-      <Drawer open={open} onOpenChange={setOpen} autoFocus={false}>
+      <Drawer open={open} onOpenChange={setOpen} autoFocus={isDesktop}>
         <DrawerTrigger asChild>
           {trigger}
         </DrawerTrigger>
@@ -83,6 +88,7 @@ export function CategorySelector({
             <CategoryList
               value={value}
               categories={categories}
+              disabledCategories={disabledCategories}
               onSelect={(category) => {
                 onChange(category);
                 setOpen(false);
@@ -99,11 +105,13 @@ export function CategorySelector({
 function CategoryList({
   value,
   categories,
+  disabledCategories = [],
   onSelect,
   type,
 }: {
   value: string;
   categories: readonly CategoryName[];
+  disabledCategories?: readonly string[];
   onSelect: (category: string) => void;
   type: 'expense' | 'income';
 }) {
@@ -138,6 +146,7 @@ function CategoryList({
             const isRecent = recentForType.includes(category);
             const isAffiliated = affiliatedCategories.includes(category);
             const isBoth = bothCategories.includes(category);
+            const isDisabled = disabledCategories.includes(category);
             const prevCategory = index > 0 ? filteredCategories[index - 1] : null;
             const prevIsRecent = prevCategory ? recentForType.includes(prevCategory) : false;
             const prevIsAffiliated = prevCategory ? affiliatedCategories.includes(prevCategory) : false;
@@ -159,15 +168,21 @@ function CategoryList({
                 <CommandItem
                   value={category}
                   onSelect={() => {
-                    onSelect(category);
-                    setSearch('');
+                    if (!isDisabled) {
+                      onSelect(category);
+                      setSearch('');
+                    }
                   }}
-                  className="flex items-center gap-3"
+                  className={`flex items-center gap-3 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={isDisabled}
                 >
                   <CategoryIcon category={category} />
                   <span className="flex-1">{category}</span>
                   {value === category && (
                     <span className="text-primary">✓</span>
+                  )}
+                  {isDisabled && (
+                    <span className="text-xs text-muted-foreground">Already budgeted</span>
                   )}
                 </CommandItem>
               </React.Fragment>

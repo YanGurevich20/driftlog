@@ -46,6 +46,7 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   'Personal Care': { icon: Droplets, affiliation: 'expense' },
   'Household': { icon: HousePlug, affiliation: 'expense' },
   'Beauty': { icon: Sparkles, affiliation: 'expense' },
+  'Rent': { icon: Home, affiliation: 'expense' },
   'Accommodation': { icon: Hotel, affiliation: 'expense' },
   'Flights': { icon: Plane, affiliation: 'expense' },
   'Subscriptions': { icon: Repeat, affiliation: 'expense' },
@@ -55,11 +56,10 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   'Pets': { icon: PawPrint, affiliation: 'expense' },
   'Children': { icon: Baby, affiliation: 'expense' },
   'Charity': { icon: HandHeart, affiliation: 'expense' },
+  'Investment': { icon: PiggyBank, affiliation: 'expense' },
   
   'Salary': { icon: HandCoins, affiliation: 'income' },
   'Business': { icon: Briefcase, affiliation: 'income' },
-  'Investment': { icon: PiggyBank, affiliation: 'income' },
-  'Rental': { icon: Home, affiliation: 'income' },
   
   'Gift': { icon: Gift, affiliation: 'both' },
   'Other': { icon: Squirrel, affiliation: 'both' },

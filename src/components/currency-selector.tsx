@@ -63,7 +63,7 @@ export function CurrencySelector({
 
   return (
     <div className={className}>
-      <Drawer open={open} onOpenChange={setOpen} autoFocus={false}>
+      <Drawer open={open} onOpenChange={setOpen} autoFocus={isDesktop}>
         <DrawerTrigger asChild>
           {trigger}
         </DrawerTrigger>

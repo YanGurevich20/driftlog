@@ -106,13 +106,13 @@ function DualModeCardHeader({
       <div className="flex items-stretch w-full relative">
         {/* Left Trigger */}
         <Button
-          className={
+          className={cn("rounded-full",
             activeMode === 'auto' && isOpen 
               ? "flex-1" 
               : activeMode === 'manual' && isOpen
               ? "opacity-0 flex-[0_0_0px] overflow-hidden px-0"
               : "flex-1"
-          }
+          )}
           variant={isOpen ? "outline" : "default"}
           onClick={() => handleTriggerClick('auto', leftTrigger.onClick)}
         >
@@ -133,13 +133,13 @@ function DualModeCardHeader({
 
         {/* Right Trigger */}
         <Button
-          className={
+          className={cn("rounded-full",
             activeMode === 'manual' && isOpen 
               ? "flex-1" 
               : activeMode === 'auto' && isOpen
               ? "opacity-0 flex-[0_0_0px] overflow-hidden px-0"
               : "flex-1"
-          }
+          )}
           variant={isOpen ? "outline" : "default"}
           onClick={() => handleTriggerClick('manual', rightTrigger.onClick)}
         >

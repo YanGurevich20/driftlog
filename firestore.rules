@@ -31,6 +31,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(targetUserId)).data.connectedUserIds.hasAny([request.auth.uid]);
     }
     
+    // Check if user is owner or has connection permissions  
+    function isOwnerOrConnection(userId) {
+      return userId == request.auth.uid || isMutuallyConnected(userId);
+    }
+    
     // Users - can read/write own doc, read mutually connected users
     match /users/{userId} {
       // Always allow users to read/write their own user document
@@ -42,17 +47,12 @@ service cloud.firestore {
     
     // Entries - users can access own and group members' entries
     match /entries/{entryId} {
-      allow read: if isAuthenticated() &&
-        (resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId));
-      allow create: if isAuthenticated() && 
-        (request.resource.data.userId == request.auth.uid || isMutuallyConnected(request.resource.data.userId)) &&
+      allow read, delete: if isAuthenticated() && (resource == null || isOwnerOrConnection(resource.data.userId));
+      allow create: if isAuthenticated() && isOwnerOrConnection(request.resource.data.userId) &&
         request.resource.data.date >= timestamp.date(2025, 1, 1);
-      allow update: if isAuthenticated() && 
-        (resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId)) &&
+      allow update: if isAuthenticated() && isOwnerOrConnection(resource.data.userId) &&
         // Prevent moving entries before service start
         (request.resource.data.date == null || request.resource.data.date >= timestamp.date(2025, 1, 1));
-      allow delete: if isAuthenticated() && 
-        (resource == null || resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId));
     }
     
     // Connection invitations - simplified access
@@ -72,29 +72,29 @@ service cloud.firestore {
     // Exchange rates - authenticated users can read; writes restricted to Admin SDK (functions)
     match /exchangeRates/{document=**} {
       allow read: if isAuthenticated();
-      allow write: if false; // Clients cannot write exchange rates
     }
     
     // Recurring templates - users and their mutual connections can fully manage
     match /recurringTemplates/{templateId} {
-      allow read, list: if isAuthenticated() && 
-        (resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId));
-      allow create: if isAuthenticated() && 
-        (request.resource.data.userId == request.auth.uid || isMutuallyConnected(request.resource.data.userId)) &&
+      allow read, list, delete: if isAuthenticated() && (resource == null || isOwnerOrConnection(resource.data.userId));
+      allow create: if isAuthenticated() && isOwnerOrConnection(request.resource.data.userId) &&
         request.resource.data.createdBy == request.auth.uid &&
         // Enforce start and end dates not before service start
         request.resource.data.startDate >= timestamp.date(2025, 1, 1) &&
         request.resource.data.recurrence.endDate >= timestamp.date(2025, 1, 1) &&
         // endDate must not be before start
         request.resource.data.recurrence.endDate >= request.resource.data.startDate;
-      allow update: if isAuthenticated() && 
-        (resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId)) &&
+      allow update: if isAuthenticated() && isOwnerOrConnection(resource.data.userId) &&
         // If startDate/endDate are updated, enforce bounds
         (request.resource.data.startDate == null || request.resource.data.startDate >= timestamp.date(2025, 1, 1)) &&
         (request.resource.data.recurrence.endDate == null || request.resource.data.recurrence.endDate >= timestamp.date(2025, 1, 1)) &&
         (request.resource.data.recurrence.endDate == null || request.resource.data.startDate == null || request.resource.data.recurrence.endDate >= request.resource.data.startDate);
-      allow delete: if isAuthenticated() && 
-        (resource == null || resource.data.userId == request.auth.uid || isMutuallyConnected(resource.data.userId));
+    }
+
+    // Budget allocations - users and their mutual connections can manage allocations
+    match /budgetAllocations/{allocationId} {
+      allow read, list, update, delete: if isAuthenticated() && (resource == null || isOwnerOrConnection(resource.data.userId));
+      allow create: if isAuthenticated() && isOwnerOrConnection(request.resource.data.userId);
     }
   }
 }

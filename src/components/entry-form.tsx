@@ -380,8 +380,9 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
                 <Input
                   type="number"
                   min={1}
-                  value={field.value}
-                  onChange={(e) => field.onChange(Math.max(1, parseInt(e.target.value) || 1))}
+                  placeholder="0"
+                  defaultValue={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
                   className="w-12"
                 />
               )}
@@ -406,10 +407,10 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="daily">{(form.watch('recurrence.interval') || 1) === 1 ? "day" : "days"}</SelectItem>
-                    <SelectItem value="weekly">{(form.watch('recurrence.interval') || 1) === 1 ? "week" : "weeks"}</SelectItem>
-                    <SelectItem value="monthly">{(form.watch('recurrence.interval') || 1) === 1 ? "month" : "months"}</SelectItem>
-                    <SelectItem value="yearly">{(form.watch('recurrence.interval') || 1) === 1 ? "year" : "years"}</SelectItem>
+                    <SelectItem value="daily">{(form.watch('recurrence.interval') || 1) < 2 ? "day" : "days"}</SelectItem>
+                    <SelectItem value="weekly">{(form.watch('recurrence.interval') || 1) < 2 ? "week" : "weeks"}</SelectItem>
+                    <SelectItem value="monthly">{(form.watch('recurrence.interval') || 1) < 2 ? "month" : "months"}</SelectItem>
+                    <SelectItem value="yearly">{(form.watch('recurrence.interval') || 1) < 2 ? "year" : "years"}</SelectItem>
                   </SelectContent>
                 </Select>
               )}
