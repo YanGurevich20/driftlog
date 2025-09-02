@@ -19,6 +19,8 @@ interface CategorySelectorProps {
   disabledCategories?: readonly string[];
   className?: string;
   disabled?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function CategorySelector({
@@ -28,9 +30,13 @@ export function CategorySelector({
   categories: customCategories,
   disabledCategories = [],
   className,
-  disabled
+  disabled,
+  open: controlledOpen,
+  onOpenChange
 }: CategorySelectorProps) {
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const isDesktop = useIsDesktop();
   const { getRankedCategories } = useCategoryRanking();
 

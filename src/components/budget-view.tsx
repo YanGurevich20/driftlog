@@ -17,7 +17,7 @@ import { BudgetAllocationDialog } from '@/components/budget-allocation-dialog';
 import { DataState } from '@/components/ui/data-state';
 import { Progress } from '@/components/ui/progress';
 import { CategoryIcon } from '@/components/ui/category-icon';
-import { CategorySelector } from '@/components/category-selector';
+import { MultiCategorySelector } from '@/components/ui/multi-category-selector';
 import { CurrencySelector } from '@/components/currency-selector';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
 import { isSameMonth } from 'date-fns';
@@ -50,7 +50,7 @@ export function BudgetView() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editForms, setEditForms] = useState<Record<string, {
     amount: string;
-    category: string;
+    categories: string[];
     currency: string;
   }>>({});
 
@@ -100,7 +100,11 @@ export function BudgetView() {
     }
 
     return allocations.map(allocation => {
-      const spent = categorySpending.get(allocation.category) || 0;
+      // Calculate total spending across all categories in this allocation
+      const spent = allocation.categories.reduce((total, category) => {
+        return total + (categorySpending.get(category) || 0);
+      }, 0);
+      
       const budget = convertAmount(
         allocation.amount,
         allocation.currency,
@@ -144,7 +148,7 @@ export function BudgetView() {
     const totalAllocated = budgetProgress.reduce((sum, item) => sum + item.budget, 0);
 
     // Calculate spending in categories that don't have budgets
-    const allocatedCategories = new Set(allocations.map(a => a.category));
+    const allocatedCategories = new Set(allocations.flatMap(a => a.categories));
     const unallocatedSpending = Array.from(categorySpending.entries())
       .filter(([category]) => !allocatedCategories.has(category))
       .reduce((sum, [, spending]) => sum + spending, 0);
@@ -165,11 +169,11 @@ export function BudgetView() {
   const enterEditMode = () => {
     setIsEditMode(true);
     // Initialize edit forms for all budgets
-    const forms: Record<string, { amount: string; category: string; currency: string }> = {};
+    const forms: Record<string, { amount: string; categories: string[]; currency: string }> = {};
     budgetProgress.forEach(item => {
       forms[item.id] = {
         amount: item.amount.toString(),
-        category: item.category,
+        categories: item.categories,
         currency: item.currency
       };
     });
@@ -181,7 +185,7 @@ export function BudgetView() {
     setEditForms({});
   };
 
-  const updateEditForm = (id: string, field: keyof typeof editForms[string], value: string) => {
+  const updateEditForm = (id: string, field: keyof typeof editForms[string], value: string | string[]) => {
     setEditForms(prev => ({
       ...prev,
       [id]: {
@@ -199,20 +203,30 @@ export function BudgetView() {
         .filter(([id]) => existingAllocationIds.has(id));
       
       // Validate that all amounts are not empty and are valid numbers
-      const invalidEntries = validEntries.filter(([, form]) => {
+      const invalidAmountEntries = validEntries.filter(([, form]) => {
         const amount = form.amount.trim();
         return !amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0;
       });
       
-      if (invalidEntries.length > 0) {
+      if (invalidAmountEntries.length > 0) {
         toast.error('Please enter valid amounts for all budgets');
+        return;
+      }
+
+      // Validate that all budgets have at least one category
+      const invalidCategoryEntries = validEntries.filter(([, form]) => {
+        return !form.categories || form.categories.length === 0;
+      });
+      
+      if (invalidCategoryEntries.length > 0) {
+        toast.error('Each budget must have at least one category');
         return;
       }
       
       const promises = validEntries.map(([id, form]) => 
         updateAllocation(id, {
           amount: parseFloat(form.amount),
-          category: form.category,
+          categories: form.categories,
           currency: form.currency
         })
       );
@@ -234,6 +248,11 @@ export function BudgetView() {
       toast.success('Budget deleted');
       setDeleteDialogOpen(false);
       setAllocationToDelete(null);
+      
+      // If this was the last budget, exit edit mode
+      if (budgetProgress.length <= 1) {
+        exitEditMode();
+      }
     } catch (error) {
       console.error('Failed to delete budget:', error);
       toast.error('Failed to delete budget');
@@ -302,26 +321,28 @@ export function BudgetView() {
                 <div className="flex items-center justify-between">
                   {isEditMode ? (
                     <>
-                      <div className="flex items-center gap-2">
-                        <CategorySelector
-                          value={editForms[item.id]?.category || item.category}
-                          onChange={(category) => updateEditForm(item.id, 'category', category)}
+                      <div className="flex items-center gap-2 flex-1">
+                        <MultiCategorySelector
+                          value={editForms[item.id]?.categories || item.categories}
+                          onChange={(categories) => updateEditForm(item.id, 'categories', categories)}
                           type="expense"
+                          maxItems={4}
+                          className="flex-1"
                         />
-                      </div>
-                      <div className="flex items-center gap-2">
                         <Input
                           type="number"
                           step="0.01"
                           placeholder="0.00"
                           defaultValue={editForms[item.id]?.amount || item.amount.toString()}
                           onChange={(e) => updateEditForm(item.id, 'amount', e.target.value)}
-                          className="flex-1"
+                          className="w-20"
                         />
                         <CurrencySelector
                           value={editForms[item.id]?.currency || item.currency}
                           onChange={(currency) => updateEditForm(item.id, 'currency', currency)}
                         />
+                      </div>
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -335,8 +356,16 @@ export function BudgetView() {
                   ) : (
                     <>
                       <div className="flex items-center gap-2 h-8">
-                        <div className="size-8 flex items-center justify-center"><CategoryIcon category={item.category} /></div>
-                        <span className="font-medium">{item.category}</span>
+                        <div className="flex items-center gap-2">
+                          {item.categories.map((category) => (
+                            <div key={category} className="size-8 flex items-center justify-center">
+                              <CategoryIcon category={category} />
+                            </div>
+                          ))}
+                        </div>
+                        {item.categories.length === 1 && (
+                          <span className="font-medium">{item.categories[0]}</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 h-8">
                         <div className="text-sm text-muted-foreground">
@@ -389,7 +418,7 @@ export function BudgetView() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Budget</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the budget for &quot;{allocationToDelete?.category}&quot;?
+              Are you sure you want to delete the budget for &quot;{allocationToDelete?.categories.join(', ')}&quot;?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

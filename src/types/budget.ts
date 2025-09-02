@@ -1,7 +1,7 @@
 export interface BudgetAllocation {
   id: string;
   userId: string;
-  category: string;
+  categories: string[];
   amount: number;
   currency: string;
   createdAt: Date;

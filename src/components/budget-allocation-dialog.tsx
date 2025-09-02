@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CategorySelector } from '@/components/category-selector';
+import { MultiCategorySelector } from '@/components/ui/multi-category-selector';
 import { CurrencySelector } from '@/components/currency-selector';
 import { useAuth } from '@/lib/auth-context';
 import { useBudgetAllocations } from '@/hooks/use-budget-allocations';
@@ -17,7 +17,7 @@ import { getCategoriesByAffiliation } from '@/types/categories';
 import type { BudgetAllocation } from '@/types';
 
 const formSchema = z.object({
-  category: z.string().min(1, 'Category is required'),
+  categories: z.array(z.string()).min(1, 'At least one category is required'),
   amount: z
     .string()
     .min(1, 'Amount is required')
@@ -42,25 +42,23 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
   const { allocations, createAllocation, updateAllocation } = useBudgetAllocations();
 
   const disabledCategories = useMemo(() => {
-    const usedCategories = allocations.map(a => a.category);
+    const usedCategories = allocations.flatMap(a => a.categories);
     
-    // When editing, allow the current category to be selected
+    // When editing, allow the current categories to be selected
     return editAllocation 
-      ? usedCategories.filter(cat => cat !== editAllocation.category)
+      ? usedCategories.filter(cat => !editAllocation.categories.includes(cat))
       : usedCategories;
   }, [allocations, editAllocation]);
 
-  const defaultCategory = useMemo(() => {
-    if (editAllocation) return editAllocation.category;
-    
-    const allCategories = getCategoriesByAffiliation('expense');
-    return allCategories.find(cat => !disabledCategories.includes(cat)) || '';
-  }, [editAllocation, disabledCategories]);
+  const defaultCategories = useMemo(() => {
+    if (editAllocation) return editAllocation.categories;
+    return [];
+  }, [editAllocation]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      category: defaultCategory,
+      categories: defaultCategories,
       amount: editAllocation?.amount?.toString() || '',
       currency: editAllocation?.currency || user?.displayCurrency || 'USD',
     },
@@ -70,7 +68,7 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
   useEffect(() => {
     if (editAllocation) {
       form.reset({
-        category: editAllocation.category,
+        categories: editAllocation.categories,
         amount: editAllocation.amount.toString(),
         currency: editAllocation.currency,
       });
@@ -80,19 +78,14 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
 
   // Reset form when dialog opens for new allocation
   useEffect(() => {
-    if (open && !editAllocation && disabledCategories) {
-      const allCategories = getCategoriesByAffiliation('expense');
-      const firstAvailable = allCategories.find(cat => !disabledCategories.includes(cat));
-      if (firstAvailable) {
-        console.log('🔄 RESETTING FORM with category:', firstAvailable);
-        form.reset({
-          category: firstAvailable,
-          amount: '',
-          currency: user?.displayCurrency || 'USD',
-        });
-      }
+    if (open && !editAllocation) {
+      form.reset({
+        categories: [],
+        amount: '',
+        currency: user?.displayCurrency || 'USD',
+      });
     }
-  }, [open, editAllocation, disabledCategories, form, user?.displayCurrency]);
+  }, [open, editAllocation, form, user?.displayCurrency]);
 
   const handleClose = () => {
     setOpen(false);
@@ -104,14 +97,11 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
   const handleSubmit = async (values: FormValues) => {
     if (!user?.id) return;
 
-    console.log('💾 SUBMITTING BUDGET:', values);
-    console.log('  Current allocations before submit:', allocations.length);
-
     setIsSubmitting(true);
     try {
       if (editAllocation) {
         await updateAllocation(editAllocation.id, {
-          category: values.category,
+          categories: values.categories,
           amount: parseFloat(values.amount),
           currency: values.currency,
         });
@@ -119,12 +109,11 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
       } else {
         await createAllocation({
           userId: user.id,
-          category: values.category,
+          categories: values.categories,
           amount: parseFloat(values.amount),
           currency: values.currency,
         });
         toast.success('Budget allocation created');
-        console.log('✅ Budget created successfully');
       }
 
       handleClose();
@@ -139,17 +128,19 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
   const DialogForm = (
     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
       <div className="flex items-center gap-3">
-        <CategorySelector
-          value={form.watch('category')}
-          onChange={(value) => form.setValue('category', value)}
+        <MultiCategorySelector
+          value={form.watch('categories')}
+          onChange={(categories) => form.setValue('categories', categories)}
           type="expense"
           disabledCategories={disabledCategories}
+          maxItems={4}
+          className="flex-1"
         />
         <Input
           type="number"
           step="0.01"
           placeholder="0.00"
-          className="flex-1"
+          className="w-20"
           {...form.register('amount')}
         />
         <CurrencySelector
@@ -158,9 +149,9 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
         />
       </div>
 
-      {(form.formState.errors.category || form.formState.errors.amount || form.formState.errors.currency) && (
+      {(form.formState.errors.categories || form.formState.errors.amount || form.formState.errors.currency) && (
         <div className="text-sm text-destructive">
-          {form.formState.errors.category?.message ||
+          {form.formState.errors.categories?.message ||
            form.formState.errors.amount?.message ||
            form.formState.errors.currency?.message}
         </div>
@@ -183,7 +174,7 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
   if (!editAllocation && getCategoriesByAffiliation('expense').every(cat => disabledCategories.includes(cat))) {
     return (
       <Button variant="ghost" size="icon" disabled title="All categories already have budget allocations">
-        <Plus className="h-4 w-4" />
+        <Plus />
       </Button>
     );
   }
@@ -192,7 +183,7 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
     <>
       {!editAllocation && (
         <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4" />
+          <Plus />
         </Button>
       )}
 
