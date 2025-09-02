@@ -9,6 +9,7 @@ import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import {
   CollapsibleCard,
   CollapsibleCardContent,
+  CollapsibleCardFooter,
   CollapsibleCardHeader,
   CollapsibleCardTitle
 } from '@/components/ui/collapsible-card';
@@ -20,7 +21,7 @@ import { CategorySelector } from '@/components/category-selector';
 import { CurrencySelector } from '@/components/currency-selector';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
 import { isSameMonth } from 'date-fns';
-import { Wallet, Edit2, Trash2, Check, X } from 'lucide-react';
+import { Wallet, Edit2, Trash2, Check, X, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -120,6 +121,38 @@ export function BudgetView() {
     });
   }, [allocations, categorySpending, displayCurrency, ratesByMonth, ratesLoading]);
 
+  // Calculate totals for footer
+  const totals = useMemo(() => {
+    if (ratesLoading || !ratesByMonth) {
+      return { totalIncome: 0, totalAllocated: 0, unallocatedSpending: 0, remaining: 0 };
+    }
+
+    // Calculate total income for current month
+    const totalIncome = monthEntries
+      .filter(entry => entry.type === 'income' && isSameMonth(entry.date, new Date()))
+      .reduce((sum, entry) => {
+        return sum + convertAmount(
+          entry.originalAmount,
+          entry.currency,
+          displayCurrency,
+          entry.date,
+          ratesByMonth
+        );
+      }, 0);
+
+    // Calculate total allocated budgets
+    const totalAllocated = budgetProgress.reduce((sum, item) => sum + item.budget, 0);
+
+    // Calculate spending in categories that don't have budgets
+    const allocatedCategories = new Set(allocations.map(a => a.category));
+    const unallocatedSpending = Array.from(categorySpending.entries())
+      .filter(([category]) => !allocatedCategories.has(category))
+      .reduce((sum, [, spending]) => sum + spending, 0);
+
+    const remaining = totalIncome - totalAllocated;
+
+    return { totalIncome, totalAllocated, unallocatedSpending, remaining };
+  }, [monthEntries, budgetProgress, allocations, categorySpending, displayCurrency, ratesByMonth, ratesLoading]);
 
   const loading = allocationsLoading || entriesLoading || ratesLoading;
   const error = allocationsError || entriesError;
@@ -302,7 +335,7 @@ export function BudgetView() {
                   ) : (
                     <>
                       <div className="flex items-center gap-2 h-8">
-                        <CategoryIcon category={item.category} />
+                        <div className="size-8 flex items-center justify-center"><CategoryIcon category={item.category} /></div>
                         <span className="font-medium">{item.category}</span>
                       </div>
                       <div className="flex items-center gap-2 h-8">
@@ -316,7 +349,7 @@ export function BudgetView() {
 
                 <Progress
                   value={item.progress}
-                  className={`h-2 ${
+                  className={`${
                     item.overBudget ? '[&>*]:bg-orange-400' :
                     item.progress > 80 ? '[&>*]:bg-yellow-500' : ''
                   }`}
@@ -326,6 +359,29 @@ export function BudgetView() {
           </div>
         </DataState>
       </CollapsibleCardContent>
+
+      {budgetProgress.length > 0 && totals.remaining > 0 && (
+        <CollapsibleCardFooter>
+          <div className="space-y-2 w-full">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Coins className="h-4 w-4" />
+                <span className="font-medium">Unbudgeted</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {formatCurrency(totals.unallocatedSpending, displayCurrency, false)} / {formatCurrency(totals.remaining, displayCurrency, false)}
+              </div>
+            </div>
+            <Progress 
+              value={totals.remaining > 0 ? Math.min((totals.unallocatedSpending / totals.remaining) * 100, 100) : 0}
+              className={`h-2 ${
+                totals.unallocatedSpending > totals.remaining ? '[&>*]:bg-orange-400' :
+                totals.remaining > 0 && (totals.unallocatedSpending / totals.remaining) > 0.8 ? '[&>*]:bg-yellow-500' : ''
+              }`}
+            />
+          </div>
+        </CollapsibleCardFooter>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
