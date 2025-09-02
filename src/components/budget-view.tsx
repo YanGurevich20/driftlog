@@ -389,7 +389,7 @@ export function BudgetView() {
         </DataState>
       </CollapsibleCardContent>
 
-      {budgetProgress.length > 0 && totals.remaining > 0 && (
+      {totals.remaining >= 0 && (
         <CollapsibleCardFooter>
           <div className="space-y-2 w-full">
             <div className="flex justify-between items-center">
