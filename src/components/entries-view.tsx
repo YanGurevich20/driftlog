@@ -47,6 +47,7 @@ import { TypingText } from '@/components/ui/typing-text';
 import { CalendarDays, Receipt } from 'lucide-react';
 import { SERVICE_START_DATE } from '@/lib/config';
 import { getDateRangeForDay, getDateRangeForMonth } from '@/lib/date-range-utils';
+import { useIsDesktop } from '@/hooks/use-media-query';
 
 interface EntriesViewProps {
   mode: 'daily' | 'monthly';
@@ -64,7 +65,7 @@ export function EntriesView({
   onAnimationComplete
 }: EntriesViewProps) {
   const { user } = useAuth();
-
+  const isDesktop = useIsDesktop();
   // Mode-specific configuration
   const isDaily = mode === 'daily';
   const dateRangeFunction = isDaily ? getDateRangeForDay : getDateRangeForMonth;
@@ -75,7 +76,6 @@ export function EntriesView({
     ? 'Add your first entry for this date'
     : 'Add your first entry for this month';
   const emptyIcon = isDaily ? CalendarDays : Receipt;
-  const netLabel = isDaily ? 'Daily Net' : 'Monthly Net';
 
   const [internalSelectedDate, setInternalSelectedDate] = useState(() => {
     // Check if there's a date stored in sessionStorage (daily mode only)
@@ -114,14 +114,15 @@ export function EntriesView({
 
   const groupedEntries = useMemo(() => {
     if (ratesLoading || !ratesByMonth) {
-      return {} as Record<string, { entries: Entry[]; net: number }>;
+      return {} as Record<string, { entries: Entry[]; income: number; expenses: number }>;
     }
     return entries.reduce((acc, entry) => {
       const category = entry.category;
       if (!acc[category]) {
         acc[category] = {
           entries: [],
-          net: 0,
+          income: 0,
+          expenses: 0,
         };
       }
       acc[category].entries.push(entry);
@@ -133,16 +134,23 @@ export function EntriesView({
         entry.date,
         ratesByMonth
       );
-      // Add as positive for income, negative for expense
-      acc[category].net += entry.type === 'income' ? amount : -amount;
+      // Add to appropriate category
+      if (entry.type === 'income') {
+        acc[category].income += amount;
+      } else {
+        acc[category].expenses += amount;
+      }
       return acc;
-    }, {} as Record<string, { entries: Entry[]; net: number }>);
+    }, {} as Record<string, { entries: Entry[]; income: number; expenses: number }>);
   }, [entries, ratesByMonth, ratesLoading, displayCurrency]);
 
-  const netAmount = useMemo(() => {
-    return Object.values(groupedEntries).reduce((sum, group) => {
-      return sum + group.net;
-    }, 0);
+  const totalAmounts = useMemo(() => {
+    return Object.values(groupedEntries).reduce((acc, group) => {
+      return {
+        income: acc.income + group.income,
+        expenses: acc.expenses + group.expenses,
+      };
+    }, { income: 0, expenses: 0 });
   }, [groupedEntries]);
 
   // Open all categories by default
@@ -172,7 +180,7 @@ export function EntriesView({
 
     return (
     <>
-    <CollapsibleCard defaultCollapsed={!isDaily}>
+    <CollapsibleCard defaultCollapsed={!isDaily} hideFooterWhenCollapsed={!isDesktop}>
       <CollapsibleCardHeader
         actions={
           <Popover>
@@ -221,7 +229,7 @@ export function EntriesView({
               onValueChange={setOpenCategories}
             >
               {Object.entries(groupedEntries)
-                .sort(([, a], [, b]) => a.net - b.net)
+                .sort(([, a], [, b]) => (a.income - a.expenses) - (b.income - b.expenses))
                 .map(([category, group]) => (
                   <AccordionItem key={category} value={category}>
                     <AccordionTrigger className={cn(
@@ -234,15 +242,18 @@ export function EntriesView({
                           <CategoryIcon category={category} />
                           <span className="font-medium">{category}</span>
                         </div>
-                        <span className={`font-semibold ${
-                          group.net >= 0 ? 'text-primary' : ''
-                        }`}>
-                          {formatCurrency(
-                            Math.abs(group.net),
-                            displayCurrency,
-                            group.net < 0
+                        <div className="flex items-center gap-3 text-sm">
+                          {group.income > 0 && (
+                            <span className="text-primary font-semibold">
+                              {formatCurrency(group.income, displayCurrency, false)}
+                            </span>
                           )}
-                        </span>
+                          {group.expenses > 0 && (
+                            <span className="font-semibold">
+                              {formatCurrency(group.expenses, displayCurrency, true)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
@@ -333,12 +344,24 @@ export function EntriesView({
         {Object.keys(groupedEntries).length > 0 && (
           <>
             <CollapsibleCardFooter>
-                          <div className="flex justify-between w-full">
-              <span className="font-medium">{netLabel}</span>
-              <span className={`text-lg font-bold ${netAmount >= 0 ? 'text-primary' : ''}`}>
-                {formatCurrency(Math.abs(netAmount), displayCurrency, netAmount < 0)}
-              </span>
-            </div>
+              <div className="space-y-2 w-full">
+                {totalAmounts.income > 0 && (
+                  <div className="flex justify-between">
+                    <span className="font-medium">{isDaily ? 'Daily' : 'Monthly'} Income</span>
+                    <span className="text-lg font-bold text-primary">
+                      {formatCurrency(totalAmounts.income, displayCurrency, false, true)}
+                    </span>
+                  </div>
+                )}
+                {totalAmounts.expenses > 0 && (
+                  <div className="flex justify-between">
+                    <span className="font-medium">{isDaily ? 'Daily' : 'Monthly'} Expenses</span>
+                    <span className="text-lg font-bold">
+                      {formatCurrency(totalAmounts.expenses, displayCurrency, true)}
+                    </span>
+                  </div>
+                )}
+              </div>
             </CollapsibleCardFooter>
           </>
         )}

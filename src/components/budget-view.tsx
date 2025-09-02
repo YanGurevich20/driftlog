@@ -340,7 +340,7 @@ export function BudgetView() {
                       </div>
                       <div className="flex items-center gap-2 h-8">
                         <div className="text-sm text-muted-foreground">
-                          {formatCurrency(item.spent, displayCurrency, false)} / {formatCurrency(item.budget, displayCurrency, false)}
+                          {formatCurrency(Math.max(0, item.budget - item.spent), displayCurrency, false)} / {formatCurrency(item.budget, displayCurrency, false)}
                         </div>
                       </div>
                     </>
@@ -350,8 +350,8 @@ export function BudgetView() {
                 <Progress
                   value={item.progress}
                   className={`${
-                    item.overBudget ? '[&>*]:bg-orange-400' :
-                    item.progress > 80 ? '[&>*]:bg-yellow-500' : ''
+                    item.overBudget ? '[&>*]:bg-orange-300' :
+                    item.progress > 80 ? '[&>*]:bg-yellow-100' : ''
                   }`}
                 />
               </div>
@@ -365,11 +365,11 @@ export function BudgetView() {
           <div className="space-y-2 w-full">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Coins className="h-4 w-4" />
+                <div className="size-8 flex items-center justify-center"><Coins className="h-4 w-4" /></div>
                 <span className="font-medium">Unbudgeted</span>
               </div>
               <div className="text-sm text-muted-foreground">
-                {formatCurrency(totals.unallocatedSpending, displayCurrency, false)} / {formatCurrency(totals.remaining, displayCurrency, false)}
+                {formatCurrency(Math.max(0, totals.remaining - totals.unallocatedSpending), displayCurrency, false)} / {formatCurrency(totals.remaining, displayCurrency, false)}
               </div>
             </div>
             <Progress 
