@@ -1,9 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-interface IconContainerProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-function IconContainer({ className, ...props }: IconContainerProps) {
+function IconContainer({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
