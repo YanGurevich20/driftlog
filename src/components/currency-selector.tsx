@@ -30,7 +30,7 @@ export function CurrencySelector({
 
   const trigger = (
     <Button
-      variant="outline"
+      variant="secondary"
       role="combobox"
       aria-expanded={open}
       size='icon'

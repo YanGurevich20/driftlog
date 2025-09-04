@@ -171,7 +171,7 @@ export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputInl
           <div className="flex items-center gap-1">
             <Button
               size="icon"
-              variant="ghost"
+              variant="secondary"
               onClick={() => fileInputRef.current?.click()}
               disabled={!!selectedFile || isLoading}
             >

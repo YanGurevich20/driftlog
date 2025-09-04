@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import type { BudgetAllocation } from '@/types';
+import { IconContainer } from './ui/icon-container';
 
 export function BudgetView() {
   const { user } = useAuth();
@@ -358,9 +359,9 @@ export function BudgetView() {
                       <div className="flex items-center gap-2 h-8">
                         <div className="flex items-center gap-2">
                           {item.categories.map((category) => (
-                            <div key={category} className="size-8 flex items-center justify-center">
+                            <IconContainer key={category}>
                               <CategoryIcon category={category} />
-                            </div>
+                            </IconContainer>
                           ))}
                         </div>
                         {item.categories.length === 1 && (
@@ -376,13 +377,7 @@ export function BudgetView() {
                   )}
                 </div>
 
-                <Progress
-                  value={item.progress}
-                  className={`${
-                    item.overBudget ? '[&>*]:bg-orange-300' :
-                    item.progress > 80 ? '[&>*]:bg-yellow-100' : ''
-                  }`}
-                />
+                <Progress value={item.progress}/>
               </div>
             ))}
           </div>

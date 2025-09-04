@@ -59,7 +59,7 @@ export function MultiCategorySelector({
       {value.map((category, index) => (
         <Button
           key={`${category}-${index}`}
-          variant="outline"
+          variant="secondary"
           size="icon"
           disabled={disabled}
           onMouseEnter={() => setHoveredIndex(index)}

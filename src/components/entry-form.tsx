@@ -324,7 +324,7 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
           render={({ field }) => (
             <Button
               type="button"
-              variant={field.value ? "default" : "outline"}
+              variant={field.value ? "default" : "secondary"}
               size="icon"
               onClick={() => field.onChange(!field.value)}
             >

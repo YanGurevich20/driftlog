@@ -87,7 +87,7 @@ export function LLMEntryDebug({
   return (
     <Button
       size="sm"
-      variant="ghost"
+      variant="secondary"
       onClick={handleDebugSubmit}
       disabled={isLoading}
       title="Create debug entry (no AI)"

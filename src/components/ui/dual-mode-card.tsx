@@ -102,14 +102,14 @@ function DualModeCardHeader({
       )} 
       {...props}
     >
-      <div className="flex items-stretch w-full relative">
+      <div className="flex items-stretch w-full relative gap-2">
         {/* Left Trigger */}
         <Button
-          className={cn("rounded-full",
+          className={cn("rounded-md",
             activeMode === 'auto' && isOpen 
               ? "flex-1" 
               : activeMode === 'manual' && isOpen
-              ? "opacity-0 flex-[0_0_0px] overflow-hidden px-0"
+              ? "sr-only"
               : "flex-1"
           )}
           variant={isOpen ? "outline" : "default"}
@@ -121,22 +121,13 @@ function DualModeCardHeader({
           </div>
         </Button>
 
-        {/* Separator */}
-        <Separator 
-          orientation="vertical" 
-          className={cn(
-            "transition-all duration-200",
-            activeMode && isOpen ? "p-0" : "p-2"
-          )} 
-        />
-
         {/* Right Trigger */}
         <Button
-          className={cn("rounded-full",
+          className={cn("rounded-md",
             activeMode === 'manual' && isOpen 
               ? "flex-1" 
               : activeMode === 'auto' && isOpen
-              ? "opacity-0 flex-[0_0_0px] overflow-hidden px-0"
+              ? "sr-only"
               : "flex-1"
           )}
           variant={isOpen ? "outline" : "default"}

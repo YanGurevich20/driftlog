@@ -50,7 +50,7 @@ export function ThemeToggle({ variant = 'dropdown' }: ThemeToggleProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon">
+        <Button variant="secondary" size="icon">
           {theme === 'system' ? (
             <Monitor className="h-[1.2rem] w-[1.2rem]" />
           ) : (

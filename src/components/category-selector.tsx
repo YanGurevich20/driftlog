@@ -45,7 +45,7 @@ export function CategorySelector({
 
   const trigger = (
     <Button
-      variant="outline"
+      variant="secondary"
       role="combobox"
       aria-expanded={open}
       size='icon'
