@@ -342,10 +342,8 @@ export function BudgetView() {
                           value={editForms[item.id]?.currency || item.currency}
                           onChange={(currency) => updateEditForm(item.id, 'currency', currency)}
                         />
-                      </div>
-                      <div className="flex items-center gap-2">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="icon"
                           onClick={() => handleDelete(item)}
                           className="text-destructive hover:text-destructive"
