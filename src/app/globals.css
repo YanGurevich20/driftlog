@@ -184,7 +184,7 @@
     @apply border-border outline-ring/50;
   }
   html, body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     letter-spacing: var(--tracking-normal);
     overscroll-behavior: none;
     overflow-x: hidden;
