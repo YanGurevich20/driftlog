@@ -1,23 +1,13 @@
-## Tasks
 ### Architecture
 - [ ] Security audit
-- [ ] License, Readme
 - [ ] Open Source VS Closed Source
 - [ ] Background Image attribution
 - [ ] Multi region
 - [ ] CI/CD
-### Bugs
-
-### Enhancements
-
-### Features
 - [ ] Location tagging (city, country OR geopoint)
-- [ ] Entry from photo
-- [ ] Entry from audio
 - [ ] entry from whatsapp message
 - [ ] entry from telegram message
 - [ ] Limit connection size (larger limits for paid users)
-- [ ] Budget headroom settings
 
 ### Monetization ideas
 - Expanded limites on recurring entries count
@@ -26,9 +16,12 @@
 - AI features
 
 ### Completed backlog
+- [x] Entry from photo
+- [x] Entry from audio
+- [x] License, Readme
 - [x] Email invitations with accept/reject
 - [x] Multi-currency with live conversion
-- [x] **Fixed historical exchange rates** (uses rates from entry date)
+- [x] Fix historical exchange rates (uses rates from entry date)
 - [x] Daily budget calculation
 - [x] Recurring entries
 - [x] Custom categories per user

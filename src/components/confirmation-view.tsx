@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { Check, Trash2, ListChecks } from 'lucide-react';
@@ -10,8 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { EntryEditDialog } from '@/components/entry-edit-dialog';
 import { deleteEntry, updateEntry } from '@/services/entries';
 import { toast } from 'sonner';
 import {
@@ -28,7 +25,6 @@ import type { Entry } from '@/types';
 import { getDateRangeForDay } from '@/lib/date-range-utils';
 import { getUTCStartOfDay } from '@/lib/date-utils';
 import { CategoryIcon } from '@/components/ui/category-icon';
-import { cn } from '@/lib/utils';
 
 export function ConfirmationView() {
   const { user } = useAuth();
@@ -45,8 +41,7 @@ export function ConfirmationView() {
     endDate: dateRange.end,
   });
 
-  const displayCurrency = user?.displayCurrency || 'USD';
-  const { ratesByMonth, loading: ratesLoading } = useExchangeRates({
+  const { loading: ratesLoading } = useExchangeRates({
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
@@ -64,24 +59,6 @@ export function ConfirmationView() {
     });
   }, [entries, entriesLoading, ratesLoading, today]);
 
-  const handleConfirm = async (entry: Entry) => {
-    if (!user) return;
-
-    const amountString = editAmounts[entry.id] ?? entry.originalAmount.toString();
-    const amount = parseFloat(amountString);
-    if (isNaN(amount) || amount <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
-    }
-
-    try {
-      await updateEntry(entry.id, { originalAmount: amount }, user.id);
-      toast.success('Entry updated');
-    } catch (error) {
-      console.error('Error updating entry:', error);
-      toast.error('Failed to update entry');
-    }
-  };
 
   const handleConfirmAll = async () => {
     if (!user || staleEntries.length === 0) return;
@@ -159,25 +136,6 @@ export function ConfirmationView() {
     }
   };
 
-  const convertAmountForEntry = (entry: Entry) => {
-    if (!ratesByMonth) return entry.originalAmount;
-
-    try {
-      // For stale entries, we want to show the amount as it was originally calculated
-      // Using the entry's original date for conversion
-      return convertAmount(
-        entry.originalAmount,
-        entry.currency,
-        displayCurrency,
-        entry.date,
-        ratesByMonth
-      );
-    } catch (error) {
-      // If conversion fails, return original amount
-      console.warn('Failed to convert amount:', error);
-      return entry.originalAmount;
-    }
-  };
 
   // Don't render if no stale entries or still loading
   if (entriesLoading || ratesLoading || staleEntries.length === 0) {

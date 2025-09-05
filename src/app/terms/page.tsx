@@ -40,9 +40,7 @@ export default function TermsPage() {
               <li>You are responsible for maintaining the security of your account credentials</li>
               <li>You must provide accurate information when creating your account</li>
               <li>You are solely responsible for all activity under your account</li>
-              <li>Maximum of 100 expense entries per user account</li>
-              <li>Maximum of 10 connected users per account</li>
-              <li>Maximum of 5 recurring transaction templates per user</li>
+              <li>Maximum of 5 connected users per account</li>
             </ul>
           </section>
   
