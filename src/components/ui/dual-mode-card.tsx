@@ -112,7 +112,7 @@ function DualModeCardHeader({
               ? "sr-only"
               : "flex-1"
           )}
-          variant={isOpen ? "outline" : "default"}
+          variant={isOpen ? "secondary" : "default"}
           onClick={() => handleTriggerClick('auto', leftTrigger.onClick)}
         >
           <div className="flex items-center gap-2 whitespace-nowrap">
@@ -130,7 +130,7 @@ function DualModeCardHeader({
               ? "sr-only"
               : "flex-1"
           )}
-          variant={isOpen ? "outline" : "default"}
+          variant={isOpen ? "secondary" : "default"}
           onClick={() => handleTriggerClick('manual', rightTrigger.onClick)}
         >
           <div className="flex items-center gap-2 whitespace-nowrap">

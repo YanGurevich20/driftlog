@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
-import { CategoryName, getCategoriesByAffiliation, getBothCategories } from '@/types/categories';
+import { CategoryName, getCategoriesByAffiliation, getBothCategories } from '@/types/category';
 import { CategoryIcon } from '@/components/ui/category-icon';
 import { useCategoryRanking } from '@/hooks/use-category-ranking';
 

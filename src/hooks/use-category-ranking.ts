@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { CategoryName, CATEGORY_NAMES, getCategoriesByAffiliation, getBothCategories } from '@/types/categories';
+import { CategoryName, CATEGORY_NAMES, getCategoriesByAffiliation, getBothCategories } from '@/types/category';
 
 const STORAGE_KEY = 'driftlog-recent-categories';
 const MAX_RECENT_CATEGORIES = 5;

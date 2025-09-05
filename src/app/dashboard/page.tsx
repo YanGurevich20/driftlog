@@ -5,6 +5,7 @@ import { EntriesView } from '@/components/entries-view';
 import { BudgetView } from '@/components/budget-view';
 import { RecurringView } from '@/components/recurring-view';
 import { NewEntryView } from '@/components/new-entry-view';
+import { ConfirmationView } from '@/components/confirmation-view';
 import { useAuth } from '@/lib/auth-context';
 import { useEntryAnimation } from '@/contexts/entry-animation-context';
 
@@ -73,6 +74,7 @@ export default function Dashboard() {
       <div className="grid gap-6 md:grid-cols-2 md:items-start pb-32">
         <div className="space-y-6">
           <BudgetView />
+          <ConfirmationView />
           <NewEntryView
             onDateChange={setSelectedDate}
             onEntryCreated={setAnimatingEntryId}

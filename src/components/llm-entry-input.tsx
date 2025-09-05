@@ -168,7 +168,7 @@ export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputInl
             placeholder={selectedFile ? '(optional) Add details...' : 'Describe an entry...'}
             className="flex-1"
           />
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Button
               size="icon"
               variant="secondary"

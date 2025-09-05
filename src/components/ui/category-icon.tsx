@@ -1,6 +1,6 @@
 'use client';
 
-import { getCategoryIcon } from '@/types/categories';
+import { getCategoryIcon } from '@/types/category';
 import { cn } from '@/lib/utils';
 
 interface CategoryIconProps {

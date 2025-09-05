@@ -80,9 +80,7 @@ export function LLMEntryDebug({
   };
 
   // Only show in development
-  if (process.env.NODE_ENV !== 'development') {
-    return null;
-  }
+  if (process.env.NODE_ENV !== 'development') return null;
 
   return (
     <Button

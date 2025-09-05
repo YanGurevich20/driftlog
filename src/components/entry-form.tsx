@@ -17,8 +17,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowUp, ArrowDown, CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { toUTCMidnight } from '@/lib/date-utils';
-import type { CategoryName } from '@/types/categories';
-import { CATEGORY_NAMES } from '@/types/categories';
+import type { CategoryName } from '@/types/category';
+import { CATEGORY_NAMES } from '@/types/category';
 import { useCategoryRanking } from '@/hooks/use-category-ranking';
 import { useEntryAnimation } from '@/contexts/entry-animation-context';
 import { Calendar } from '@/components/ui/calendar';
@@ -339,9 +339,9 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   className={cn(
-                    "flex-1 justify-start text-left font-normal h-8 px-3 bg-transparent dark:bg-input/30 shadow-xs",
+                    "flex-1 justify-start text-left font-normal h-8 px-3 bg-transparent dark:bg-input/30 shadow-xs border dark:border-0",
                     !field.value && "text-muted-foreground"
                   )}
                 >
@@ -403,7 +403,7 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
                     }
                   }}
                 >
-                  <SelectTrigger className="w-28">
+                  <SelectTrigger className="w-28 border dark:border-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -428,7 +428,7 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
                     <Button
                       variant="ghost"
                       className={cn(
-                        "flex-1 justify-start text-left font-normal h-8 px-3 bg-transparent dark:bg-input/30 shadow-xs",
+                        "flex-1 justify-start text-left font-normal h-8 px-3 bg-transparent dark:bg-input/30 shadow-xs border dark:border-0",
                         !field.value && "text-muted-foreground"
                       )}
                     >

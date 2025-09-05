@@ -346,7 +346,6 @@ export function BudgetView() {
                           variant="outline"
                           size="icon"
                           onClick={() => handleDelete(item)}
-                          className="text-destructive hover:text-destructive"
                         >
                           <Trash2/>
                         </Button>

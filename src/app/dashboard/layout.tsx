@@ -8,8 +8,6 @@ import { EntriesCacheProvider } from '@/lib/entries-cache';
 import { EntryAnimationProvider } from '@/contexts/entry-animation-context';
 import { Wallet } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
-
 export default function DashboardLayout({
   children,
 }: {

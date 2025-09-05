@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { UserPlus, Users, LogOut, Check, X, Mail, Send } from 'lucide-react';
+import { UserPlus, Users, LogOut, Check, X, Mail, Clock } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/lib/auth-context';
 import { useConnectedUsers } from '@/hooks/use-connected-users';
@@ -275,8 +275,8 @@ export function ConnectedUsers() {
           <div key={invitation.id}>
             <ConnectionCard
               icon={
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Mail className="h-5 w-5 text-primary" />
+                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Mail className="size-4 text-primary" />
                 </div>
               }
               title={invitation.inviterName}
@@ -288,14 +288,14 @@ export function ConnectedUsers() {
                     variant="ghost"
                     onClick={() => handleAcceptInvitation(invitation)}
                   >
-                    <Check className="h-4 w-4" />
+                    <Check />
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
                     onClick={() => handleRejectInvitation(invitation)}
                   >
-                    <X className="h-4 w-4" />
+                    <X />
                   </Button>
                 </div>
               }
@@ -311,8 +311,8 @@ export function ConnectedUsers() {
           <div key={invitation.id}>
             <ConnectionCard
               icon={
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                  <Send className="h-5 w-5 text-muted-foreground" />
+                <div className="size-8 rounded-full bg-muted flex items-center justify-center">
+                  <Clock className="size-4 text-muted-foreground" />
                 </div>
               }
               title={invitation.invitedEmail}
@@ -324,7 +324,7 @@ export function ConnectedUsers() {
                   onClick={() => handleCancelInvitation(invitation)}
                   title="Cancel invitation"
                 >
-                  <X className="h-4 w-4" />
+                  <X />
                 </Button>
               }
             />

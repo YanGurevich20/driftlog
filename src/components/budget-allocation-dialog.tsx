@@ -13,7 +13,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useBudgetAllocations } from '@/hooks/use-budget-allocations';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
-import { getCategoriesByAffiliation } from '@/types/categories';
+import { getCategoriesByAffiliation } from '@/types/category';
 import type { BudgetAllocation } from '@/types';
 
 const formSchema = z.object({

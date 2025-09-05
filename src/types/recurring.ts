@@ -1,4 +1,4 @@
-import type { EntryType } from './entries';
+import type { EntryType } from './entry';
 
 export type RecurrenceFrequency = 
   | 'daily' 

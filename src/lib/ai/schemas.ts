@@ -1,5 +1,5 @@
 import { Schema } from 'firebase/ai';
-import { CATEGORY_NAMES } from '@/types/categories';
+import { CATEGORY_NAMES } from '@/types/category';
 
 export const entrySchema = Schema.object({
     properties: {

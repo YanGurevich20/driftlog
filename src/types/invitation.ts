@@ -6,5 +6,3 @@ export interface GroupInvitation {
   createdAt: Date;
   expiresAt: Date;
 }
-
-
