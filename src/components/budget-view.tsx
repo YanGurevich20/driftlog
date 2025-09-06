@@ -43,6 +43,7 @@ export function BudgetView() {
 
   // Get budget allocations
   const { allocations, loading: allocationsLoading, error: allocationsError, deleteAllocation, updateAllocation } = useBudgetAllocations();
+  const [cardCollapsed, setCardCollapsed] = useState(allocations.length === 0);
 
   // State for edit/delete functionality
   const [editAllocation, setEditAllocation] = useState<BudgetAllocation | null>(null);
@@ -169,6 +170,7 @@ export function BudgetView() {
 
   const enterEditMode = () => {
     setIsEditMode(true);
+    setCardCollapsed(false);
     // Initialize edit forms for all budgets
     const forms: Record<string, { amount: string; categories: string[]; currency: string }> = {};
     budgetProgress.forEach(item => {
@@ -261,7 +263,11 @@ export function BudgetView() {
   };
 
   return (
-    <CollapsibleCard defaultCollapsed={allocations.length === 0}>
+    <CollapsibleCard
+      defaultCollapsed={allocations.length === 0}
+      collapsed={cardCollapsed}
+      setCollapsed={setCardCollapsed}
+    >
       <CollapsibleCardHeader
         actions={
           <div className="flex gap-1">

@@ -65,6 +65,7 @@ export function EntriesView({
   const isDesktop = useIsDesktop();
   // Mode-specific configuration
   const isDaily = mode === 'daily';
+  const [cardCollapsed, setCardCollapsed] = useState(!isDaily);
   const dateRangeFunction = isDaily ? getDateRangeForDay : getDateRangeForMonth;
   const dateFormat = isDaily ? 'EEEE, MMMM d' : 'MMMM yyyy';
   const sessionStorageKey = isDaily ? 'dailyViewDate' : undefined;
@@ -187,6 +188,7 @@ export function EntriesView({
     });
     setEditForms(forms);
     setIsEditMode(true);
+    setCardCollapsed(false);
   };
 
   const exitEditMode = () => {
@@ -241,7 +243,7 @@ export function EntriesView({
         .filter(Boolean) as Promise<void>[];
 
       if (updates.length === 0) {
-        toast.message('No changes to save');
+        toast.info('No changes made');
         exitEditMode();
         return;
       }
@@ -259,7 +261,12 @@ export function EntriesView({
 
     return (
     <>
-    <CollapsibleCard defaultCollapsed={!isDaily} hideFooterWhenCollapsed={!isDesktop}>
+    <CollapsibleCard
+      defaultCollapsed={!isDaily}
+      collapsed={cardCollapsed}
+      setCollapsed={setCardCollapsed}
+      hideFooterWhenCollapsed={!isDesktop}
+    >
       <CollapsibleCardHeader
         actions={
           <div className="flex gap-1">

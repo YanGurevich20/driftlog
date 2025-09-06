@@ -11,6 +11,9 @@ interface CollapsibleCardProps {
   className?: string;
   defaultCollapsed?: boolean;
   hideFooterWhenCollapsed?: boolean;
+  collapsed?: boolean;
+  setCollapsed?: (collapsed: boolean) => void;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 interface CollapsibleCardHeaderProps {
@@ -44,21 +47,47 @@ const CollapsibleCardContext = React.createContext<{
   hideFooterWhenCollapsed: true,
 });
 
-function CollapsibleCard({ 
-  children, 
+function useCollapsibleCard() {
+  const context = React.useContext(CollapsibleCardContext);
+  if (!context) {
+    throw new Error("useCollapsibleCard must be used within a CollapsibleCard");
+  }
+  return context;
+}
+
+function CollapsibleCard({
+  children,
   className,
   defaultCollapsed = false,
   hideFooterWhenCollapsed = true,
-  ...props 
+  collapsed: collapsedProp,
+  setCollapsed: setCollapsedProp,
+  onCollapsedChange,
+  ...props
 }: CollapsibleCardProps) {
-  const [isOpen, setIsOpen] = React.useState(!defaultCollapsed);
-  
+  const isControlled = typeof collapsedProp === 'boolean';
+  const [internalOpen, setInternalOpen] = React.useState(!defaultCollapsed);
+  const isOpen = isControlled ? !collapsedProp! : internalOpen;
+
   React.useEffect(() => {
-    setIsOpen(!defaultCollapsed);
-  }, [defaultCollapsed]);
+    if (!isControlled) {
+      setInternalOpen(!defaultCollapsed);
+    }
+  }, [defaultCollapsed, isControlled]);
+
+  const handleOpenChange = React.useCallback((nextOpen: boolean) => {
+    if (isControlled) {
+      const nextCollapsed = !nextOpen;
+      onCollapsedChange?.(nextCollapsed);
+      setCollapsedProp?.(nextCollapsed);
+    } else {
+      setInternalOpen(nextOpen);
+    }
+  }, [isControlled, onCollapsedChange, setCollapsedProp]);
+
   return (
-    <CollapsibleCardContext.Provider value={{ isOpen, setIsOpen, hideFooterWhenCollapsed }}>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+    <CollapsibleCardContext.Provider value={{ isOpen, setIsOpen: handleOpenChange, hideFooterWhenCollapsed }}>
+      <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
         <Card className={className} {...props}>
           {children}
         </Card>
@@ -166,5 +195,6 @@ export {
   CollapsibleCardHeader, 
   CollapsibleCardTitle,
   CollapsibleCardContent, 
-  CollapsibleCardFooter 
+  CollapsibleCardFooter,
+  useCollapsibleCard
 };
