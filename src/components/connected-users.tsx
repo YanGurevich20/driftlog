@@ -161,14 +161,14 @@ export function ConnectedUsersLeaveButton() {
       <AlertDialog open={leaveGroupDialogOpen} onOpenChange={setLeaveGroupDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Disconnect from connections</AlertDialogTitle>
+            <AlertDialogTitle>Leave group</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to disconnect? You will no longer see shared expenses with {connectedUsers.length} {connectedUsers.length === 1 ? 'person' : 'people'}.
+              Are you sure you want to leave the group? You will no longer see shared expenses with {connectedUsers.length} {connectedUsers.length === 1 ? 'person' : 'people'}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLeaveGroup}>Disconnect</AlertDialogAction>
+            <AlertDialogAction onClick={handleLeaveGroup}>Leave</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -32,6 +32,7 @@ export function ConfirmationView() {
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
   const [editAmounts, setEditAmounts] = useState<Record<string, string>>({});
   const [confirmingAll, setConfirmingAll] = useState(false);
+  const isDate = (val: unknown): val is Date => val instanceof Date;
 
   // Get today's entries
   const today = useMemo(() => new Date(), []);
@@ -53,8 +54,16 @@ export function ConfirmationView() {
     const todayUTC = getUTCStartOfDay(today);
 
     return entries.filter(entry => {
-      const createdBeforeToday = entry.createdAt < todayUTC;
-      const updatedToday = entry.updatedAt ? entry.updatedAt >= todayUTC : false;
+      // Ignore entries until timestamps are resolved to real Dates (serverTimestamp placeholders)
+      if (!isDate((entry as unknown as { createdAt?: unknown }).createdAt)) return false;
+      const createdAtDate = (entry as unknown as { createdAt: Date }).createdAt;
+
+      const createdBeforeToday = createdAtDate < todayUTC;
+
+      const updatedAtUnknown = (entry as unknown as { updatedAt?: unknown }).updatedAt;
+      const updatedAtDate = isDate(updatedAtUnknown) ? updatedAtUnknown : null;
+      const updatedToday = updatedAtDate ? updatedAtDate >= todayUTC : false;
+
       return createdBeforeToday && !updatedToday;
     });
   }, [entries, entriesLoading, ratesLoading, today]);
