@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
@@ -93,7 +93,6 @@ export function EntriesView({
   const selectedDate = propSelectedDate || internalSelectedDate;
   const setSelectedDate = onDateChange || setInternalSelectedDate;
 
-  const [openCategories, setOpenCategories] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -151,11 +150,6 @@ export function EntriesView({
         expenses: acc.expenses + group.expenses,
       };
     }, { income: 0, expenses: 0 });
-  }, [groupedEntries]);
-
-  // Open all categories by default
-  useEffect(() => {
-    setOpenCategories(Object.keys(groupedEntries));
   }, [groupedEntries]);
 
   const handleEdit = (entry: Entry) => {
@@ -225,18 +219,13 @@ export function EntriesView({
         >
             <Accordion
               type="multiple"
-              value={openCategories}
-              onValueChange={setOpenCategories}
+              defaultValue={isDaily ? Object.keys(groupedEntries) : []}
             >
               {Object.entries(groupedEntries)
                 .sort(([, a], [, b]) => (a.income - a.expenses) - (b.income - b.expenses))
                 .map(([category, group]) => (
                   <AccordionItem key={category} value={category}>
-                    <AccordionTrigger className={cn(
-                      // "hover:no-underline",
-                      // index === 0 && "pt-0",
-                      // index === array.length - 1 && !openCategories.includes(category) && "pb-0"
-                    )}>
+                    <AccordionTrigger>
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
                           <CategoryIcon category={category} />
@@ -372,11 +361,7 @@ export function EntriesView({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Entry</AlertDialogTitle>
             <AlertDialogDescription>
-              {entryToDelete?.recurringTemplateId ? (
-                'This is a recurring entry. What would you like to do?'
-              ) : (
-                'Are you sure you want to delete this entry? This action cannot be undone.'
-              )}
+                Are you sure you want to delete this entry?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

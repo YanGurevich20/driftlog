@@ -219,11 +219,7 @@ export function ConfirmationView() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Entry</AlertDialogTitle>
             <AlertDialogDescription>
-              {entryToDelete?.recurringTemplateId ? (
-                'This is a recurring entry. What would you like to do?'
-              ) : (
-                'Are you sure you want to delete this entry? This action cannot be undone.'
-              )}
+              Are you sure you want to delete this entry?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -232,8 +228,6 @@ export function ConfirmationView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* No edit dialog; inline editing only */}
     </>
   );
 }
