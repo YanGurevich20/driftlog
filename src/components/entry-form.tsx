@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -31,7 +31,8 @@ import { Repeat } from 'lucide-react';
 import type { RecurrenceFrequency } from '@/types/recurring';
 import { RECURRENCE_LIMITS } from '@/types/recurring';
 
-const formSchema = z.object({
+const formSchema = z
+  .object({
   type: z.enum(['expense', 'income']),
   amountCurrency: z.object({
     amount: z
@@ -53,6 +54,20 @@ const formSchema = z.object({
     endDate: z.date(),
     selectedWeekdays: z.array(z.number()).optional(),
   }).optional(),
+})
+.superRefine((data, ctx) => {
+  if (!data.isRecurring) return;
+  const frequency = data.recurrence?.frequency;
+  if (frequency === 'weekly') {
+    const days = data.recurrence?.selectedWeekdays ?? [];
+    if (days.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Select at least one day',
+        path: ['recurrence', 'selectedWeekdays'],
+      });
+    }
+  }
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -66,34 +81,32 @@ interface EntryFormProps {
 export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryFormProps) {
   const { user } = useAuth();
   const { setAnimationData } = useEntryAnimation();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { lastUsedCurrency, setLastUsedCurrency, addRecentCurrency } = usePreferences();
   const { trackCategoryUsage, getDefaultCategory, recentCategories } = useCategoryRanking();
-  const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>([]);
 
-  const getSmartDefaultCategory = useCallback((type: 'expense' | 'income') => {
-    return getDefaultCategory(type);
-  }, [getDefaultCategory]);
+  const buildDefaultValues = (baseDate = new Date()) => ({
+    type: 'expense' as const,
+    amountCurrency: {
+      amount: '',
+      currency: lastUsedCurrency || user?.displayCurrency || 'USD',
+    },
+    category: getDefaultCategory('expense'),
+    description: '',
+    date: baseDate,
+    isRecurring: false,
+    recurrence: {
+      frequency: 'monthly' as RecurrenceFrequency,
+      interval: 1,
+      endDate: addMonths(baseDate, 12),
+      selectedWeekdays: [],
+    },
+  });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      type: 'expense',
-      amountCurrency: {
-        amount: '',
-        currency: lastUsedCurrency || user?.displayCurrency || 'USD',
-      },
-      category: getSmartDefaultCategory('expense'),
-      description: '',
-      date: new Date(),
-      isRecurring: false,
-      recurrence: {
-        frequency: 'monthly' as RecurrenceFrequency,
-        interval: 1,
-        endDate: addMonths(new Date(), 12),
-        selectedWeekdays: [],
-      },
-    },
+    reValidateMode: 'onSubmit',
+    shouldFocusError: false,
+    defaultValues: buildDefaultValues(),
   });
 
   const transactionType = form.watch('type');
@@ -103,7 +116,7 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
   // Update category when entry type changes
   React.useEffect(() => {
     const currentCategory = form.getValues('category');
-    const smartDefault = getSmartDefaultCategory(transactionType);
+    const smartDefault = getDefaultCategory(transactionType);
     
     const hasValidCategory = CATEGORY_NAMES.includes(currentCategory as CategoryName);
     const shouldUpdate = !hasValidCategory || currentCategory !== smartDefault;
@@ -111,34 +124,15 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
     if (shouldUpdate) {
       form.setValue('category', smartDefault);
     }
-  }, [transactionType, getSmartDefaultCategory, form, recentCategories]);
+  }, [transactionType, getDefaultCategory, form, recentCategories]);
 
   const clearForm = () => {
     const newDate = new Date();
-    form.reset({
-      type: 'expense',
-      amountCurrency: {
-        amount: '',
-        currency: lastUsedCurrency || user?.displayCurrency || 'USD',
-      },
-      category: getSmartDefaultCategory('expense'),
-      description: '',
-      date: newDate,
-      isRecurring: false,
-      recurrence: {
-        frequency: 'monthly' as RecurrenceFrequency,
-        interval: 1,
-        endDate: addMonths(newDate, 12),
-        selectedWeekdays: [],
-      },
-    });
-    setSelectedWeekdays([]);
+    form.reset(buildDefaultValues(newDate));
   };
 
   const onSubmit = async (values: FormValues) => {
     if (!user) return;
-
-    setIsSubmitting(true);
     try {
       const amount = parseFloat(values.amountCurrency.amount);
       const currency = values.amountCurrency.currency;
@@ -148,7 +142,6 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
       const selectedUtcDate = toUTCMidnight(selectedDate);
       if (selectedUtcDate < SERVICE_START_DATE) {
         toast.warning('Date cannot be before Jan 1, 2025');
-        setIsSubmitting(false);
         return;
       }
 
@@ -167,8 +160,8 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
             frequency: values.recurrence.frequency,
             interval: values.recurrence.interval,
             endDate: values.recurrence.endDate,
-            ...(values.recurrence.frequency === 'weekly' && selectedWeekdays.length > 0 && {
-              daysOfWeek: selectedWeekdays
+            ...(values.recurrence.frequency === 'weekly' && (values.recurrence.selectedWeekdays?.length ?? 0) > 0 && {
+              daysOfWeek: values.recurrence.selectedWeekdays
             }),
             ...(values.recurrence.frequency === 'monthly' && {
               dayOfMonth: selectedDate.getDate()
@@ -230,8 +223,6 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
     } catch (error) {
       console.error('Error saving entry:', error);
       toast.error(values.isRecurring ? 'Failed to create recurring entry series' : 'Failed to add entry');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -274,17 +265,21 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
                 min="0"
                 placeholder="0.00"
                 value={field.value.amount}
-                onChange={(e) => field.onChange({ ...field.value, amount: e.target.value })}
-                className="flex-1"
+                onChange={(e) => {
+                  if (fieldState.error) {
+                    form.clearErrors('amountCurrency');
+                  }
+                  field.onChange({ ...field.value, amount: e.target.value });
+                }}
+                onFocus={() => {
+                  if (fieldState.error) {
+                    form.clearErrors('amountCurrency');
+                  }
+                }}
+                className={`flex-1 ${((form.formState.errors.amountCurrency as { amount?: unknown } | undefined)?.amount ? 'border-destructive' : '')}`}
+                aria-invalid={!!(form.formState.errors.amountCurrency as { amount?: unknown } | undefined)?.amount}
               />
             </div>
-            {fieldState.error && (
-              <p className="text-sm text-destructive">
-                {fieldState.error.message || 
-                 (fieldState.error as Record<string, { message?: string }>)?.amount?.message || 
-                 (fieldState.error as Record<string, { message?: string }>)?.currency?.message}
-              </p>
-            )}
           </div>
         )}
       />
@@ -324,7 +319,7 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
           render={({ field }) => (
             <Button
               type="button"
-              variant={field.value ? "default" : "secondary"}
+              variant={field.value ? "secondary" : "outline"}
               size="icon"
               onClick={() => field.onChange(!field.value)}
             >
@@ -376,14 +371,32 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
             <Controller
               control={form.control}
               name="recurrence.interval"
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <Input
                   type="number"
                   min={1}
                   placeholder="0"
-                  defaultValue={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                  className="w-12"
+                  value={field.value === undefined || field.value === null || Number.isNaN(field.value as unknown as number) ? '' : String(field.value)}
+                  onChange={(e) => {
+                    if (fieldState.error) {
+                      form.clearErrors('recurrence.interval');
+                    }
+                    const raw = e.target.value;
+                    if (raw === '') {
+                      // keep empty during typing; RHF will keep as ''
+                      field.onChange('');
+                    } else {
+                      const parsed = Number(raw);
+                      field.onChange(Number.isNaN(parsed) ? '' : parsed);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (fieldState.error) {
+                      form.clearErrors('recurrence.interval');
+                    }
+                  }}
+                  className={`w-12 ${fieldState.error ? 'border-destructive' : ''}`}
+                  aria-invalid={!!fieldState.error}
                 />
               )}
             />
@@ -398,7 +411,6 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
                     const defaultEndDate = addMonths(selectedDate, RECURRENCE_LIMITS[value].defaultMonths);
                     form.setValue('recurrence.endDate', defaultEndDate);
                     if (!(value === "daily" || value === "weekly")) {
-                      setSelectedWeekdays([]);
                       form.setValue('recurrence.selectedWeekdays', []);
                     }
                   }}
@@ -472,14 +484,17 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
                   <Button
                     key={val}
                     type="button"
-                    variant={selectedWeekdays.includes(val) ? "default" : "outline"}
-                    className="h-8 px-3"
+                    variant={(form.watch('recurrence.selectedWeekdays') || []).includes(val) ? "default" : "outline"}
+                    className={`h-8 w-8 ${(form.formState.errors.recurrence as { selectedWeekdays?: unknown } | undefined)?.selectedWeekdays ? 'ring-1 ring-inset ring-destructive' : ''}`}
                     onClick={() => {
-                      const newWeekdays = selectedWeekdays.includes(val) 
-                        ? selectedWeekdays.filter((d) => d !== val) 
-                        : [...selectedWeekdays, val].sort((a, b) => a - b);
-                      setSelectedWeekdays(newWeekdays);
+                      const current = (form.getValues('recurrence.selectedWeekdays') || []) as number[];
+                      const newWeekdays = current.includes(val)
+                        ? current.filter((d) => d !== val)
+                        : [...current, val].sort((a, b) => a - b);
                       form.setValue('recurrence.selectedWeekdays', newWeekdays);
+                      if (newWeekdays.length > 0) {
+                        form.clearErrors('recurrence.selectedWeekdays');
+                      }
                     }}
                   >
                     {label}
@@ -495,9 +510,9 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
       <Button 
         type="submit" 
         className="w-full"
-        disabled={isSubmitting}
+        disabled={form.formState.isSubmitting}
       >
-        {isSubmitting ? 'Adding...' : 'Add Entry'}
+        {form.formState.isSubmitting ? 'Adding...' : 'Add Entry'}
       </Button>
     </form>
   );
