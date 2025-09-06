@@ -26,8 +26,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
  
 import { toast } from 'sonner';
-import type { BudgetAllocation } from '@/types';
 import { IconContainer } from './ui/icon-container';
+import { computeUsedBudgetCategories } from '@/services/budget';
 
 export function BudgetView() {
   const { user } = useAuth();
@@ -37,7 +37,6 @@ export function BudgetView() {
   const [cardCollapsed, setCardCollapsed] = useState(allocations.length === 0);
 
   // State for edit/delete functionality
-  const [editAllocation, setEditAllocation] = useState<BudgetAllocation | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editForms, setEditForms] = useState<Record<string, {
     amount: string;
@@ -58,17 +57,14 @@ export function BudgetView() {
     startDate: monthRange.start,
     endDate: monthRange.end,
   });
+  const ratesReady = !!ratesByMonth && !ratesLoading;
 
   // Calculate spending by category for current month
   const categorySpending = useMemo(() => {
-    if (ratesLoading || !ratesByMonth) {
-      return new Map<string, number>();
-    }
-
+    if (!ratesReady) return new Map<string, number>();
     const spending = new Map<string, number>();
-
     monthEntries
-      .filter(entry => entry.type === 'expense' && isSameMonth(entry.date, new Date()))
+      .filter(entry => entry.type === 'expense')
       .forEach(entry => {
         const converted = convertAmount(
           entry.originalAmount,
@@ -77,84 +73,70 @@ export function BudgetView() {
           entry.date,
           ratesByMonth
         );
-
         const current = spending.get(entry.category) || 0;
         spending.set(entry.category, current + converted);
       });
-
     return spending;
-  }, [monthEntries, displayCurrency, ratesByMonth, ratesLoading]);
+  }, [monthEntries, displayCurrency, ratesByMonth, ratesReady]);
 
-  const visibleAllocations = useMemo(() => {
-    if (!isEditMode) return allocations;
-    if (stagedDeleteIds.size === 0) return allocations;
-    return allocations.filter(a => !stagedDeleteIds.has(a.id));
-  }, [allocations, isEditMode, stagedDeleteIds]);
+  const visibleAllocations = useMemo(() => (
+    isEditMode && stagedDeleteIds.size > 0
+      ? allocations.filter(a => !stagedDeleteIds.has(a.id))
+      : allocations
+  ), [allocations, isEditMode, stagedDeleteIds]);
 
   // Calculate budget progress for each allocation
   const budgetProgress = useMemo(() => {
-    if (ratesLoading || !ratesByMonth) {
-      return [];
-    }
-
+    if (!ratesReady) return [] as Array<{
+      id: string;
+      amount: number;
+      categories: string[];
+      currency: string;
+      spent: number;
+      budget: number;
+      progress: number;
+    }>;
     return visibleAllocations.map(allocation => {
-      // Calculate total spending across all categories in this allocation
-      const spent = allocation.categories.reduce((total, category) => {
-        return total + (categorySpending.get(category) || 0);
-      }, 0);
-      
+      const spent = allocation.categories.reduce((total, category) => total + (categorySpending.get(category) || 0), 0);
       const budget = convertAmount(
         allocation.amount,
         allocation.currency,
         displayCurrency,
-        new Date(), // Use current date for conversion
+        new Date(),
         ratesByMonth
       );
-
       const progress = budget > 0 ? (spent / budget) * 100 : 0;
-
       return {
         ...allocation,
         spent,
         budget,
         progress: Math.min(progress, 100),
-        overBudget: progress > 100,
       };
     });
-  }, [visibleAllocations, categorySpending, displayCurrency, ratesByMonth, ratesLoading]);
+  }, [visibleAllocations, categorySpending, displayCurrency, ratesByMonth, ratesReady]);
 
   // Calculate totals for footer
   const totals = useMemo(() => {
-    if (ratesLoading || !ratesByMonth) {
+    if (!ratesReady) {
       return { totalIncome: 0, totalAllocated: 0, unallocatedSpending: 0, remaining: 0 };
     }
-
-    // Calculate total income for current month
     const totalIncome = monthEntries
-      .filter(entry => entry.type === 'income' && isSameMonth(entry.date, new Date()))
-      .reduce((sum, entry) => {
-        return sum + convertAmount(
-          entry.originalAmount,
-          entry.currency,
-          displayCurrency,
-          entry.date,
-          ratesByMonth
-        );
-      }, 0);
-
-    // Calculate total allocated budgets (visible only during edit)
+      .filter(entry => entry.type === 'income')
+      .reduce((sum, entry) => sum + convertAmount(
+        entry.originalAmount,
+        entry.currency,
+        displayCurrency,
+        entry.date,
+        ratesByMonth
+      ), 0);
     const totalAllocated = budgetProgress.reduce((sum, item) => sum + item.budget, 0);
-
-    // Calculate spending in categories that don't have budgets (visible only during edit)
     const allocatedCategories = new Set(visibleAllocations.flatMap(a => a.categories));
     const unallocatedSpending = Array.from(categorySpending.entries())
       .filter(([category]) => !allocatedCategories.has(category))
       .reduce((sum, [, spending]) => sum + spending, 0);
-
     const remaining = totalIncome - totalAllocated;
-
     return { totalIncome, totalAllocated, unallocatedSpending, remaining };
-  }, [monthEntries, budgetProgress, visibleAllocations, categorySpending, displayCurrency, ratesByMonth, ratesLoading]);
+  }, [monthEntries, budgetProgress, visibleAllocations, categorySpending, displayCurrency, ratesByMonth, ratesReady]);
 
   const loading = allocationsLoading || entriesLoading || ratesLoading;
   const error = allocationsError || entriesError;
@@ -165,7 +147,7 @@ export function BudgetView() {
     setStagedDeleteIds(new Set());
     // Initialize edit forms for all budgets
     const forms: Record<string, { amount: string; categories: string[]; currency: string }> = {};
-    budgetProgress.forEach(item => {
+    allocations.forEach(item => {
       forms[item.id] = {
         amount: item.amount.toString(),
         categories: item.categories,
@@ -289,10 +271,7 @@ export function BudgetView() {
                 </Button>
               </>
             )}
-            <BudgetAllocationDialog
-              editAllocation={editAllocation}
-              onEditClose={() => setEditAllocation(null)}
-            />
+            <BudgetAllocationDialog onOpenNew={() => setCardCollapsed(false)} />
           </div>
         }
       >
@@ -314,12 +293,19 @@ export function BudgetView() {
               <div key={item.id} className="space-y-2">
                 <div className="flex items-center justify-between">
                   {isEditMode ? (
-                    <>
                       <div className="flex items-center gap-2 flex-1">
                         <MultiCategorySelector
-                          value={editForms[item.id]?.categories || item.categories}
+                          value={editForms[item.id]?.categories ?? []}
                           onChange={(categories) => updateEditForm(item.id, 'categories', categories)}
                           type="expense"
+                          disabledCategories={Array.from(
+                            computeUsedBudgetCategories({
+                              allocations,
+                              stagedDeleteIds,
+                              editForms,
+                              excludeAllocationIds: new Set([item.id])
+                            })
+                          )}
                           maxItems={4}
                           className="flex-1"
                         />
@@ -327,12 +313,12 @@ export function BudgetView() {
                           type="number"
                           step="0.01"
                           placeholder="0.00"
-                          defaultValue={editForms[item.id]?.amount || item.amount.toString()}
+                          value={editForms[item.id]?.amount ?? ''}
                           onChange={(e) => updateEditForm(item.id, 'amount', e.target.value)}
                           className="w-20"
                         />
                         <CurrencySelector
-                          value={editForms[item.id]?.currency || item.currency}
+                          value={editForms[item.id]?.currency ?? displayCurrency}
                           onChange={(currency) => updateEditForm(item.id, 'currency', currency)}
                         />
                         <Button
@@ -349,7 +335,6 @@ export function BudgetView() {
                           <Trash2/>
                         </Button>
                       </div>
-                    </>
                   ) : (
                     <>
                       <div className="flex items-center gap-2 h-8">

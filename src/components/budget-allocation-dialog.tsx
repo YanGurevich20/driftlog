@@ -11,6 +11,7 @@ import { MultiCategorySelector } from '@/components/ui/multi-category-selector';
 import { CurrencySelector } from '@/components/currency-selector';
 import { useAuth } from '@/lib/auth-context';
 import { useBudgetAllocations } from '@/hooks/use-budget-allocations';
+import { computeUsedBudgetCategories } from '@/services/budget';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 import { getCategoriesByAffiliation } from '@/types/category';
@@ -33,21 +34,21 @@ type FormValues = z.infer<typeof formSchema>;
 interface BudgetAllocationDialogProps {
   editAllocation?: BudgetAllocation | null;
   onEditClose?: () => void;
+  onOpenNew?: () => void;
 }
 
-export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAllocationDialogProps) {
+export function BudgetAllocationDialog({ editAllocation, onEditClose, onOpenNew }: BudgetAllocationDialogProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(!!editAllocation);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { allocations, createAllocation, updateAllocation } = useBudgetAllocations();
 
   const disabledCategories = useMemo(() => {
-    const usedCategories = allocations.flatMap(a => a.categories);
-    
-    // When editing, allow the current categories to be selected
-    return editAllocation 
-      ? usedCategories.filter(cat => !editAllocation.categories.includes(cat))
-      : usedCategories;
+    const used = computeUsedBudgetCategories({
+      allocations,
+      excludeAllocationIds: editAllocation ? new Set([editAllocation.id]) : undefined,
+    });
+    return Array.from(used);
   }, [allocations, editAllocation]);
 
   const defaultCategories = useMemo(() => {
@@ -57,6 +58,7 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    reValidateMode: 'onSubmit',
     defaultValues: {
       categories: defaultCategories,
       amount: editAllocation?.amount?.toString() || '',
@@ -125,6 +127,9 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
     }
   };
 
+  const categoriesError = !!form.formState.errors.categories;
+  const amountError = !!form.formState.errors.amount;
+
   const DialogForm = (
     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
       <div className="flex items-center gap-3">
@@ -135,27 +140,39 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
           disabledCategories={disabledCategories}
           maxItems={4}
           className="flex-1"
+          hasError={categoriesError}
+          onInteract={() => {
+            if (categoriesError) {
+              form.clearErrors('categories');
+            }
+          }}
         />
         <Input
           type="number"
           step="0.01"
           placeholder="0.00"
-          className="w-20"
-          {...form.register('amount')}
+          className={`w-20 ${amountError ? 'border-destructive' : ''}`}
+          aria-invalid={amountError}
+          {...form.register('amount', {
+            onChange: (e) => {
+              form.clearErrors('amount');
+              // react-hook-form still handles value through register
+            },
+            onBlur: () => {
+              // keep default behavior
+            }
+          })}
+          onFocus={(e) => {
+            if (amountError) {
+              form.clearErrors('amount');
+            }
+          }}
         />
         <CurrencySelector
           value={form.watch('currency')}
           onChange={(value) => form.setValue('currency', value)}
         />
       </div>
-
-      {(form.formState.errors.categories || form.formState.errors.amount || form.formState.errors.currency) && (
-        <div className="text-sm text-destructive">
-          {form.formState.errors.categories?.message ||
-           form.formState.errors.amount?.message ||
-           form.formState.errors.currency?.message}
-        </div>
-      )}
 
       <DialogFooter>
         <Button type="button" variant="outline" onClick={handleClose}>
@@ -182,7 +199,7 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose }: BudgetAl
   return (
     <>
       {!editAllocation && (
-        <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
+        <Button variant="ghost" size="icon" onClick={() => { onOpenNew?.(); setOpen(true); }}>
           <Plus />
         </Button>
       )}

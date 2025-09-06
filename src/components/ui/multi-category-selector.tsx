@@ -15,6 +15,8 @@ interface MultiCategorySelectorProps {
   disabled?: boolean;
   maxItems?: number;
   disabledCategories?: string[];
+  hasError?: boolean;
+  onInteract?: () => void;
 }
 
 export function MultiCategorySelector({
@@ -24,13 +26,16 @@ export function MultiCategorySelector({
   className,
   disabled,
   maxItems,
-  disabledCategories = []
+  disabledCategories = [],
+  hasError = false,
+  onInteract,
 }: MultiCategorySelectorProps) {
   const [isAddingCategory, setIsAddingCategory] = React.useState(false);
   const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
   const [autoOpen, setAutoOpen] = React.useState(false);
 
   const handleCategorySelect = (category: string) => {
+    onInteract?.();
     if (!value.includes(category)) {
       onChange([...value, category]);
     }
@@ -40,11 +45,13 @@ export function MultiCategorySelector({
   };
 
   const handleStartAdding = () => {
+    onInteract?.();
     setIsAddingCategory(true);
     setAutoOpen(true);
   };
 
   const handleRemoveCategory = (index: number) => {
+    onInteract?.();
     const newCategories = value.filter((_, i) => i !== index);
     onChange(newCategories);
   };
@@ -99,7 +106,10 @@ export function MultiCategorySelector({
             size="icon"
             disabled={disabled}
             onClick={handleStartAdding}
-            className="border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50"
+            className={cn(
+              'border-2 border-dashed',
+              hasError ? 'border-destructive hover:border-destructive' : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+            )}
           >
             <Plus />
           </Button>

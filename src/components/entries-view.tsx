@@ -43,6 +43,14 @@ interface EntriesViewProps {
   onAnimationComplete?: () => void;
 }
 
+type EditForm = {
+  amount: string;
+  currency: string;
+  category: string;
+  description: string;
+}
+
+
 export function EntriesView({
   mode,
   selectedDate: propSelectedDate,
@@ -81,14 +89,10 @@ export function EntriesView({
   const setSelectedDate = onDateChange || setInternalSelectedDate;
 
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editForms, setEditForms] = useState<Record<string, {
-    amount: string;
-    currency: string;
-    category: string;
-    description: string;
-  }>>({});
+  const [editForms, setEditForms] = useState<Record<string, EditForm>>({});
   const [stagedDeleteIds, setStagedDeleteIds] = useState<Set<string>>(new Set());
   const [frozenCategoryOrder, setFrozenCategoryOrder] = useState<string[] | null>(null);
+  const [entryErrors, setEntryErrors] = useState<Record<string, { amount: boolean; category: boolean }>>({});
 
   const renderRecurringIcon = (entry: Entry) => (
     entry.isRecurringInstance ? (
@@ -112,44 +116,25 @@ export function EntriesView({
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
+  const ratesReady = !!ratesByMonth && !ratesLoading;
 
-  const effectiveEntries = useMemo(() => {
-    if (!isEditMode) return entries;
-    if (stagedDeleteIds.size === 0) return entries;
-    return entries.filter(e => !stagedDeleteIds.has(e.id));
-  }, [entries, isEditMode, stagedDeleteIds]);
+  const effectiveEntries = useMemo(() => (
+    isEditMode && stagedDeleteIds.size > 0
+      ? entries.filter(e => !stagedDeleteIds.has(e.id))
+      : entries
+  ), [entries, isEditMode, stagedDeleteIds]);
 
   const groupedEntries = useMemo(() => {
-    if (ratesLoading || !ratesByMonth) {
-      return {} as Record<string, { entries: Entry[]; income: number; expenses: number }>;
-    }
+    if (!ratesReady) return {} as Record<string, { entries: Entry[]; income: number; expenses: number }>;
     return effectiveEntries.reduce((acc, entry) => {
       const category = entry.category;
-      if (!acc[category]) {
-        acc[category] = {
-          entries: [],
-          income: 0,
-          expenses: 0,
-        };
-      }
+      if (!acc[category]) acc[category] = { entries: [], income: 0, expenses: 0 };
       acc[category].entries.push(entry);
-      // Convert to display currency using the entry's date
-      const amount = convertAmount(
-        entry.originalAmount,
-        entry.currency,
-        displayCurrency,
-        entry.date,
-        ratesByMonth
-      );
-      // Add to appropriate category
-      if (entry.type === 'income') {
-        acc[category].income += amount;
-      } else {
-        acc[category].expenses += amount;
-      }
+      const amount = convertAmount(entry.originalAmount, entry.currency, displayCurrency, entry.date, ratesByMonth);
+      if (entry.type === 'income') acc[category].income += amount; else acc[category].expenses += amount;
       return acc;
     }, {} as Record<string, { entries: Entry[]; income: number; expenses: number }>);
-  }, [effectiveEntries, ratesByMonth, ratesLoading, displayCurrency]);
+  }, [effectiveEntries, ratesByMonth, ratesReady, displayCurrency]);
 
   const totalAmounts = useMemo(() => {
     return Object.values(groupedEntries).reduce((acc, group) => {
@@ -160,21 +145,15 @@ export function EntriesView({
     }, { income: 0, expenses: 0 });
   }, [groupedEntries]);
 
+  const compareNet = ([, a]: [string, { income: number; expenses: number }], [, b]: [string, { income: number; expenses: number }]) =>
+    (a.income - a.expenses) - (b.income - b.expenses);
   const categoryKeys = useMemo(() => {
     const entriesArray = Object.entries(groupedEntries);
-    const comparator = ([, a]: [string, { income: number; expenses: number }], [, b]: [string, { income: number; expenses: number }]) =>
-      (a.income - a.expenses) - (b.income - b.expenses);
-
     if (!isEditMode || !frozenCategoryOrder || frozenCategoryOrder.length === 0) {
-      return entriesArray.sort(comparator).map(([category]) => category);
+      return entriesArray.sort(compareNet).map(([category]) => category);
     }
-
-    // Use frozen order, then append any new categories at the end (sorted by comparator)
     const frozen = frozenCategoryOrder.filter((c) => groupedEntries[c]);
-    const extras = entriesArray
-      .filter(([c]) => !frozenCategoryOrder.includes(c))
-      .sort(comparator)
-      .map(([c]) => c);
+    const extras = entriesArray.filter(([c]) => !frozenCategoryOrder.includes(c)).sort(compareNet).map(([c]) => c);
     return [...frozen, ...extras];
   }, [groupedEntries, isEditMode, frozenCategoryOrder]);
 
@@ -182,7 +161,7 @@ export function EntriesView({
 
   const enterEditMode = () => {
     // Initialize edit forms for all entries currently loaded
-    const forms: Record<string, { amount: string; currency: string; category: string; description: string }> = {};
+    const forms: Record<string, EditForm> = {};
     entries.forEach((e) => {
       forms[e.id] = {
         amount: e.originalAmount.toString(),
@@ -194,12 +173,11 @@ export function EntriesView({
     setEditForms(forms);
     setStagedDeleteIds(new Set());
     // Freeze current category order based on the current sort
-    const currentOrder = Object.entries(groupedEntries)
-      .sort(([, a], [, b]) => (a.income - a.expenses) - (b.income - b.expenses))
-      .map(([category]) => category);
+    const currentOrder = Object.entries(groupedEntries).sort(compareNet).map(([category]) => category);
     setFrozenCategoryOrder(currentOrder);
     setIsEditMode(true);
     setCardCollapsed(false);
+    setEntryErrors({});
   };
 
   const exitEditMode = () => {
@@ -207,9 +185,10 @@ export function EntriesView({
     setEditForms({});
     setStagedDeleteIds(new Set());
     setFrozenCategoryOrder(null);
+    setEntryErrors({});
   };
 
-  const updateEditForm = (id: string, field: keyof typeof editForms[string], value: string) => {
+  const updateEditForm = (id: string, field: keyof EditForm, value: string) => {
     setEditForms((prev) => ({
       ...prev,
       [id]: {
@@ -222,13 +201,19 @@ export function EntriesView({
   const saveAllEdits = async () => {
     if (!user) return;
     try {
-      // Validate amounts
-      const invalid = Object.values(editForms).some((f) => {
-        const amount = f.amount.trim();
-        return !amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0 || !f.category;
-      });
-      if (invalid) {
-        toast.error('Please enter valid amounts and categories for all edits');
+      // Validate on submit only and mark specific fields
+      const nextErrors: Record<string, { amount: boolean; category: boolean }> = {};
+      for (const [id, f] of Object.entries(editForms)) {
+        if (stagedDeleteIds.has(id)) continue;
+        const amountStr = (f.amount || '').trim();
+        const amountInvalid = !amountStr || isNaN(parseFloat(amountStr)) || parseFloat(amountStr) <= 0;
+        const categoryInvalid = !f.category;
+        if (amountInvalid || categoryInvalid) {
+          nextErrors[id] = { amount: amountInvalid, category: categoryInvalid };
+        }
+      }
+      setEntryErrors(nextErrors);
+      if (Object.keys(nextErrors).length > 0) {
         return;
       }
 
@@ -321,7 +306,7 @@ export function EntriesView({
             )}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" onClick={() => setCardCollapsed(false)}>
                   <CalendarIcon />
                 </Button>
               </PopoverTrigger>
@@ -415,13 +400,25 @@ export function EntriesView({
                                     {renderRecurringIcon(entry)}
                                     <CategorySelector
                                       value={form.category}
-                                      onChange={(val) => updateEditForm(entry.id, 'category', val)}
+                                      onChange={(val) => {
+                                        if (entryErrors[entry.id]?.category) {
+                                          setEntryErrors(prev => ({
+                                            ...prev,
+                                            [entry.id]: {
+                                              amount: prev[entry.id]?.amount || false,
+                                              category: false
+                                            }
+                                          }));
+                                        }
+                                        updateEditForm(entry.id, 'category', val);
+                                      }}
                                       type={entry.type}
+                                      hasError={!!entryErrors[entry.id]?.category}
                                     />
                                     <Input
                                       type="text"
                                       placeholder="Add a note..."
-                                      defaultValue={form.description}
+                                      value={form.description}
                                       onChange={(e) => updateEditForm(entry.id, 'description', e.target.value)}
                                       className="flex-1 h-8"
                                     />
@@ -452,9 +449,21 @@ export function EntriesView({
                                       type="number"
                                       step="0.01"
                                       min="0"
-                                      defaultValue={form.amount}
-                                      onChange={(e) => updateEditForm(entry.id, 'amount', e.target.value)}
-                                      className="w-24 h-8"
+                                      value={form.amount}
+                                      onChange={(e) => {
+                                        if (entryErrors[entry.id]?.amount) {
+                                          setEntryErrors(prev => ({
+                                            ...prev,
+                                            [entry.id]: {
+                                              amount: false,
+                                              category: prev[entry.id]?.category || false
+                                            }
+                                          }));
+                                        }
+                                        updateEditForm(entry.id, 'amount', e.target.value);
+                                      }}
+                                      className={`w-24 h-8 ${entryErrors[entry.id]?.amount ? 'border-destructive' : ''}`}
+                                      aria-invalid={!!entryErrors[entry.id]?.amount}
                                     />
                                     <CurrencySelector
                                       value={form.currency}

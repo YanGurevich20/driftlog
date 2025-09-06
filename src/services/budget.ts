@@ -50,3 +50,36 @@ export async function getBudgetAllocations(userId: string): Promise<BudgetAlloca
 
   return snap.docs.map(d => convertFirestoreDoc<BudgetAllocation>(d));
 }
+
+interface EditFormLike {
+  categories: string[];
+}
+
+interface ComputeUsedCategoriesOptions {
+  allocations: BudgetAllocation[];
+  stagedDeleteIds?: Set<string>;
+  editForms?: Record<string, EditFormLike>;
+  excludeAllocationIds?: Set<string>;
+}
+
+// Computes the set of categories already used by budget allocations, with support
+// for excluding allocations (e.g., the one currently being edited), factoring in
+// staged deletions, and in-progress edit form values.
+export function computeUsedBudgetCategories(options: ComputeUsedCategoriesOptions): Set<string> {
+  const { allocations, stagedDeleteIds, editForms, excludeAllocationIds } = options;
+
+  const used = new Set<string>();
+
+  allocations.forEach((allocation) => {
+    if (stagedDeleteIds && stagedDeleteIds.has(allocation.id)) return;
+    if (excludeAllocationIds && excludeAllocationIds.has(allocation.id)) return;
+
+    const categories = editForms && editForms[allocation.id]
+      ? editForms[allocation.id].categories
+      : allocation.categories;
+
+    categories.forEach((c) => used.add(c));
+  });
+
+  return used;
+}

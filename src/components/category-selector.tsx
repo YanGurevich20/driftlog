@@ -10,6 +10,7 @@ import { ChevronDown } from 'lucide-react';
 import { CategoryName, getCategoriesByAffiliation, getBothCategories } from '@/types/category';
 import { CategoryIcon } from '@/components/ui/category-icon';
 import { useCategoryRanking } from '@/hooks/use-category-ranking';
+import { cn } from '@/lib/utils';
 
 interface CategorySelectorProps {
   value: string;
@@ -21,6 +22,7 @@ interface CategorySelectorProps {
   disabled?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  hasError?: boolean;
 }
 
 export function CategorySelector({
@@ -32,7 +34,8 @@ export function CategorySelector({
   className,
   disabled,
   open: controlledOpen,
-  onOpenChange
+  onOpenChange,
+  hasError,
 }: CategorySelectorProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
   const open = controlledOpen ?? internalOpen;
@@ -50,6 +53,8 @@ export function CategorySelector({
       aria-expanded={open}
       size='icon'
       disabled={disabled}
+      aria-invalid={!!hasError}
+      className={cn(hasError ? 'border-2 border-destructive' : undefined)}
     >
       {value ? <CategoryIcon category={value} /> : <ChevronDown className="h-4 w-4" />}
     </Button>
