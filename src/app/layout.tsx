@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { TopologyBackground } from "@/components/ui/topology-background";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -31,6 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <SpeedInsights />
       <body
         className={`${poppins.variable} font-sans antialiased`}
       >

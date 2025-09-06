@@ -23,7 +23,6 @@ export function NewEntryView({ onDateChange, onEntryCreated }: NewEntryViewProps
   const handleTriggerClick = (mode: 'auto' | 'manual') => {
     if (activeMode === mode) {
       setIsOpen(false);
-      setTimeout(() => setActiveMode(null), 200);
     } else {
       setActiveMode(mode);
       setIsOpen(true);
@@ -74,7 +73,11 @@ export function NewEntryView({ onDateChange, onEntryCreated }: NewEntryViewProps
           </div>
         </CardHeader>
 
-        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down duration-200 ease-out">
+        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down duration-200 ease-out" onAnimationEnd={(e) => {
+          if (!isOpen && e.currentTarget === e.target) {
+            setActiveMode(null);
+          }
+        }}>
           <CardContent>
             {activeMode === 'auto' && (
               <LLMEntryInput onDateChange={onDateChange} onEntryCreated={onEntryCreated} />
