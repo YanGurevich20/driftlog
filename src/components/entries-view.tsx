@@ -22,8 +22,6 @@ import { DataState } from '@/components/ui/data-state';
 import { Calendar } from '@/components/ui/calendar';
 import { MonthPicker } from '@/components/ui/month-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { EntryEditDialog } from '@/components/entry-edit-dialog';
 import { deleteEntry, updateEntry } from '@/services/entries';
 import { toast } from 'sonner';
  
@@ -82,8 +80,6 @@ export function EntriesView({
   const selectedDate = propSelectedDate || internalSelectedDate;
   const setSelectedDate = onDateChange || setInternalSelectedDate;
 
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [entryToEdit, setEntryToEdit] = useState<Entry | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editForms, setEditForms] = useState<Record<string, {
     amount: string;
@@ -92,6 +88,17 @@ export function EntriesView({
     description: string;
   }>>({});
   const [stagedDeleteIds, setStagedDeleteIds] = useState<Set<string>>(new Set());
+  const [frozenCategoryOrder, setFrozenCategoryOrder] = useState<string[] | null>(null);
+
+  const renderRecurringIcon = (entry: Entry) => (
+    entry.isRecurringInstance ? (
+      entry.isModified ? (
+        <Repeat1 className="h-3 w-3 text-muted-foreground" />
+      ) : (
+        <Repeat className="h-3 w-3 text-muted-foreground" />
+      )
+    ) : null
+  );
 
   const dateRange = dateRangeFunction(selectedDate);
 
@@ -153,10 +160,25 @@ export function EntriesView({
     }, { income: 0, expenses: 0 });
   }, [groupedEntries]);
 
-  const handleEdit = (entry: Entry) => {
-    setEntryToEdit(entry);
-    setEditDialogOpen(true);
-  };
+  const categoryKeys = useMemo(() => {
+    const entriesArray = Object.entries(groupedEntries);
+    const comparator = ([, a]: [string, { income: number; expenses: number }], [, b]: [string, { income: number; expenses: number }]) =>
+      (a.income - a.expenses) - (b.income - b.expenses);
+
+    if (!isEditMode || !frozenCategoryOrder || frozenCategoryOrder.length === 0) {
+      return entriesArray.sort(comparator).map(([category]) => category);
+    }
+
+    // Use frozen order, then append any new categories at the end (sorted by comparator)
+    const frozen = frozenCategoryOrder.filter((c) => groupedEntries[c]);
+    const extras = entriesArray
+      .filter(([c]) => !frozenCategoryOrder.includes(c))
+      .sort(comparator)
+      .map(([c]) => c);
+    return [...frozen, ...extras];
+  }, [groupedEntries, isEditMode, frozenCategoryOrder]);
+
+  
 
   const enterEditMode = () => {
     // Initialize edit forms for all entries currently loaded
@@ -171,6 +193,11 @@ export function EntriesView({
     });
     setEditForms(forms);
     setStagedDeleteIds(new Set());
+    // Freeze current category order based on the current sort
+    const currentOrder = Object.entries(groupedEntries)
+      .sort(([, a], [, b]) => (a.income - a.expenses) - (b.income - b.expenses))
+      .map(([category]) => category);
+    setFrozenCategoryOrder(currentOrder);
     setIsEditMode(true);
     setCardCollapsed(false);
   };
@@ -179,6 +206,7 @@ export function EntriesView({
     setIsEditMode(false);
     setEditForms({});
     setStagedDeleteIds(new Set());
+    setFrozenCategoryOrder(null);
   };
 
   const updateEditForm = (id: string, field: keyof typeof editForms[string], value: string) => {
@@ -334,11 +362,13 @@ export function EntriesView({
         >
             <Accordion
               type="multiple"
-              defaultValue={isDaily ? Object.keys(groupedEntries) : []}
+              defaultValue={isDaily ? categoryKeys : []}
             >
-              {Object.entries(groupedEntries)
-                .sort(([, a], [, b]) => (a.income - a.expenses) - (b.income - b.expenses))
-                .map(([category, group]) => (
+              {categoryKeys
+                .map((category) => {
+                  const group = groupedEntries[category];
+                  if (!group) return null;
+                  return (
                   <AccordionItem key={category} value={category}>
                     <AccordionTrigger>
                       <div className="flex items-center justify-between w-full">
@@ -382,13 +412,7 @@ export function EntriesView({
                               <div key={entry.id} className="flex justify-between items-center gap-2">
                                 {isEditMode ? (
                                   <div className="flex items-center gap-2 flex-1">
-                                    {entry.isRecurringInstance && (
-                                      entry.isModified ? (
-                                        <Repeat1 className="h-3 w-3 text-muted-foreground" />
-                                      ) : (
-                                        <Repeat className="h-3 w-3 text-muted-foreground" />
-                                      )
-                                    )}
+                                    {renderRecurringIcon(entry)}
                                     <CategorySelector
                                       value={form.category}
                                       onChange={(val) => updateEditForm(entry.id, 'category', val)}
@@ -404,13 +428,7 @@ export function EntriesView({
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-1">
-                                    {entry.isRecurringInstance && (
-                                      entry.isModified ? (
-                                        <Repeat1 className="h-3 w-3 text-muted-foreground" />
-                                      ) : (
-                                        <Repeat className="h-3 w-3 text-muted-foreground" />
-                                      )
-                                    )}
+                                    {renderRecurringIcon(entry)}
                                     {shouldAnimate ? (
                                       <TypingText
                                         text={`${entry.description || 'No description'} ${isRecent ? '•' : ''}`}
@@ -472,7 +490,8 @@ export function EntriesView({
                       </div>
                     </AccordionContent>
                   </AccordionItem>
-                ))}
+                  );
+                })}
             </Accordion>
           </DataState>
         </CollapsibleCardContent>
@@ -502,20 +521,6 @@ export function EntriesView({
           </>
         )}
       </CollapsibleCard>
-
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          {entryToEdit && (
-            <EntryEditDialog
-              entry={entryToEdit}
-              onSuccess={() => {
-                setEditDialogOpen(false);
-                setEntryToEdit(null);
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
