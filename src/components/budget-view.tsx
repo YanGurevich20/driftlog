@@ -24,16 +24,7 @@ import { isSameMonth } from 'date-fns';
 import { Wallet, Edit2, Trash2, Check, X, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+ 
 import { toast } from 'sonner';
 import type { BudgetAllocation } from '@/types';
 import { IconContainer } from './ui/icon-container';
@@ -47,14 +38,13 @@ export function BudgetView() {
 
   // State for edit/delete functionality
   const [editAllocation, setEditAllocation] = useState<BudgetAllocation | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [allocationToDelete, setAllocationToDelete] = useState<BudgetAllocation | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editForms, setEditForms] = useState<Record<string, {
     amount: string;
     categories: string[];
     currency: string;
   }>>({});
+  const [stagedDeleteIds, setStagedDeleteIds] = useState<Set<string>>(new Set());
 
   // Get current month entries for budget calculation
   const monthRange = getDateRangeForMonth(new Date());
@@ -95,13 +85,19 @@ export function BudgetView() {
     return spending;
   }, [monthEntries, displayCurrency, ratesByMonth, ratesLoading]);
 
+  const visibleAllocations = useMemo(() => {
+    if (!isEditMode) return allocations;
+    if (stagedDeleteIds.size === 0) return allocations;
+    return allocations.filter(a => !stagedDeleteIds.has(a.id));
+  }, [allocations, isEditMode, stagedDeleteIds]);
+
   // Calculate budget progress for each allocation
   const budgetProgress = useMemo(() => {
     if (ratesLoading || !ratesByMonth) {
       return [];
     }
 
-    return allocations.map(allocation => {
+    return visibleAllocations.map(allocation => {
       // Calculate total spending across all categories in this allocation
       const spent = allocation.categories.reduce((total, category) => {
         return total + (categorySpending.get(category) || 0);
@@ -125,7 +121,7 @@ export function BudgetView() {
         overBudget: progress > 100,
       };
     });
-  }, [allocations, categorySpending, displayCurrency, ratesByMonth, ratesLoading]);
+  }, [visibleAllocations, categorySpending, displayCurrency, ratesByMonth, ratesLoading]);
 
   // Calculate totals for footer
   const totals = useMemo(() => {
@@ -146,11 +142,11 @@ export function BudgetView() {
         );
       }, 0);
 
-    // Calculate total allocated budgets
+    // Calculate total allocated budgets (visible only during edit)
     const totalAllocated = budgetProgress.reduce((sum, item) => sum + item.budget, 0);
 
-    // Calculate spending in categories that don't have budgets
-    const allocatedCategories = new Set(allocations.flatMap(a => a.categories));
+    // Calculate spending in categories that don't have budgets (visible only during edit)
+    const allocatedCategories = new Set(visibleAllocations.flatMap(a => a.categories));
     const unallocatedSpending = Array.from(categorySpending.entries())
       .filter(([category]) => !allocatedCategories.has(category))
       .reduce((sum, [, spending]) => sum + spending, 0);
@@ -158,19 +154,15 @@ export function BudgetView() {
     const remaining = totalIncome - totalAllocated;
 
     return { totalIncome, totalAllocated, unallocatedSpending, remaining };
-  }, [monthEntries, budgetProgress, allocations, categorySpending, displayCurrency, ratesByMonth, ratesLoading]);
+  }, [monthEntries, budgetProgress, visibleAllocations, categorySpending, displayCurrency, ratesByMonth, ratesLoading]);
 
   const loading = allocationsLoading || entriesLoading || ratesLoading;
   const error = allocationsError || entriesError;
 
-  const handleDelete = (allocation: BudgetAllocation) => {
-    setAllocationToDelete(allocation);
-    setDeleteDialogOpen(true);
-  };
-
   const enterEditMode = () => {
     setIsEditMode(true);
     setCardCollapsed(false);
+    setStagedDeleteIds(new Set());
     // Initialize edit forms for all budgets
     const forms: Record<string, { amount: string; categories: string[]; currency: string }> = {};
     budgetProgress.forEach(item => {
@@ -186,6 +178,7 @@ export function BudgetView() {
   const exitEditMode = () => {
     setIsEditMode(false);
     setEditForms({});
+    setStagedDeleteIds(new Set());
   };
 
   const updateEditForm = (id: string, field: keyof typeof editForms[string], value: string | string[]) => {
@@ -226,14 +219,25 @@ export function BudgetView() {
         return;
       }
       
-      const promises = validEntries.map(([id, form]) => 
+      const updatePromises = validEntries.map(([id, form]) => 
         updateAllocation(id, {
           amount: parseFloat(form.amount),
           categories: form.categories,
           currency: form.currency
         })
       );
-      await Promise.all(promises);
+
+      const deletePromises = Array.from(stagedDeleteIds).map(id => deleteAllocation(id));
+
+      const ops = [...updatePromises, ...deletePromises];
+
+      if (ops.length === 0) {
+        toast.info('No changes made');
+        exitEditMode();
+        return;
+      }
+
+      await Promise.all(ops);
       toast.success('Budgets updated');
       exitEditMode();
     } catch (error) {
@@ -243,24 +247,7 @@ export function BudgetView() {
   };
 
 
-  const confirmDelete = async () => {
-    if (!allocationToDelete) return;
-
-    try {
-      await deleteAllocation(allocationToDelete.id);
-      toast.success('Budget deleted');
-      setDeleteDialogOpen(false);
-      setAllocationToDelete(null);
-      
-      // If this was the last budget, exit edit mode
-      if (budgetProgress.length <= 1) {
-        exitEditMode();
-      }
-    } catch (error) {
-      console.error('Failed to delete budget:', error);
-      toast.error('Failed to delete budget');
-    }
-  };
+  // staged deletion replaces immediate delete
 
   return (
     <CollapsibleCard
@@ -300,12 +287,12 @@ export function BudgetView() {
                 >
                   <Edit2/>
                 </Button>
-                <BudgetAllocationDialog
-                  editAllocation={editAllocation}
-                  onEditClose={() => setEditAllocation(null)}
-                />
               </>
             )}
+            <BudgetAllocationDialog
+              editAllocation={editAllocation}
+              onEditClose={() => setEditAllocation(null)}
+            />
           </div>
         }
       >
@@ -316,7 +303,7 @@ export function BudgetView() {
         <DataState
           loading={loading}
           error={error}
-          empty={allocations.length === 0}
+          empty={isEditMode ? visibleAllocations.length === 0 : allocations.length === 0}
           loadingVariant="skeleton"
           emptyTitle="No budgets"
           emptyDescription="Add your first budget to start tracking spending"
@@ -351,7 +338,13 @@ export function BudgetView() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => handleDelete(item)}
+                          onClick={() => {
+                            setStagedDeleteIds(prev => {
+                              const next = new Set(prev);
+                              next.add(item.id);
+                              return next;
+                            });
+                          }}
                         >
                           <Trash2/>
                         </Button>
@@ -410,26 +403,7 @@ export function BudgetView() {
         </CollapsibleCardFooter>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Budget</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete the budget for &quot;{allocationToDelete?.categories.join(', ')}&quot;?
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      
     </CollapsibleCard>
   );
 }

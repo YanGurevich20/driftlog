@@ -26,16 +26,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { EntryEditDialog } from '@/components/entry-edit-dialog';
 import { deleteEntry, updateEntry } from '@/services/entries';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+ 
 import { Button } from '@/components/ui/button';
 import { TypingText } from '@/components/ui/typing-text';
 import { CalendarDays, Receipt } from 'lucide-react';
@@ -91,8 +82,6 @@ export function EntriesView({
   const selectedDate = propSelectedDate || internalSelectedDate;
   const setSelectedDate = onDateChange || setInternalSelectedDate;
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState<Entry | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -102,6 +91,7 @@ export function EntriesView({
     category: string;
     description: string;
   }>>({});
+  const [stagedDeleteIds, setStagedDeleteIds] = useState<Set<string>>(new Set());
 
   const dateRange = dateRangeFunction(selectedDate);
 
@@ -116,11 +106,17 @@ export function EntriesView({
     endDate: dateRange.end,
   });
 
+  const effectiveEntries = useMemo(() => {
+    if (!isEditMode) return entries;
+    if (stagedDeleteIds.size === 0) return entries;
+    return entries.filter(e => !stagedDeleteIds.has(e.id));
+  }, [entries, isEditMode, stagedDeleteIds]);
+
   const groupedEntries = useMemo(() => {
     if (ratesLoading || !ratesByMonth) {
       return {} as Record<string, { entries: Entry[]; income: number; expenses: number }>;
     }
-    return entries.reduce((acc, entry) => {
+    return effectiveEntries.reduce((acc, entry) => {
       const category = entry.category;
       if (!acc[category]) {
         acc[category] = {
@@ -146,7 +142,7 @@ export function EntriesView({
       }
       return acc;
     }, {} as Record<string, { entries: Entry[]; income: number; expenses: number }>);
-  }, [entries, ratesByMonth, ratesLoading, displayCurrency]);
+  }, [effectiveEntries, ratesByMonth, ratesLoading, displayCurrency]);
 
   const totalAmounts = useMemo(() => {
     return Object.values(groupedEntries).reduce((acc, group) => {
@@ -162,19 +158,6 @@ export function EntriesView({
     setEditDialogOpen(true);
   };
 
-  const handleDelete = async () => {
-    if (!entryToDelete) return;
-    try {
-      await deleteEntry(entryToDelete.id);
-      toast.success('Entry deleted');
-      setDeleteDialogOpen(false);
-      setEntryToDelete(null);
-    } catch (error) {
-      console.error('Failed to delete:', error);
-      toast.error('Failed to delete entry');
-    }
-  };
-
   const enterEditMode = () => {
     // Initialize edit forms for all entries currently loaded
     const forms: Record<string, { amount: string; currency: string; category: string; description: string }> = {};
@@ -187,6 +170,7 @@ export function EntriesView({
       };
     });
     setEditForms(forms);
+    setStagedDeleteIds(new Set());
     setIsEditMode(true);
     setCardCollapsed(false);
   };
@@ -194,6 +178,7 @@ export function EntriesView({
   const exitEditMode = () => {
     setIsEditMode(false);
     setEditForms({});
+    setStagedDeleteIds(new Set());
   };
 
   const updateEditForm = (id: string, field: keyof typeof editForms[string], value: string) => {
@@ -222,6 +207,7 @@ export function EntriesView({
       const entryById = new Map(entries.map((e) => [e.id, e]));
       const updates = Object.entries(editForms)
         .map(([id, form]) => {
+          if (stagedDeleteIds.has(id)) return null;
           const original = entryById.get(id);
           if (!original) return null;
           const amountNum = parseFloat(form.amount);
@@ -242,13 +228,17 @@ export function EntriesView({
         })
         .filter(Boolean) as Promise<void>[];
 
-      if (updates.length === 0) {
+      const deletes = Array.from(stagedDeleteIds).map((id) => deleteEntry(id));
+
+      const ops = [...updates, ...deletes];
+
+      if (ops.length === 0) {
         toast.info('No changes made');
         exitEditMode();
         return;
       }
 
-      await Promise.all(updates);
+      await Promise.all(ops);
       toast.success('Entries updated');
       exitEditMode();
     } catch (error) {
@@ -456,8 +446,11 @@ export function EntriesView({
                                       variant="outline"
                                       size="icon"
                                       onClick={() => {
-                                        setEntryToDelete(entry);
-                                        setDeleteDialogOpen(true);
+                                        setStagedDeleteIds(prev => {
+                                          const next = new Set(prev);
+                                          next.add(entry.id);
+                                          return next;
+                                        });
                                       }}
                                     >
                                       <Trash2 />
@@ -509,21 +502,6 @@ export function EntriesView({
           </>
         )}
       </CollapsibleCard>
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Entry</AlertDialogTitle>
-            <AlertDialogDescription>
-                Are you sure you want to delete this entry?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setEntryToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
