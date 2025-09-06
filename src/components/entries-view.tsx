@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
-import { MoreVertical, Edit2, Trash2, CalendarIcon, Repeat, Repeat1 } from 'lucide-react';
+import { Edit2, Trash2, CalendarIcon, Repeat, Repeat1, Check, X } from 'lucide-react';
 import {
   CollapsibleCard,
   CollapsibleCardContent,
@@ -24,7 +24,7 @@ import { MonthPicker } from '@/components/ui/month-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { EntryEditDialog } from '@/components/entry-edit-dialog';
-import { deleteEntry } from '@/services/entries';
+import { deleteEntry, updateEntry } from '@/services/entries';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -37,17 +37,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { TypingText } from '@/components/ui/typing-text';
 import { CalendarDays, Receipt } from 'lucide-react';
 import { SERVICE_START_DATE } from '@/lib/config';
 import { getDateRangeForDay, getDateRangeForMonth } from '@/lib/date-range-utils';
 import { useIsDesktop } from '@/hooks/use-media-query';
+import { CategorySelector } from '@/components/category-selector';
+import { CurrencySelector } from '@/components/currency-selector';
+import { Input } from '@/components/ui/input';
 
 interface EntriesViewProps {
   mode: 'daily' | 'monthly';
@@ -97,6 +94,13 @@ export function EntriesView({
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState<Entry | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editForms, setEditForms] = useState<Record<string, {
+    amount: string;
+    currency: string;
+    category: string;
+    description: string;
+  }>>({});
 
   const dateRange = dateRangeFunction(selectedDate);
 
@@ -170,6 +174,87 @@ export function EntriesView({
     }
   };
 
+  const enterEditMode = () => {
+    // Initialize edit forms for all entries currently loaded
+    const forms: Record<string, { amount: string; currency: string; category: string; description: string }> = {};
+    entries.forEach((e) => {
+      forms[e.id] = {
+        amount: e.originalAmount.toString(),
+        currency: e.currency,
+        category: e.category,
+        description: e.description || ''
+      };
+    });
+    setEditForms(forms);
+    setIsEditMode(true);
+  };
+
+  const exitEditMode = () => {
+    setIsEditMode(false);
+    setEditForms({});
+  };
+
+  const updateEditForm = (id: string, field: keyof typeof editForms[string], value: string) => {
+    setEditForms((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value,
+      },
+    }));
+  };
+
+  const saveAllEdits = async () => {
+    if (!user) return;
+    try {
+      // Validate amounts
+      const invalid = Object.values(editForms).some((f) => {
+        const amount = f.amount.trim();
+        return !amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0 || !f.category;
+      });
+      if (invalid) {
+        toast.error('Please enter valid amounts and categories for all edits');
+        return;
+      }
+
+      const entryById = new Map(entries.map((e) => [e.id, e]));
+      const updates = Object.entries(editForms)
+        .map(([id, form]) => {
+          const original = entryById.get(id);
+          if (!original) return null;
+          const amountNum = parseFloat(form.amount);
+          const changed = (
+            amountNum !== original.originalAmount ||
+            form.currency !== original.currency ||
+            form.category !== original.category ||
+            (form.description || '') !== (original.description || '')
+          );
+          if (!changed) return null;
+          return updateEntry(id, {
+            originalAmount: amountNum,
+            currency: form.currency,
+            category: form.category,
+            description: form.description || '',
+            isModified: true,
+          }, user.id);
+        })
+        .filter(Boolean) as Promise<void>[];
+
+      if (updates.length === 0) {
+        toast.message('No changes to save');
+        exitEditMode();
+        return;
+      }
+
+      await Promise.all(updates);
+      toast.success('Entries updated');
+      exitEditMode();
+    } catch (error) {
+      console.error('Failed to update entries:', error);
+      toast.error('Failed to update entries');
+    }
+  };
+
 
 
     return (
@@ -177,29 +262,62 @@ export function EntriesView({
     <CollapsibleCard defaultCollapsed={!isDaily} hideFooterWhenCollapsed={!isDesktop}>
       <CollapsibleCardHeader
         actions={
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <CalendarIcon />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              {isDaily ? (
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
-                  disabled={{ before: SERVICE_START_DATE }}
-                  startMonth={SERVICE_START_DATE}
-                />
-              ) : (
-                <MonthPicker
-                  currentMonth={selectedDate}
-                  onMonthChange={setSelectedDate}
-                />
-              )}
-            </PopoverContent>
-          </Popover>
+          <div className="flex gap-1">
+            {isEditMode ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={saveAllEdits}
+                  className="text-primary hover:text-primary"
+                >
+                  <Check />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={exitEditMode}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={enterEditMode}
+                  disabled={entries.length === 0}
+                >
+                  <Edit2 />
+                </Button>
+              </>
+            )}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <CalendarIcon />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                {isDaily ? (
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    disabled={{ before: SERVICE_START_DATE }}
+                    startMonth={SERVICE_START_DATE}
+                  />
+                ) : (
+                  <MonthPicker
+                    currentMonth={selectedDate}
+                    onMonthChange={setSelectedDate}
+                  />
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
         }
       >
         <CollapsibleCardTitle>
@@ -257,68 +375,97 @@ export function EntriesView({
                             const isRecent = entry.createdAt &&
                               (Date.now() - entry.createdAt.getTime()) < 5 * 60 * 1000; // 5 minutes
                             const shouldAnimate = animatingEntryId === entry.id;
+                            const form = editForms[entry.id] || {
+                              amount: entry.originalAmount.toString(),
+                              currency: entry.currency,
+                              category: entry.category,
+                              description: entry.description || ''
+                            };
                             return (
-                              <div key={entry.id} className="flex justify-between items-start">
-                                <div className="flex items-center gap-1">
-                                  {entry.isRecurringInstance && (
-                                    entry.isModified ? (
-                                      <Repeat1 className="h-3 w-3 text-muted-foreground" />
-                                    ) : (
-                                      <Repeat className="h-3 w-3 text-muted-foreground" />
-                                    )
-                                  )}
-                                  {shouldAnimate ? (
-                                    <TypingText
-                                      text={`${entry.description || 'No description'} ${isRecent ? '•' : ''}`}
-                                      delay={70}
-                                      repeat={false}
-                                      hideCursorOnComplete={true}
-                                      className="text-muted-foreground text-sm"
-                                      grow={true}
-                                      onComplete={onAnimationComplete}
+                              <div key={entry.id} className="flex justify-between items-center gap-2">
+                                {isEditMode ? (
+                                  <div className="flex items-center gap-2 flex-1">
+                                    {entry.isRecurringInstance && (
+                                      entry.isModified ? (
+                                        <Repeat1 className="h-3 w-3 text-muted-foreground" />
+                                      ) : (
+                                        <Repeat className="h-3 w-3 text-muted-foreground" />
+                                      )
+                                    )}
+                                    <CategorySelector
+                                      value={form.category}
+                                      onChange={(val) => updateEditForm(entry.id, 'category', val)}
+                                      type={entry.type}
                                     />
-                                  ) : (
-                                    <span className="text-muted-foreground text-sm">
-                                      {`${entry.description || 'No description'} ${isRecent ? '•' : ''}`}
+                                    <Input
+                                      type="text"
+                                      placeholder="Add a note..."
+                                      defaultValue={form.description}
+                                      onChange={(e) => updateEditForm(entry.id, 'description', e.target.value)}
+                                      className="flex-1 h-8"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    {entry.isRecurringInstance && (
+                                      entry.isModified ? (
+                                        <Repeat1 className="h-3 w-3 text-muted-foreground" />
+                                      ) : (
+                                        <Repeat className="h-3 w-3 text-muted-foreground" />
+                                      )
+                                    )}
+                                    {shouldAnimate ? (
+                                      <TypingText
+                                        text={`${entry.description || 'No description'} ${isRecent ? '•' : ''}`}
+                                        delay={70}
+                                        repeat={false}
+                                        hideCursorOnComplete={true}
+                                        className="text-muted-foreground text-sm"
+                                        grow={true}
+                                        onComplete={onAnimationComplete}
+                                      />
+                                    ) : (
+                                      <span className="text-muted-foreground text-sm">
+                                        {`${entry.description || 'No description'} ${isRecent ? '•' : ''}`}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                {isEditMode ? (
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      defaultValue={form.amount}
+                                      onChange={(e) => updateEditForm(entry.id, 'amount', e.target.value)}
+                                      className="w-24 h-8"
+                                    />
+                                    <CurrencySelector
+                                      value={form.currency}
+                                      onChange={(val) => updateEditForm(entry.id, 'currency', val)}
+                                    />
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={() => {
+                                        setEntryToDelete(entry);
+                                        setDeleteDialogOpen(true);
+                                      }}
+                                    >
+                                      <Trash2 />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <span className={cn(
+                                      "text-sm whitespace-nowrap",
+                                      entry.type === 'income' ? 'text-primary' : ''
+                                    )}>
+                                      {formatCurrency(entry.originalAmount, entry.currency, entry.type === 'expense')}
                                     </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className={cn(
-                                    "text-sm whitespace-nowrap",
-                                    entry.type === 'income' ? 'text-primary' : ''
-                                  )}>
-                                    {formatCurrency(entry.originalAmount, entry.currency, entry.type === 'expense')}
-                                  </span>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <MoreVertical className="h-3 w-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => handleEdit(entry)}>
-                                        <Edit2 className="mr-2 h-4 w-4" />
-                                        Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setEntryToDelete(entry);
-                                          setDeleteDialogOpen(true);
-                                        }}
-                                        className="text-destructive"
-                                      >
-                                        <Trash2 className="mr-2" />
-                                        Delete
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
