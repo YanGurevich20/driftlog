@@ -296,3 +296,78 @@ export async function getRecurringTemplatesForMembers(memberIds: string[]): Prom
 
   return results;
 }
+
+// -------------------- Human-readable formatter --------------------
+const weekdayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+
+const ordinal = (n: number) => {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1: return `${n}st`;
+    case 2: return `${n}nd`;
+    case 3: return `${n}rd`;
+    default: return `${n}th`;
+  }
+};
+
+const joinWithAnd = (items: string[]): string => {
+  if (items.length === 0) return '';
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+};
+
+const toValidDate = (input: unknown): Date | null => {
+  if (!input) return null;
+  if (input instanceof Date && !Number.isNaN(input.getTime())) return input;
+  if (typeof (input as { toDate?: () => Date }).toDate === 'function') {
+    const d = (input as { toDate: () => Date }).toDate();
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof input === 'object' && input !== null && 'seconds' in (input as Record<string, unknown>)) {
+    const seconds = (input as { seconds?: unknown }).seconds;
+    if (typeof seconds === 'number') {
+      const d = new Date(seconds * 1000);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+  }
+  if (typeof input === 'string' || typeof input === 'number') {
+    const d = new Date(input);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+};
+
+export function formatRecurrenceRule(template: RecurringTemplate): string {
+  const { recurrence } = template;
+  const end = toValidDate(recurrence.endDate);
+  const until = end ? `until ${format(end, 'M/d/yyyy')}` : '';
+  const every = (() => {
+    const interval = recurrence.interval || 1;
+    switch (recurrence.frequency) {
+      case 'daily':
+        return interval === 1 ? 'every day' : `every ${interval} days`;
+      case 'weekly': {
+        const days = joinWithAnd((recurrence.daysOfWeek || []).map((d) => weekdayNames[d]));
+        const base = interval === 1 ? 'every week' : `every ${interval} weeks`;
+        return days ? `${base} on ${days}` : base;
+      }
+      case 'monthly': {
+        const base = interval === 1 ? 'every month' : `every ${interval} months`;
+        const dom = recurrence.dayOfMonth;
+        return dom ? `${base} on the ${ordinal(dom)}` : base;
+      }
+      case 'yearly': {
+        const base = interval === 1 ? 'every year' : `every ${interval} years`;
+        const start = toValidDate(template.startDate);
+        if (!start) return base;
+        const day = start.getDate();
+        const monthName = format(start, 'MMMM').toLowerCase();
+        return `${base} on the ${ordinal(day)} of ${monthName}`;
+      }
+    }
+  })();
+  const result = [every, until].filter(Boolean).join(' ');
+  return result.charAt(0).toUpperCase() + result.slice(1);
+}

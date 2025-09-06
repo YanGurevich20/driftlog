@@ -12,10 +12,10 @@ import {
 } from '@/components/ui/collapsible-card';
 import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useAuth } from '@/lib/auth-context';
-import { stopRecurring, deleteRecurringSeries } from '@/services/recurring';
+import { stopRecurring, deleteRecurringSeries, formatRecurrenceRule } from '@/services/recurring';
 import { useRecurringTemplates } from '@/hooks/use-recurring-templates';
 import { useRecurringAggregates } from '@/hooks/use-recurring-aggregates';
-import type { RecurringTemplate } from '@/types';
+// no need to import RecurringTemplate type here
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -32,7 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { format } from 'date-fns';
+// no local date formatting; using formatter from services
 import { DataState } from '@/components/ui/data-state';
 import { useEntries } from '@/hooks/use-entries';
 import { CategoryIcon } from '@/components/ui/category-icon';
@@ -85,7 +85,7 @@ export function RecurringView() {
   }, [recurringMonthEntries, ratesByMonth, ratesLoading, displayCurrency]);
 
   // Real-time aggregation data
-  const { nextByTemplate, remainingByTemplate, loading: aggLoading } = useRecurringAggregates(templates);
+  const { remainingByTemplate, loading: aggLoading } = useRecurringAggregates(templates);
 
 
   const handleDelete = async (mode: 'stop' | 'delete-all') => {
@@ -108,26 +108,6 @@ export function RecurringView() {
     }
   };
 
-  const getFrequencyLabel = (template: RecurringTemplate): string => {
-    const { frequency, interval = 1 } = template.recurrence;
-    
-    if (interval === 1) {
-      switch (frequency) {
-        case 'daily': return 'Daily';
-        case 'weekly': return 'Weekly';
-        case 'monthly': return 'Monthly';
-        case 'yearly': return 'Yearly';
-      }
-    }
-    
-    switch (frequency) {
-      case 'daily': return `Every ${interval} days`;
-      case 'weekly': return `Every ${interval} weeks`;
-      case 'monthly': return `Every ${interval} months`;
-      case 'yearly': return `Every ${interval} years`;
-      default: return frequency;
-    }
-  };
 
   // Include templates with future entries OR those that had any entries this month
   const monthTemplateIds = useMemo(() => {
@@ -161,9 +141,6 @@ export function RecurringView() {
           >
             <div className="divide-y">
               {visibleTemplates.map((template) => {
-                const nextDate = nextByTemplate[template.id] ?? null;
-                const remaining = remainingByTemplate[template.id] ?? 0;
-                
                 return (
                   <div key={template.id} className={`flex justify-between items-start gap-2 py-2 first:pt-0 last:pb-0`}>
                     <div className="flex-1">
@@ -180,12 +157,7 @@ export function RecurringView() {
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {getFrequencyLabel(template)} · {' '}
-                        {nextDate ? (
-                          <>Next: {format(nextDate, 'MMM d')} · {remaining} remaining</>
-                        ) : (
-                          'Completed'
-                        )}
+                        {formatRecurrenceRule(template)}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

@@ -20,7 +20,6 @@ import { CategoryIcon } from '@/components/ui/category-icon';
 import { MultiCategorySelector } from '@/components/ui/multi-category-selector';
 import { CurrencySelector } from '@/components/currency-selector';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
-import { isSameMonth } from 'date-fns';
 import { Wallet, Edit2, Trash2, Check, X, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

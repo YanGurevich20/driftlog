@@ -154,15 +154,13 @@ export function BudgetAllocationDialog({ editAllocation, onEditClose, onOpenNew 
           className={`w-20 ${amountError ? 'border-destructive' : ''}`}
           aria-invalid={amountError}
           {...form.register('amount', {
-            onChange: (e) => {
+            onChange: () => {
               form.clearErrors('amount');
-              // react-hook-form still handles value through register
             },
             onBlur: () => {
-              // keep default behavior
             }
           })}
-          onFocus={(e) => {
+          onFocus={() => {
             if (amountError) {
               form.clearErrors('amount');
             }
