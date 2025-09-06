@@ -30,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Repeat } from 'lucide-react';
 import type { RecurrenceFrequency } from '@/types/recurring';
 import { RECURRENCE_LIMITS } from '@/types/recurring';
+import { EntryType } from '@/types/entry';
 
 const formSchema = z
   .object({
@@ -62,7 +63,7 @@ const formSchema = z
     const days = data.recurrence?.selectedWeekdays ?? [];
     if (days.length === 0) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: 'Select at least one day',
         path: ['recurrence', 'selectedWeekdays'],
       });
@@ -85,7 +86,7 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
   const { trackCategoryUsage, getDefaultCategory, recentCategories } = useCategoryRanking();
 
   const buildDefaultValues = (baseDate = new Date()) => ({
-    type: 'expense' as const,
+    type: 'expense' as EntryType,
     amountCurrency: {
       amount: '',
       currency: lastUsedCurrency || user?.displayCurrency || 'USD',
@@ -276,8 +277,8 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
                     form.clearErrors('amountCurrency');
                   }
                 }}
-                className={`flex-1 ${((form.formState.errors.amountCurrency as { amount?: unknown } | undefined)?.amount ? 'border-destructive' : '')}`}
-                aria-invalid={!!(form.formState.errors.amountCurrency as { amount?: unknown } | undefined)?.amount}
+                className={`flex-1 ${(form.formState.errors.amountCurrency?.amount ? 'border-destructive' : '')}`}
+                aria-invalid={!!form.formState.errors.amountCurrency?.amount}
               />
             </div>
           </div>
@@ -376,7 +377,7 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
                   type="number"
                   min={1}
                   placeholder="0"
-                  value={field.value === undefined || field.value === null || Number.isNaN(field.value as unknown as number) ? '' : String(field.value)}
+                  value={field.value === undefined || field.value === null || Number.isNaN(field.value) ? '' : String(field.value)}
                   onChange={(e) => {
                     if (fieldState.error) {
                       form.clearErrors('recurrence.interval');
@@ -485,9 +486,9 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
                     key={val}
                     type="button"
                     variant={(form.watch('recurrence.selectedWeekdays') || []).includes(val) ? "default" : "outline"}
-                    className={`h-8 w-8 ${(form.formState.errors.recurrence as { selectedWeekdays?: unknown } | undefined)?.selectedWeekdays ? 'ring-1 ring-inset ring-destructive' : ''}`}
+                    className={`h-8 w-8 ${(form.formState.errors.recurrence?.selectedWeekdays ? 'ring-1 ring-inset ring-destructive' : '')}`}
                     onClick={() => {
-                      const current = (form.getValues('recurrence.selectedWeekdays') || []) as number[];
+                      const current = (form.getValues('recurrence.selectedWeekdays') || []);
                       const newWeekdays = current.includes(val)
                         ? current.filter((d) => d !== val)
                         : [...current, val].sort((a, b) => a - b);
