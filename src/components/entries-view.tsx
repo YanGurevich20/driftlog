@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency, convertAmount } from '@/lib/currency-utils';
 import { useEntries } from '@/hooks/use-entries';
@@ -16,7 +16,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { format } from 'date-fns';
 import type { Entry } from '@/types';
-import { cn } from '@/lib/utils';
+// import { cn } from '@/lib/utils';
 import { CategoryIcon } from '@/components/ui/category-icon';
 import { DataState } from '@/components/ui/data-state';
 import { Calendar } from '@/components/ui/calendar';
@@ -63,6 +63,7 @@ export function EntriesView({
   // Mode-specific configuration
   const isDaily = mode === 'daily';
   const [cardCollapsed, setCardCollapsed] = useState(!isDaily);
+  const [openCategories, setOpenCategories] = useState<string[]>([]);
   const dateRangeFunction = isDaily ? getDateRangeForDay : getDateRangeForMonth;
   const dateFormat = isDaily ? 'EEEE, MMMM d' : 'MMMM yyyy';
   const sessionStorageKey = isDaily ? 'dailyViewDate' : undefined;
@@ -156,6 +157,20 @@ export function EntriesView({
     const extras = entriesArray.filter(([c]) => !frozenCategoryOrder.includes(c)).sort(compareNet).map(([c]) => c);
     return [...frozen, ...extras];
   }, [groupedEntries, isEditMode, frozenCategoryOrder]);
+
+  useEffect(() => {
+    const valid = new Set(categoryKeys);
+    setOpenCategories((prev) => prev.filter((c) => valid.has(c)));
+  }, [categoryKeys]);
+
+  useEffect(() => {
+    if (!animatingEntryId) return;
+    setCardCollapsed(false);
+    const entry = effectiveEntries.find((e) => e.id === animatingEntryId);
+    if (entry) {
+      setOpenCategories((prev) => (prev.includes(entry.category) ? prev : [...prev, entry.category]));
+    }
+  }, [animatingEntryId, effectiveEntries]);
 
   
 
@@ -279,7 +294,6 @@ export function EntriesView({
                   variant="ghost"
                   size="icon"
                   onClick={saveAllEdits}
-                  className="text-primary hover:text-primary"
                 >
                   <Check />
                 </Button>
@@ -287,7 +301,6 @@ export function EntriesView({
                   variant="ghost"
                   size="icon"
                   onClick={exitEditMode}
-                  className="text-muted-foreground hover:text-foreground"
                 >
                   <X />
                 </Button>
@@ -347,7 +360,8 @@ export function EntriesView({
         >
             <Accordion
               type="multiple"
-              defaultValue={isDaily ? categoryKeys : []}
+              value={openCategories}
+              onValueChange={(vals) => setOpenCategories(Array.isArray(vals) ? vals : [])}
             >
               {categoryKeys
                 .map((category) => {
@@ -363,7 +377,7 @@ export function EntriesView({
                         </div>
                         <div className="flex items-center gap-3 text-sm">
                           {group.income > 0 && (
-                            <span className="text-primary font-semibold">
+                            <span className="font-semibold">
                               {formatCurrency(group.income, displayCurrency, false)}
                             </span>
                           )}
@@ -485,10 +499,7 @@ export function EntriesView({
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-2">
-                                    <span className={cn(
-                                      "text-sm whitespace-nowrap",
-                                      entry.type === 'income' ? 'text-primary' : ''
-                                    )}>
+                                    <span className="text-sm whitespace-nowrap">
                                       {formatCurrency(entry.originalAmount, entry.currency, entry.type === 'expense')}
                                     </span>
                                   </div>

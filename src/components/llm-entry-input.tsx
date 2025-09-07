@@ -5,7 +5,7 @@ import { processEntry } from '@/lib/ai/ai';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { toUTCMidnight } from '@/lib/date-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,8 +110,10 @@ export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputInl
             createdAt: serverTimestamp(),
           };
 
-          const docRef = await addDoc(collection(db, 'entries'), entryData);
-          
+          // Pre-generate doc ID and announce creation before write to avoid UI race
+          const colRef = collection(db, 'entries');
+          const docRef = doc(colRef);
+
           const entryDate = new Date(parsed.date);
           
           // Automatically navigate to the entry date
@@ -120,6 +122,9 @@ export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputInl
           // Trigger flash animation for the new entry
           onEntryCreated?.(docRef.id);
           
+          // Perform the actual write
+          await setDoc(docRef, entryData);
+
           // Clear the form
           clearForm();
         } else {

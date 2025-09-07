@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { formatCurrency, convertAmount } from '@/lib/currency-utils';
+import { convertAmount } from '@/lib/currency-utils';
 import { useBudgetAllocations } from '@/hooks/use-budget-allocations';
 import { useEntries } from '@/hooks/use-entries';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
@@ -20,20 +20,21 @@ import { CategoryIcon } from '@/components/ui/category-icon';
 import { MultiCategorySelector } from '@/components/ui/multi-category-selector';
 import { CurrencySelector } from '@/components/currency-selector';
 import { getDateRangeForMonth } from '@/lib/date-range-utils';
-import { Wallet, Edit2, Trash2, Check, X, Coins } from 'lucide-react';
+import { Wallet, Edit2, Trash2, Check, X, Coins, CalendarClock, DollarSign, Percent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
  
 import { toast } from 'sonner';
 import { IconContainer } from './ui/icon-container';
 import { computeUsedBudgetCategories } from '@/services/budget';
+import { getCurrencyByCode } from '@/lib/currencies';
 
 export function BudgetView() {
   const { user } = useAuth();
 
   // Get budget allocations
   const { allocations, loading: allocationsLoading, error: allocationsError, deleteAllocation, updateAllocation } = useBudgetAllocations();
-  const [cardCollapsed, setCardCollapsed] = useState(allocations.length === 0);
+  const [cardCollapsed, setCardCollapsed] = useState(false);
 
   // State for edit/delete functionality
   const [isEditMode, setIsEditMode] = useState(false);
@@ -43,6 +44,7 @@ export function BudgetView() {
     currency: string;
   }>>({});
   const [stagedDeleteIds, setStagedDeleteIds] = useState<Set<string>>(new Set());
+  const [displayMode, setDisplayMode] = useState<'currency' | 'percent'>('currency');
 
   // Get current month entries for budget calculation
   const monthRange = getDateRangeForMonth(new Date());
@@ -104,20 +106,20 @@ export function BudgetView() {
         new Date(),
         ratesByMonth
       );
-      const progress = budget > 0 ? (spent / budget) * 100 : 0;
+      const progress = budget > 0 ? (spent / budget) * 100 : (spent > 0 ? 100 : 0);
       return {
         ...allocation,
         spent,
         budget,
-        progress: Math.min(progress, 100),
+        progress,
       };
     });
   }, [visibleAllocations, categorySpending, displayCurrency, ratesByMonth, ratesReady]);
 
-  // Calculate totals for footer
+  // Calculate totals for footer (Unbudgeted)
   const totals = useMemo(() => {
     if (!ratesReady) {
-      return { totalIncome: 0, totalAllocated: 0, unallocatedSpending: 0, remaining: 0 };
+      return { totalIncome: 0, budgetedMaxImpact: 0, unbudgetedUsed: 0, unbudgetedCapacity: 0 };
     }
     const totalIncome = monthEntries
       .filter(entry => entry.type === 'income')
@@ -128,13 +130,17 @@ export function BudgetView() {
         entry.date,
         ratesByMonth
       ), 0);
-    const totalAllocated = budgetProgress.reduce((sum, item) => sum + item.budget, 0);
+    // Categories covered by budgets
     const allocatedCategories = new Set(visibleAllocations.flatMap(a => a.categories));
-    const unallocatedSpending = Array.from(categorySpending.entries())
+    // Expenses not covered by any budget
+    const unbudgetedUsed = Array.from(categorySpending.entries())
       .filter(([category]) => !allocatedCategories.has(category))
       .reduce((sum, [, spending]) => sum + spending, 0);
-    const remaining = totalIncome - totalAllocated;
-    return { totalIncome, totalAllocated, unallocatedSpending, remaining };
+    // For budgeted categories, subtract the higher of budget vs actual usage per allocation
+    const budgetedMaxImpact = budgetProgress.reduce((sum, item) => sum + Math.max(item.budget, item.spent), 0);
+    // Total potential capacity for unbudgeted before usage
+    const unbudgetedCapacity = totalIncome - budgetedMaxImpact;
+    return { totalIncome, budgetedMaxImpact, unbudgetedUsed, unbudgetedCapacity };
   }, [monthEntries, budgetProgress, visibleAllocations, categorySpending, displayCurrency, ratesByMonth, ratesReady]);
 
   const loading = allocationsLoading || entriesLoading || ratesLoading;
@@ -232,13 +238,22 @@ export function BudgetView() {
 
   return (
     <CollapsibleCard
-      defaultCollapsed={allocations.length === 0}
       collapsed={cardCollapsed}
       setCollapsed={setCardCollapsed}
     >
       <CollapsibleCardHeader
         actions={
           <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setDisplayMode(prev => (prev === 'currency' ? 'percent' : 'currency'))}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Toggle display mode"
+              title={displayMode === 'currency' ? 'Switch to percent' : 'Switch to currency'}
+            >
+              {displayMode === 'currency' ? <Percent /> : <DollarSign />}
+            </Button>
             {isEditMode ? (
               <>
                 <Button
@@ -283,8 +298,8 @@ export function BudgetView() {
           error={error}
           empty={isEditMode ? visibleAllocations.length === 0 : allocations.length === 0}
           loadingVariant="skeleton"
-          emptyTitle="No budgets"
-          emptyDescription="Add your first budget to start tracking spending"
+          emptyTitle="No custom budgets"
+          emptyDescription="You can create budgets for specific categories"
           emptyIcon={Wallet}
         >
           <div className="space-y-4">
@@ -350,44 +365,100 @@ export function BudgetView() {
                       </div>
                       <div className="flex items-center gap-2 h-8">
                         <div className="text-sm text-muted-foreground">
-                          {formatCurrency(Math.max(0, item.budget - item.spent), displayCurrency, false)} / {formatCurrency(item.budget, displayCurrency, false)}
+                          {displayMode === 'currency' ? (() => {
+                            const symbol = getCurrencyByCode(displayCurrency)?.symbol || displayCurrency;
+                            const used = item.spent.toFixed(2);
+                            const total = item.budget.toFixed(2);
+                            return `${used} / ${total} ${symbol}`;
+                          })() : (() => {
+                            const usedPercent = item.progress;
+                            return `${usedPercent.toFixed(0)}%`;
+                          })()}
                         </div>
                       </div>
                     </>
                   )}
                 </div>
 
-                <Progress value={item.progress}/>
+                <Progress value={Math.max(0, Math.min(item.progress, 100))}/>
               </div>
             ))}
           </div>
         </DataState>
       </CollapsibleCardContent>
 
-      {totals.remaining >= 0 && (
         <CollapsibleCardFooter>
           <div className="space-y-2 w-full">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <div className="size-8 flex items-center justify-center"><Coins className="h-4 w-4" /></div>
-                <span className="font-medium">Unbudgeted</span>
+                <span className="font-medium">Flexible Budget</span>
               </div>
               <div className="text-sm text-muted-foreground">
-                {formatCurrency(Math.max(0, totals.remaining - totals.unallocatedSpending), displayCurrency, false)} / {formatCurrency(totals.remaining, displayCurrency, false)}
+                {displayMode === 'currency' ? (() => {
+                  const symbol = getCurrencyByCode(displayCurrency)?.symbol || displayCurrency;
+                  const used = totals.unbudgetedUsed.toFixed(2);
+                  const total = totals.unbudgetedCapacity.toFixed(2);
+                  return `${used} / ${total} ${symbol}`;
+                })() : (() => {
+                  const denom = totals.unbudgetedCapacity;
+                  const used = totals.unbudgetedUsed;
+                  let usedPercent = 0;
+                  if (denom > 0) {
+                    usedPercent = (used / denom) * 100;
+                  } else if (denom < 0) {
+                    usedPercent = 100 + (used / Math.abs(denom)) * 100;
+                  } else {
+                    usedPercent = used > 0 ? 100 : 0;
+                  }
+                  return `${usedPercent.toFixed(0)}%`;
+                })()}
               </div>
             </div>
-            <Progress 
-              value={totals.remaining > 0 ? Math.min((totals.unallocatedSpending / totals.remaining) * 100, 100) : 0}
-              className={`h-2 ${
-                totals.unallocatedSpending > totals.remaining ? '[&>*]:bg-orange-400' :
-                totals.remaining > 0 && (totals.unallocatedSpending / totals.remaining) > 0.8 ? '[&>*]:bg-yellow-500' : ''
-              }`}
-            />
+            {(() => {
+              const denom = totals.unbudgetedCapacity;
+              const used = totals.unbudgetedUsed;
+              let rawPercent = 0;
+              if (denom > 0) {
+                rawPercent = (used / denom) * 100;
+              } else if (denom < 0) {
+                rawPercent = 100 + (used / Math.abs(denom)) * 100;
+              } else {
+                rawPercent = used > 0 ? 100 : 0;
+              }
+              const clamped = Math.max(0, Math.min(rawPercent, 100));
+              return (
+                <Progress 
+                  value={clamped}
+                />
+              );
+            })()}
+            {/* Month Progress */}
+            {(() => {
+              const now = new Date();
+              const span = monthRange.end.getTime() - monthRange.start.getTime();
+              const elapsed = Math.min(Math.max(now.getTime() - monthRange.start.getTime(), 0), span);
+              const monthPercent = span > 0 ? (elapsed / span) * 100 : 0;
+              const dayMs = 24 * 60 * 60 * 1000;
+              const totalDays = span > 0 ? Math.max(1, Math.ceil(span / dayMs)) : 1;
+              const elapsedDays = Math.min(totalDays, Math.max(0, Math.floor(elapsed / dayMs)));
+              return (
+                <>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="size-8 flex items-center justify-center"><CalendarClock className="h-4 w-4" /></div>
+                      <span className="font-medium">Month Progress</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {displayMode === 'percent' ? `${monthPercent.toFixed(0)}%` : `${elapsedDays}/${totalDays} days`}
+                    </div>
+                  </div>
+                  <Progress value={monthPercent} className="h-2" />
+                </>
+              );
+            })()}
           </div>
         </CollapsibleCardFooter>
-      )}
-
-      
     </CollapsibleCard>
   );
 }

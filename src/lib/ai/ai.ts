@@ -9,7 +9,7 @@ export const ai = getAI(app, { backend: new GoogleAIBackend() });
 // Create a GenerativeModel instance with structured output for entry parsing
 const getEntryParserModel = () => {
   return getGenerativeModel(ai, { 
-    model: "gemini-2.5-flash-lite",
+    model: "gemini-2.5-flash",
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: entrySchema

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { createRecurringTemplate } from '@/services/recurring';
 import { usePreferences } from '@/store/preferences';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -195,20 +195,25 @@ export function EntryForm({ onSuccess, onDateChange, onEntryCreated }: EntryForm
           createdAt: serverTimestamp(),
         };
 
-        const docRef = await addDoc(collection(db, 'entries'), entryData);
-        
+        // Pre-generate doc ID and announce creation before write to avoid UI race
+        const colRef = collection(db, 'entries');
+        const docRef = doc(colRef);
+
         // Pre-set animation state
         setAnimationData({
           entryId: docRef.id,
           date: selectedDate
         });
-        
+
         // Automatically navigate to selected date
         onDateChange?.(selectedDate);
         
         // Trigger flash animation for the new entry
         onEntryCreated?.(docRef.id);
         
+        // Perform the actual write
+        await setDoc(docRef, entryData);
+
         // Clear the form
         clearForm();
         
