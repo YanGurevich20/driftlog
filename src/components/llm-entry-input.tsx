@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, FileText, Volume2, ImageIcon, Paperclip, SendHorizonal, Loader2 } from 'lucide-react';
 import { LLMEntryDebug } from '@/components/llm-entry-debug';
+import { getCurrencyByCode } from '@/lib/currencies';
 
 interface ParsedEntry {
   type: 'expense' | 'income';
@@ -22,7 +23,7 @@ interface ParsedEntry {
   confidence: number;
 }
 
-const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'audio/aac', 'audio/flac', 'audio/mp3', 'audio/m4a', 'audio/mpeg', 'audio/mpga', 'audio/mp4', 'audio/opus', 'audio/pcm', 'audio/wav', 'audio/webm', 'application/pdf'];
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'audio/*', 'application/pdf'];
 
 const truncateFileName = (fileName: string, maxLength: number = 20): string => {
   if (fileName.length <= maxLength) return fileName;
@@ -60,8 +61,9 @@ export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputInl
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    toast.info(`File: ${file?.type}`);
     if (!file) return;
-    if (ALLOWED_TYPES.includes(file.type)) {
+    if (ALLOWED_TYPES.includes(file.type) || file.type.startsWith('audio/')) {
       setSelectedFile(file);
     } else {
       toast.error('Please select a supported file type (image, audio, or PDF)');
@@ -96,40 +98,41 @@ export function LLMEntryInput({ onDateChange, onEntryCreated }: LLMEntryInputInl
       try {
         const parsed: ParsedEntry = JSON.parse(result);
         
-        // Check confidence and auto-create if high enough
-        if (parsed.confidence >= 0.3) {
-          const entryData = {
-            type: parsed.type,
-            userId: user.id,
-            originalAmount: parsed.amount,
-            currency: parsed.currency,
-            category: parsed.category,
-            description: parsed.description,
-            date: toUTCMidnight(new Date(parsed.date)),
-            createdBy: user.id,
-            createdAt: serverTimestamp(),
-          };
-
-          // Pre-generate doc ID and announce creation before write to avoid UI race
-          const colRef = collection(db, 'entries');
-          const docRef = doc(colRef);
-
-          const entryDate = new Date(parsed.date);
-          
-          // Automatically navigate to the entry date
-          onDateChange?.(entryDate);
-          
-          // Trigger flash animation for the new entry
-          onEntryCreated?.(docRef.id);
-          
-          // Perform the actual write
-          await setDoc(docRef, entryData);
-
-          // Clear the form
-          clearForm();
-        } else {
-          toast.error("Model couldn't figure out an entry from the request");
+        // Normalize and validate currency early
+        const normalizedCurrency = (parsed.currency || '').toUpperCase().trim();
+        const currencyObj = getCurrencyByCode(normalizedCurrency);
+        if (!currencyObj || parsed.confidence < 0.3) {
+          toast.error(`The AI Failed to figure out the entry`);
+          return;
         }
+
+        const entryData = {
+          type: parsed.type,
+          userId: user.id,
+          originalAmount: parsed.amount,
+          currency: normalizedCurrency,
+          category: parsed.category,
+          description: parsed.description,
+          date: toUTCMidnight(new Date(parsed.date)),
+          createdBy: user.id,
+          createdAt: serverTimestamp(),
+        };
+
+        // Pre-generate doc ID and announce creation before write to avoid UI race
+        const colRef = collection(db, 'entries');
+        const docRef = doc(colRef);
+        const entryDate = new Date(parsed.date);
+        
+        // Automatically navigate to the entry date
+        onDateChange?.(entryDate);
+        
+        // Trigger flash animation for the new entry
+        onEntryCreated?.(docRef.id);
+        
+        // Perform the actual write
+        await setDoc(docRef, entryData);
+        // Clear the form
+        clearForm();
       } catch (parseError) {
         toast.error('Failed to parse structured output as JSON');
         console.error('JSON parse error:', parseError);

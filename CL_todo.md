@@ -1,13 +1,11 @@
 ### Architecture
-- [ ] Security audit
-- [ ] Open Source VS Closed Source
-- [ ] Background Image attribution
-- [ ] Multi region
-- [ ] CI/CD
 - [ ] Location tagging (city, country OR geopoint)
 - [ ] entry from whatsapp message
 - [ ] entry from telegram message
+- [ ] Multi region
+- [ ] CI/CD
 - [ ] Limit connection size (larger limits for paid users)
+- [ ] Open Source VS Closed Source
 
 ### Monetization ideas
 - Expanded limites on recurring entries count

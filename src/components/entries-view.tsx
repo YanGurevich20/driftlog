@@ -131,7 +131,13 @@ export function EntriesView({
       const category = entry.category;
       if (!acc[category]) acc[category] = { entries: [], income: 0, expenses: 0 };
       acc[category].entries.push(entry);
-      const amount = convertAmount(entry.originalAmount, entry.currency, displayCurrency, entry.date, ratesByMonth);
+      let amount = 0;
+      try {
+        amount = convertAmount(entry.originalAmount, entry.currency, displayCurrency, entry.date, ratesByMonth);
+      } catch (e) {
+        console.warn('Skipping unsupported currency conversion', entry.currency, '->', displayCurrency, 'for entry', entry.id);
+        amount = 0;
+      }
       if (entry.type === 'income') acc[category].income += amount; else acc[category].expenses += amount;
       return acc;
     }, {} as Record<string, { entries: Entry[]; income: number; expenses: number }>);

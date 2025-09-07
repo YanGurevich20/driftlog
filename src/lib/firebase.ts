@@ -24,9 +24,11 @@ export const functions = getFunctions(firebaseApp, 'asia-southeast1');
 
 // Use the Functions emulator in development
 if (process.env.NODE_ENV === 'development') {
-  connectFunctionsEmulator(functions, 'localhost', 5001);
-  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-  connectFirestoreEmulator(db, 'localhost', 8080);
+  const emulatorHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  console.log(emulatorHost);
+  connectFunctionsEmulator(functions, emulatorHost, 5001);
+  connectAuthEmulator(auth, `http://${emulatorHost}:9099`, { disableWarnings: true });
+  connectFirestoreEmulator(db, emulatorHost, 8080);
 }
 
 export default firebaseApp;
