@@ -438,7 +438,10 @@ export function BudgetView() {
               const now = new Date();
               const span = monthRange.end.getTime() - monthRange.start.getTime();
               const elapsed = Math.min(Math.max(now.getTime() - monthRange.start.getTime(), 0), span);
-              const monthPercent = span > 0 ? (elapsed / span) * 100 : 0;
+              const hourMs = 60 * 60 * 1000;
+              const totalHours = span > 0 ? Math.max(1, Math.ceil(span / hourMs)) : 1;
+              const elapsedHours = Math.min(totalHours, Math.max(0, Math.floor(elapsed / hourMs)));
+              const monthPercent = totalHours > 0 ? (elapsedHours / totalHours) * 100 : 0;
               const dayMs = 24 * 60 * 60 * 1000;
               const totalDays = span > 0 ? Math.max(1, Math.ceil(span / dayMs)) : 1;
               const elapsedDays = Math.min(totalDays, Math.max(0, Math.floor(elapsed / dayMs)));
