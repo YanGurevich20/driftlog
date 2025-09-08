@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Entry } from '@/types';
 import { useAuth } from '@/lib/auth-context';
 import { useEntriesCache } from '@/lib/entries-cache';
@@ -10,11 +10,15 @@ interface UseEntriesOptions {
 
 export function useEntries(options: UseEntriesOptions) {
   const { startDate, endDate } = options;
-  const { user, userReady } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const memberIds = useMemo(() => {
+    if (!user) return [];
+    const connectedIds = (user.connectedUserIds || []) as string[];
+    return [user.id, ...connectedIds];
+  }, [user?.id, user?.connectedUserIds]);
 
   const startTime = startDate?.getTime();
   const endTime = endDate?.getTime();
@@ -22,40 +26,28 @@ export function useEntries(options: UseEntriesOptions) {
   // Use cache if available (returns null if no provider)
   const cache = useEntriesCache();
 
-  // Fetch member IDs
+  // Gate by auth loading and user presence
   useEffect(() => {
-    const fetchMemberIds = async () => {
-      try {
-        if (user) {
-          const connectedIds = (user.connectedUserIds || []) as string[];
-          setMemberIds([user.id, ...connectedIds]);
-        }
-      } catch (err) {
-        console.error('Error fetching member IDs:', err);
-        setError(err as Error);
-        setLoading(false);
-      }
-    };
-    
-    if ((user && userReady)) {
-      fetchMemberIds();
-    } else {
+    if (authLoading) return;
+    if (!user) {
+      setEntries([]);
       setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
     }
-  }, [user?.id, user?.connectedUserIds, userReady, user]);
+  }, [authLoading, user?.id]);
 
   // Subscribe to entries using cache if available
   useEffect(() => {
+    if (authLoading) return;
     if (memberIds.length === 0) {
-      setEntries([]);
-      setLoading(false);
-      return;
+      return; // handled by the gate above
     }
 
     if (!cache) {
-      // Cache provider not available, use direct queries
       console.warn('EntriesCache provider not found, using direct Firestore queries');
-      // For now, return early - in production you'd implement fallback
       return;
     }
 
@@ -73,7 +65,7 @@ export function useEntries(options: UseEntriesOptions) {
     );
 
     return unsubscribe;
-  }, [cache, memberIds, startTime, endTime]);
+  }, [authLoading, cache, memberIds, startTime, endTime]);
 
   return { entries, loading, error };
 }

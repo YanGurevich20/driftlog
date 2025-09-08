@@ -6,7 +6,7 @@ import type { RecurringTemplate } from '@/types';
 import { useAuth } from '@/lib/auth-context';
 
 export function useRecurringTemplates() {
-  const { user, userReady } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [templates, setTemplates] = useState<RecurringTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -31,12 +31,15 @@ export function useRecurringTemplates() {
       }
     };
     
-    if (user && userReady) {
+    if (authLoading) {
+      return;
+    }
+    if (user) {
       fetchMemberIds();
-    } else if (!user && userReady) {
+    } else {
       setLoading(false);
     }
-  }, [user?.id, user?.connectedUserIds, userReady, user]);
+  }, [user?.id, user?.connectedUserIds, authLoading, user]);
 
   // Subscribe to recurring templates
   useEffect(() => {

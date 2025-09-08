@@ -7,13 +7,13 @@ import { useAuth } from '@/lib/auth-context';
 import type { BudgetAllocation } from '@/types';
 
 export function useBudgetAllocations() {
-  const { user, userReady } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [allocations, setAllocations] = useState<BudgetAllocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!user?.id || !userReady) {
+    if (!user?.id || authLoading) {
       setAllocations([]);
       setLoading(false);
       return;
@@ -61,7 +61,7 @@ export function useBudgetAllocations() {
         unsubscribe();
       }
     };
-  }, [user?.id, user?.connectedUserIds, userReady]);
+  }, [user?.id, user?.connectedUserIds, authLoading]);
 
   const createAllocation = async (allocation: Omit<BudgetAllocation, 'id' | 'createdAt'>) => {
     return await createBudgetAllocation(allocation);
