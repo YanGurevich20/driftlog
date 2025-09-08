@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { EntriesView } from '@/components/entries-view';
-import { BudgetView } from '@/components/budget-view';
-import { RecurringView } from '@/components/recurring-view';
-import { NewEntryView } from '@/components/new-entry-view';
-import { ConfirmationView } from '@/components/confirmation-view';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/auth-context';
 import { useEntryAnimation } from '@/contexts/entry-animation-context';
+
+const BudgetView = dynamic(() => import('@/components/budget-view').then(m => m.BudgetView));
+const ConfirmationView = dynamic(() => import('@/components/confirmation-view').then(m => m.ConfirmationView));
+const NewEntryView = dynamic(() => import('@/components/new-entry-view').then(m => m.NewEntryView));
+const EntriesView = dynamic(() => import('@/components/entries-view').then(m => m.EntriesView));
+const RecurringView = dynamic(() => import('@/components/recurring-view').then(m => m.RecurringView));
 
 const greetings = [
   "Welcome back",
