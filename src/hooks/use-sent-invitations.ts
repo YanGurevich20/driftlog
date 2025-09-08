@@ -20,24 +20,18 @@ export function useSentInvitations() {
 
     const q = query(
       collection(db, 'connectionInvitations'),
-      where('invitedBy', '==', user.id)
+      where('invitedBy', '==', user.id),
+      where('expiresAt', '>', new Date())
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         const invitations: GroupInvitation[] = [];
-        const now = new Date();
-        
         snapshot.forEach((doc) => {
           const invitation = convertFirestoreDoc<GroupInvitation>(doc);
-          
-          // Only include non-expired invitations
-          if (invitation.expiresAt.getTime() > now.getTime()) {
-            invitations.push(invitation);
-          }
+          invitations.push(invitation);
         });
-        
         setSentInvitations(invitations);
         setLoading(false);
         setError(null);
