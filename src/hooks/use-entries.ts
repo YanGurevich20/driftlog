@@ -35,11 +35,8 @@ export function useEntries(options: UseEntriesOptions = {}) {
         if (userId) {
           ids = [userId];
         } else if (user) {
-          const userDoc = await getDoc(doc(db, 'users', user.id));
-          if (userDoc.exists()) {
-            const connectedIds = (userDoc.data().connectedUserIds || []) as string[];
-            ids = [user.id, ...connectedIds];
-          }
+          const connectedIds = (user.connectedUserIds || []) as string[];
+          ids = [user.id, ...connectedIds];
         }
         
         setMemberIds(ids);
@@ -55,7 +52,7 @@ export function useEntries(options: UseEntriesOptions = {}) {
     } else {
       setLoading(false);
     }
-  }, [userId, groupId, user?.id, userReady, user]);
+  }, [userId, groupId, user?.id, user?.connectedUserIds, userReady, user]);
 
   // Subscribe to entries using cache if available
   useEffect(() => {

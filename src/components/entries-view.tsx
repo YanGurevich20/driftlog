@@ -413,6 +413,8 @@ export function EntriesView({
                               category: entry.category,
                               description: entry.description || ''
                             };
+                            const datePrefix = isDaily ? '' : `${format(entry.date, 'd/M')} `;
+                            const displayText = `${datePrefix}${entry.description || 'No description'} ${isRecent ? '•' : ''}`;
                             return (
                               <div key={entry.id} className="flex justify-between items-center gap-2">
                                 {isEditMode ? (
@@ -448,7 +450,7 @@ export function EntriesView({
                                     {renderRecurringIcon(entry)}
                                     {shouldAnimate ? (
                                       <TypingText
-                                        text={`${entry.description || 'No description'} ${isRecent ? '•' : ''}`}
+                                        text={displayText}
                                         delay={70}
                                         repeat={false}
                                         hideCursorOnComplete={true}
@@ -458,7 +460,7 @@ export function EntriesView({
                                       />
                                     ) : (
                                       <span className="text-muted-foreground text-sm">
-                                        {`${entry.description || 'No description'} ${isRecent ? '•' : ''}`}
+                                        {displayText}
                                       </span>
                                     )}
                                   </div>

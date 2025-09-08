@@ -24,14 +24,10 @@ export function useBudgetAllocations() {
 
     let unsubscribe: () => void;
 
-    // First get the user's connections
+    // First get the user's connections (from auth context, no extra read)
     const fetchUserConnections = async () => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.id));
-        const userData = userDoc.data();
-        const connectedUserIds = userData?.connectedUserIds || [];
-        
-        // Include the current user and all connected users
+        const connectedUserIds = (user.connectedUserIds || []) as string[];
         const allUserIds = [user.id, ...connectedUserIds];
         
         // Query budget allocations for all these users
@@ -65,7 +61,7 @@ export function useBudgetAllocations() {
         unsubscribe();
       }
     };
-  }, [user?.id, userReady]);
+  }, [user?.id, user?.connectedUserIds, userReady]);
 
   const createAllocation = async (allocation: Omit<BudgetAllocation, 'id' | 'createdAt'>) => {
     return await createBudgetAllocation(allocation);

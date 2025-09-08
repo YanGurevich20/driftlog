@@ -4,7 +4,6 @@ import { db } from '@/lib/firebase';
 import { convertFirestoreDoc } from '@/lib/firestore-utils';
 import type { RecurringTemplate } from '@/types';
 import { useAuth } from '@/lib/auth-context';
-import { doc, getDoc } from 'firebase/firestore';
 
 export function useRecurringTemplates() {
   const { user, userReady } = useAuth();
@@ -20,13 +19,8 @@ export function useRecurringTemplates() {
         let ids: string[] = [];
         
         if (user) {
-          const userDoc = await getDoc(doc(db, 'users', user.id));
-          if (userDoc.exists()) {
-            const connectedIds = (userDoc.data().connectedUserIds || []) as string[];
-            ids = [user.id, ...connectedIds];
-          } else {
-            ids = [user.id];
-          }
+          const connectedIds = (user.connectedUserIds || []) as string[];
+          ids = [user.id, ...connectedIds];
         }
         
         setMemberIds(ids);
@@ -42,7 +36,7 @@ export function useRecurringTemplates() {
     } else if (!user && userReady) {
       setLoading(false);
     }
-  }, [user, userReady]);
+  }, [user?.id, user?.connectedUserIds, userReady, user]);
 
   // Subscribe to recurring templates
   useEffect(() => {
