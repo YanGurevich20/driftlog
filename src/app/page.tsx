@@ -8,9 +8,10 @@ import { Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { LoadingState } from '@/components/ui/loading-state';
 
 export default function Home() {
-  const { user, loading, signInWithGoogle, needsOnboarding } = useAuth();
+  const { user, loading, userReady, signInWithGoogle, needsOnboarding } = useAuth();
   const router = useRouter();
   const [isSigningIn, setIsSigningIn] = useState(false);
 
@@ -24,10 +25,10 @@ export default function Home() {
     }
   }, [user, loading, needsOnboarding, router]);
 
-  if (loading) {
+  if (loading || !userReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <LoadingState variant="card" className="w-full max-w-md" />
       </div>
     );
   }
