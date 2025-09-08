@@ -1,19 +1,15 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import type { Entry } from '@/types';
 import { useAuth } from '@/lib/auth-context';
 import { useEntriesCache } from '@/lib/entries-cache';
 
 interface UseEntriesOptions {
-  userId?: string;
-  groupId?: string;
-  startDate?: Date;
-  endDate?: Date;
+  startDate: Date;
+  endDate: Date;
 }
 
-export function useEntries(options: UseEntriesOptions = {}) {
-  const { userId, groupId, startDate, endDate } = options;
+export function useEntries(options: UseEntriesOptions) {
+  const { startDate, endDate } = options;
   const { user, userReady } = useAuth();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,16 +26,10 @@ export function useEntries(options: UseEntriesOptions = {}) {
   useEffect(() => {
     const fetchMemberIds = async () => {
       try {
-        let ids: string[] = [];
-        
-        if (userId) {
-          ids = [userId];
-        } else if (user) {
+        if (user) {
           const connectedIds = (user.connectedUserIds || []) as string[];
-          ids = [user.id, ...connectedIds];
+          setMemberIds([user.id, ...connectedIds]);
         }
-        
-        setMemberIds(ids);
       } catch (err) {
         console.error('Error fetching member IDs:', err);
         setError(err as Error);
@@ -47,12 +37,12 @@ export function useEntries(options: UseEntriesOptions = {}) {
       }
     };
     
-    if ((user && userReady) || userId || groupId) {
+    if ((user && userReady)) {
       fetchMemberIds();
     } else {
       setLoading(false);
     }
-  }, [userId, groupId, user?.id, user?.connectedUserIds, userReady, user]);
+  }, [user?.id, user?.connectedUserIds, userReady, user]);
 
   // Subscribe to entries using cache if available
   useEffect(() => {
