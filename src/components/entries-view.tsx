@@ -134,7 +134,7 @@ export function EntriesView({
       let amount = 0;
       try {
         amount = convertAmount(entry.originalAmount, entry.currency, displayCurrency, entry.date, ratesByMonth);
-      } catch (e) {
+      } catch {
         console.warn('Skipping unsupported currency conversion', entry.currency, '->', displayCurrency, 'for entry', entry.id);
         amount = 0;
       }
