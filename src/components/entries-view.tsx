@@ -382,16 +382,20 @@ export function EntriesView({
                           <span className="font-medium">{category}</span>
                         </div>
                         <div className="flex items-center gap-3 text-sm">
-                          {group.income > 0 && (
-                            <span className="font-semibold">
-                              {formatCurrency(group.income, displayCurrency, false)}
-                            </span>
-                          )}
-                          {group.expenses > 0 && (
-                            <span className="font-semibold">
-                              {formatCurrency(group.expenses, displayCurrency, true)}
-                            </span>
-                          )}
+                          {(() => {
+                            const income = group.income;
+                            const expenses = group.expenses;
+                            if (income <= 0 && expenses <= 0) return null;
+                            const net = income - expenses;
+                            const showNet = income > 0 && expenses > 0;
+                            const amount = showNet ? Math.abs(net) : (income > 0 ? income : expenses);
+                            const isNegative = showNet ? net < 0 : expenses > 0;
+                            return (
+                              <span className="font-semibold">
+                                {formatCurrency(amount, displayCurrency, isNegative)}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                     </AccordionTrigger>
