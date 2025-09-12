@@ -9,7 +9,7 @@ export const ai = getAI(app, { backend: new GoogleAIBackend() });
 // Create a GenerativeModel instance with structured output for entry parsing
 const getEntryParserModel = () => {
   return getGenerativeModel(ai, { 
-    model: "gemini-2.5-flash",
+    model: "gemini-2.5-flash-lite",
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: entrySchema
@@ -49,7 +49,10 @@ Extract the following information from the data:
 - date: the date of the transaction (YYYY-MM-DD). default to today if not provided
 - description: brief description of WHAT IS the expense / income source, merchant, item, etc. feel free to add an emoji if it makes sense.
 - confidence: your confidence in the extraction (0.0 to 1.0)
-Analyze this: ${text}`;
+example input: 50 bucks at mcdonalds
+example response expected from you for the given input (omit any text and decorators beside the raw JSON):
+{type: "expense", amount: 50, currency: "USD", category: "Food", date: ${new Date().toISOString().split('T')[0]}", description: "Lunch at McDonald's 🍔", confidence: 1.0}
+Here's the data to analyze: ${text}`;
 
 const extractJSON = (text: string): string => {
   const jsonBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);

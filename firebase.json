@@ -21,8 +21,14 @@
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ]
     }
-  ]
-  ,
+  ],
+  "hosting": {
+    "site": "drift-log",
+    "rewrites": [
+      { "source": "/acceptConnectionInvitation", "function": { "functionId": "acceptConnectionInvitation", "region": "asia-southeast1" } },
+      { "source": "/leaveConnections", "function": { "functionId": "leaveConnections", "region": "asia-southeast1" } }
+    ]
+  },
   "emulators": {
     "functions": {
       "host": "0.0.0.0",

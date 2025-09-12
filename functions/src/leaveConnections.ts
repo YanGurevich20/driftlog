@@ -12,6 +12,8 @@ function validateUserId(userId: string): boolean {
 // Connections: leave all connections
 export const leaveConnections = onCall<{ userId: string }>({
   region: "asia-southeast1",
+  minInstances: 0,
+  timeoutSeconds: 60,
 }, async (request): Promise<{ ok: boolean }> => {
   if (!request.auth) throw new HttpsError("unauthenticated", "User must be authenticated");
   
