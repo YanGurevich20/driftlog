@@ -1,0 +1,49 @@
+:root {
+  --theme-ripple-duration: 300ms;
+  --theme-ripple-easing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Theme ripple overlay (fallback when View Transitions API is unavailable) */
+.theme-ripple-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  color-scheme: light dark;
+  animation: theme-ripple-reveal var(--theme-ripple-duration) var(--theme-ripple-easing) forwards;
+  clip-path: circle(var(--ripple-radius) at var(--ripple-x) var(--ripple-y));
+  background: var(--background);
+}
+
+@keyframes theme-ripple-reveal {
+  0% {
+    clip-path: circle(0px at var(--ripple-x) var(--ripple-y));
+  }
+  100% {
+    clip-path: circle(var(--ripple-radius) at var(--ripple-x) var(--ripple-y));
+  }
+}
+
+/* View Transitions API driven theme ripple (preferred) */
+:root.theme-ripple-active::view-transition-old(root),
+:root.theme-ripple-active::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:root.theme-ripple-active::view-transition-old(root) {
+  clip-path: none;
+}
+
+:root.theme-ripple-active::view-transition-new(root) {
+  clip-path: circle(0px at var(--ripple-x) var(--ripple-y));
+  animation: theme-ripple-vt var(--theme-ripple-duration) var(--theme-ripple-easing) forwards;
+}
+
+@keyframes theme-ripple-vt {
+  to {
+    clip-path: circle(var(--ripple-radius) at var(--ripple-x) var(--ripple-y));
+  }
+}
+
+

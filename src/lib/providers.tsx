@@ -2,6 +2,7 @@
 
 import { AuthProvider } from './auth-context';
 import { ThemeProvider } from '@/components/theme-provider';
+import { ThemeRippleProvider } from '@/components/theme-ripple-provider';
 import { useEffect } from 'react';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -47,9 +48,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         attribute="class"
         defaultTheme="system"
         enableSystem
-        disableTransitionOnChange
       >
-      <AuthProvider>{children}</AuthProvider>
+      <ThemeRippleProvider>
+        <AuthProvider>{children}</AuthProvider>
+      </ThemeRippleProvider>
     </ThemeProvider>
   );
 }

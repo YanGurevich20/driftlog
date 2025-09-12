@@ -3,6 +3,7 @@
 import { Moon, Sun, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
+import { useThemeRipple } from '@/components/theme-ripple-provider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import {
@@ -18,6 +19,16 @@ interface ThemeToggleProps {
 
 export function ThemeToggle({ variant = 'dropdown' }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
+  const { animateThemeChange } = useThemeRipple();
+
+  const setThemeWithRipple = (next: 'light' | 'dark' | 'system') => (e: React.MouseEvent) => {
+    const origin = { x: e.clientX, y: e.clientY };
+    animateThemeChange({
+      nextTheme: next,
+      origin,
+      applyTheme: () => setTheme(next),
+    });
+  };
 
   if (variant === 'radio') {
     return (
@@ -63,13 +74,13 @@ export function ThemeToggle({ variant = 'dropdown' }: ThemeToggleProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme('light')}>
+        <DropdownMenuItem onClick={setThemeWithRipple('light')}>
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')}>
+        <DropdownMenuItem onClick={setThemeWithRipple('dark')}>
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')}>
+        <DropdownMenuItem onClick={setThemeWithRipple('system')}>
           System
         </DropdownMenuItem>
       </DropdownMenuContent>
