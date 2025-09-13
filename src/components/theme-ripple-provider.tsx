@@ -39,7 +39,7 @@ export function ThemeRippleProvider({ children }: { children: React.ReactNode })
   const timerRef = useRef<number | null>(null);
 
   const animateThemeChange = useCallback(
-    ({ nextTheme, origin, applyTheme }: { nextTheme: ThemeName; origin: RippleOrigin; applyTheme: () => void }) => {
+    ({ nextTheme: _nextTheme, origin, applyTheme }: { nextTheme: ThemeName; origin: RippleOrigin; applyTheme: () => void }) => {
       const root = document.documentElement;
       const previousTheme: ThemeName = root.classList.contains('dark') ? 'dark' : 'light';
 

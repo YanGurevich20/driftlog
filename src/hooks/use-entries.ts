@@ -18,7 +18,7 @@ export function useEntries(options: UseEntriesOptions) {
     if (!user) return [];
     const connectedIds = (user.connectedUserIds || []) as string[];
     return [user.id, ...connectedIds];
-  }, [user?.id, user?.connectedUserIds]);
+  }, [user]);
 
   const startTime = startDate?.getTime();
   const endTime = endDate?.getTime();
@@ -37,7 +37,7 @@ export function useEntries(options: UseEntriesOptions) {
       setLoading(true);
       setError(null);
     }
-  }, [authLoading, user?.id]);
+  }, [authLoading, user]);
 
   // Subscribe to entries using cache if available
   useEffect(() => {
