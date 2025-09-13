@@ -7,11 +7,31 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { ChevronDown } from 'lucide-react';
 import { useIsDesktop } from '@/hooks/use-media-query';
 import Link from 'next/link';
 import { LANDING_FEATURES, type LandingFeature } from '@/lib/landing-features';
 import { LoadingState } from '@/components/ui/loading-state';
+
+// Wide chevron icon for mobile hero
+function WideChevronDown(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 12"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M2 2 L12 10 L22 2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function Home() {
   const { user, loading, signInWithGoogle, needsOnboarding } = useAuth();
@@ -22,7 +42,7 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const isSnappingRef = useRef(false);
   const rafIdRef = useRef<number | null>(null);
-  const DEBUG = true;
+  const DEBUG = false;
   const lastSnapAtRef = useRef<number>(0);
   const lastSeekIndexRef = useRef<number>(-1);
   const [beforeFirst, setBeforeFirst] = useState(true);
@@ -92,14 +112,6 @@ export default function Home() {
     }
   }, [user, loading, needsOnboarding, router]);
 
-  // Enable scroll snapping while on landing
-  useEffect(() => {
-    document.body.classList.add('landing-snap');
-    return () => {
-      document.body.classList.remove('landing-snap');
-    };
-  }, []);
-
   // Enable landing scroll snapping on body while this page is mounted
   useEffect(() => {
     document.body.classList.add('landing-snap');
@@ -108,48 +120,7 @@ export default function Home() {
     };
   }, []);
 
-  // Switch active video source based on visible feature
-  useEffect(() => {
-    if (!isDesktop) return;
-    const onScroll = () => {
-      if (rafIdRef.current != null) return;
-      rafIdRef.current = window.requestAnimationFrame(() => {
-        rafIdRef.current = null;
-        if (isSnappingRef.current) return;
-        // Cooldown between index updates
-        if (Date.now() - lastSnapAtRef.current < 350) return;
-        const centerY = window.innerHeight / 2;
-        let nearestIndex = 0;
-        let nearestDistance = Number.POSITIVE_INFINITY;
-        featureRefs.current.forEach((el, idx) => {
-          if (!el) return;
-          const rect = el.getBoundingClientRect();
-          const elCenter = rect.top + rect.height / 2;
-          const distance = Math.abs(elCenter - centerY);
-          if (distance < nearestDistance) {
-            nearestDistance = distance;
-            nearestIndex = idx;
-          }
-        });
-        if (nearestIndex !== activeFeatureIndex) {
-          log('scroll -> index', nearestIndex);
-          setActiveFeatureIndex(nearestIndex);
-        }
-      });
-    };
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    // Initial calc
-    onScroll();
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (rafIdRef.current != null) {
-        window.cancelAnimationFrame(rafIdRef.current);
-        rafIdRef.current = null;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [FEATURES.length, DEBUG, isDesktop]);
+  // Active index updates are handled via IntersectionObserver below
 
   // IntersectionObserver: update active index based on which feature is crossing viewport center
   useEffect(() => {
@@ -439,7 +410,7 @@ export default function Home() {
               <h1 className="text-6xl sm:text-7xl md:text-8xl font-extrabold tracking-tight leading-[0.95]">
                 DriftLog
               </h1>
-              <p className="mt-6 text-2xl sm:text-3xl text-muted-foreground">
+              <p className="ml-2 mt-6 text-2xl sm:text-3xl text-muted-foreground">
                 Because Excel just doesn&apos;t cut it anymore
               </p>
 
@@ -482,7 +453,7 @@ export default function Home() {
             </div>
           </div>
           <div
-            className="h-[15svh] flex flex-col items-center justify-center text-muted-foreground cursor-pointer select-none"
+            className="h-[18svh] sm:h-[15svh] flex flex-col items-center justify-center text-muted-foreground cursor-pointer select-none"
             role="button"
             tabIndex={0}
             onClick={() => {
@@ -498,7 +469,7 @@ export default function Home() {
             }}
           >
             <span className="text-sm">see what we got</span>
-            <ChevronDown className="mt-2 animate-chevron-slow" />
+            <WideChevronDown className="mt-2 animate-chevron-slow w-10 h-5" />
           </div>
         </div>
       </section>
@@ -577,7 +548,7 @@ export default function Home() {
       {/* Mobile variant: centered player + horizontal carousel */}
       {!isDesktop && (
         <section className="container mx-auto px-4">
-          <div className="py-6">
+          <div className="py-16">
             <div className="w-full max-w-sm mx-auto aspect-[9/16] rounded-2xl border border-border/60 bg-background/40 backdrop-blur-md shadow-xl overflow-hidden">
               <video
                 ref={videoRef}
@@ -600,7 +571,7 @@ export default function Home() {
                 ref={(el) => {
                   mobileItemRefs.current[i] = el;
                 }}
-                className="snap-center shrink-0 basis-[85%] rounded-xl border border-border/60 bg-card p-4"
+                className="snap-center shrink-0 basis-[85%]"
                 onClick={() => setActiveFeatureIndex(i)}
               >
                 <h4 className="text-xl font-semibold">{f.title}</h4>
