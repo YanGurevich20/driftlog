@@ -190,6 +190,11 @@
     overscroll-behavior: none;
     overflow-x: hidden;
   }
+
+  body.landing-snap {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
   
   /* Hide scrollbars */
   * {
@@ -223,5 +228,17 @@
 @keyframes theme-ripple-vt {
   to {
     clip-path: circle(var(--ripple-radius) at var(--ripple-x) var(--ripple-y));
+  }
+}
+
+/* Gentle up-down chevron animation */
+@keyframes chevron-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+@layer utilities {
+  .animate-chevron-slow {
+    animation: chevron-float 2.4s ease-in-out infinite;
   }
 }
