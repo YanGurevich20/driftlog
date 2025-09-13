@@ -1,0 +1,57 @@
+# Settings for Backend (on Cloud Run).
+# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
+runConfig:
+  minInstances: 0
+  # maxInstances: 100
+  # concurrency: 80
+  # cpu: 1
+  # memoryMiB: 512
+
+# Environment variables and secrets.
+env:
+  # Firebase configuration - public variables
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyDw0nA6iP8opJKIZ2oMaJUqixd-BuD6YyI
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: drift-log.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: drift-log
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: drift-log.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "976583920601"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:976583920601:web:e606bf0226fd0ec42b27c8"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_MEASUREMENT_ID
+    value: "G-SB4N3PS67V"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # For sensitive secrets, store in Cloud Secret Manager and reference here:
+  # - variable: MY_SECRET
+  #   secret: mySecretRef
