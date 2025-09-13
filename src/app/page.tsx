@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { ChevronDown } from 'lucide-react';
+import { useIsDesktop } from '@/hooks/use-media-query';
 import Link from 'next/link';
 import { LoadingState } from '@/components/ui/loading-state';
 
@@ -26,6 +27,9 @@ export default function Home() {
   const [beforeFirst, setBeforeFirst] = useState(true);
   const onTimeUpdateRef = useRef<((this: HTMLVideoElement, ev: Event) => void) | null>(null);
   const lastLoopAtRef = useRef<number>(0);
+  const isDesktop = useIsDesktop();
+  const mobileCarouselRef = useRef<HTMLDivElement | null>(null);
+  const mobileItemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   function log(...args: unknown[]) {
     if (DEBUG) console.log('[landing]', ...args);
@@ -152,6 +156,7 @@ export default function Home() {
 
   // Switch active video source based on visible feature
   useEffect(() => {
+    if (!isDesktop) return;
     const onScroll = () => {
       if (rafIdRef.current != null) return;
       rafIdRef.current = window.requestAnimationFrame(() => {
@@ -190,10 +195,11 @@ export default function Home() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [FEATURES.length, DEBUG]);
+  }, [FEATURES.length, DEBUG, isDesktop]);
 
   // Wheel-driven snapping between items
   useEffect(() => {
+    if (!isDesktop) return;
     const onWheel = (e: WheelEvent) => {
       if (isSnappingRef.current) {
         e.preventDefault();
@@ -237,10 +243,11 @@ export default function Home() {
     window.addEventListener('wheel', onWheel, { passive: false });
     return () => window.removeEventListener('wheel', onWheel as EventListener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFeatureIndex, FEATURES.length, DEBUG, beforeFirst]);
+  }, [activeFeatureIndex, FEATURES.length, DEBUG, beforeFirst, isDesktop]);
 
   // Keyboard snapping (ArrowDown / PageDown / Space) to support first jump from hero
   useEffect(() => {
+    if (!isDesktop) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (isSnappingRef.current) {
         e.preventDefault();
@@ -277,7 +284,36 @@ export default function Home() {
     window.addEventListener('keydown', onKeyDown, { passive: false } as AddEventListenerOptions);
     return () => window.removeEventListener('keydown', onKeyDown as EventListener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFeatureIndex, FEATURES.length, DEBUG, beforeFirst]);
+  }, [activeFeatureIndex, FEATURES.length, DEBUG, beforeFirst, isDesktop]);
+
+  // Mobile carousel scroll listener: update active index based on horizontal position
+  useEffect(() => {
+    if (isDesktop) return;
+    const el = mobileCarouselRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const centerX = window.innerWidth / 2;
+      let nearestIndex = 0;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+      mobileItemRefs.current.forEach((item, idx) => {
+        if (!item) return;
+        const rect = item.getBoundingClientRect();
+        const itemCenter = rect.left + rect.width / 2;
+        const distance = Math.abs(itemCenter - centerX);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = idx;
+        }
+      });
+      if (nearestIndex !== activeFeatureIndex) {
+        setActiveFeatureIndex(nearestIndex);
+      }
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    // Initial sync
+    onScroll();
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [isDesktop, activeFeatureIndex]);
 
   // Seek the single video to the start of the active segment
   useEffect(() => {
@@ -414,7 +450,7 @@ export default function Home() {
                 Because Excel just doesn&apos;t cut it anymore
               </p>
 
-              <div className="mt-10 max-w-md flex items-center gap-2">
+              <div className="mt-10 max-w-md grid grid-cols-[1fr_auto] items-center gap-2 w-full">
                 {REGISTRATIONS_CLOSED ? (
                   <WaitlistForm />
                 ) : (
@@ -434,7 +470,7 @@ export default function Home() {
                     >
                       {isSigningIn ? 'Signing in...' : 'Continue with Google'}
                     </Button>
-                    <ThemeToggle buttonClassName="size-10" />
+                    <ThemeToggle buttonClassName="size-10 shrink-0" />
                   </>
                 )}
               </div>
@@ -473,8 +509,8 @@ export default function Home() {
           </div>
         </div>
       </section>
-      {/* Features with bounded sticky column */}
-      <section className="container mx-auto px-4 overflow-visible">
+      {/* Desktop Features with bounded sticky column */}
+      <section className="container mx-auto px-4 overflow-visible hidden md:block">
         <div className="grid grid-cols-2 gap-12 overflow-visible">
           <div className="flex flex-col">
             {FEATURES.map((feature, index) => (
@@ -540,6 +576,45 @@ export default function Home() {
             />
             <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/5" />
           </div>
+        </div>
+      </section>
+
+      {/* Mobile variant: centered player + horizontal carousel */}
+      <section className="container mx-auto px-4 md:hidden">
+        <div className="py-6">
+          <div className="w-full max-w-sm mx-auto aspect-[9/16] rounded-2xl border border-border/60 bg-background/40 backdrop-blur-md shadow-xl overflow-hidden">
+            <video
+              ref={videoRef}
+              src="/media/features/features.mp4"
+              className="h-full w-full object-cover"
+              autoPlay={!beforeFirst}
+              muted
+              playsInline
+              preload="auto"
+            />
+          </div>
+        </div>
+        <div
+          ref={mobileCarouselRef}
+          className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 -mx-4 px-4"
+        >
+          {FEATURES.map((f, i) => (
+            <div
+              key={f.id}
+              ref={(el) => {
+                mobileItemRefs.current[i] = el;
+              }}
+              className="snap-center shrink-0 basis-[85%] rounded-xl border border-border/60 bg-card p-4"
+              onClick={() => setActiveFeatureIndex(i)}
+            >
+              <h4 className="text-xl font-semibold">{f.title}</h4>
+              {f.description.map((line, li) => (
+                <p key={li} className="mt-2 text-muted-foreground">
+                  {line}
+                </p>
+              ))}
+            </div>
+          ))}
         </div>
       </section>
     </main>
