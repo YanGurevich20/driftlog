@@ -5,7 +5,8 @@ import { REGISTRATIONS_CLOSED } from '@/lib/config';
 import WaitlistForm from '@/components/waitlist-form';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { LoadingState } from '@/components/ui/loading-state';
@@ -23,7 +24,7 @@ export default function Home() {
   const lastSnapAtRef = useRef<number>(0);
   const lastSeekIndexRef = useRef<number>(-1);
   const [beforeFirst, setBeforeFirst] = useState(true);
-  const onTimeUpdateRef = useRef<((this: HTMLVideoElement, ev: Event) => any) | null>(null);
+  const onTimeUpdateRef = useRef<((this: HTMLVideoElement, ev: Event) => void) | null>(null);
   const lastLoopAtRef = useRef<number>(0);
 
   function log(...args: unknown[]) {
@@ -81,7 +82,7 @@ export default function Home() {
     startTime: number;
   };
 
-  const FEATURES: Feature[] = [
+  const FEATURES: Feature[] = useMemo(() => [
     {
       id: 'add-entry',
       title: 'Start logging.',
@@ -121,7 +122,7 @@ export default function Home() {
       ],
       startTime: 58,
     },
-  ];
+  ], []);
 
   useEffect(() => {
     if (!loading && user) {
@@ -262,7 +263,7 @@ export default function Home() {
       }
 
       const direction = isDown ? 1 : -1;
-      let next = Math.min(
+      const next = Math.min(
         FEATURES.length - 1,
         Math.max(0, activeFeatureIndex + direction)
       );
@@ -309,7 +310,7 @@ export default function Home() {
       video.addEventListener('loadedmetadata', onLoaded);
       return () => video.removeEventListener('loadedmetadata', onLoaded);
     }
-  }, [activeFeatureIndex, beforeFirst]);
+  }, [activeFeatureIndex, beforeFirst, FEATURES]);
 
   // Constrain playback to current segment (loop within segment)
   useEffect(() => {
@@ -410,10 +411,10 @@ export default function Home() {
                 DriftLog
               </h1>
               <p className="mt-6 text-2xl sm:text-3xl text-muted-foreground">
-                Because Excel just doesn't cut it anymore
+                Because Excel just doesn&apos;t cut it anymore
               </p>
 
-              <div className="mt-10 max-w-md">
+              <div className="mt-10 max-w-md flex items-center gap-2">
                 {REGISTRATIONS_CLOSED ? (
                   <WaitlistForm />
                 ) : (
@@ -433,19 +434,22 @@ export default function Home() {
                     >
                       {isSigningIn ? 'Signing in...' : 'Continue with Google'}
                     </Button>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      By signing in, you agree to our{' '}
-                      <Link href="/terms" className="underline hover:text-foreground">
-                        ToS
-                      </Link>{' '}
-                      and{' '}
-                      <Link href="/privacy" className="underline hover:text-foreground">
-                        Privacy Policy
-                      </Link>
-                    </p>
+                    <ThemeToggle buttonClassName="size-10" />
                   </>
                 )}
               </div>
+              {!REGISTRATIONS_CLOSED && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  By signing in, you agree to our{' '}
+                  <Link href="/terms" className="underline hover:text-foreground">
+                    ToS
+                  </Link>{' '}
+                  and{' '}
+                  <Link href="/privacy" className="underline hover:text-foreground">
+                    Privacy Policy
+                  </Link>
+                </p>
+              )}
             </div>
           </div>
           <div

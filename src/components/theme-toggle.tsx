@@ -15,9 +15,10 @@ import {
 
 interface ThemeToggleProps {
   variant?: 'dropdown' | 'radio';
+  buttonClassName?: string;
 }
 
-export function ThemeToggle({ variant = 'dropdown' }: ThemeToggleProps) {
+export function ThemeToggle({ variant = 'dropdown', buttonClassName }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
   const { animateThemeChange } = useThemeRipple();
 
@@ -61,7 +62,7 @@ export function ThemeToggle({ variant = 'dropdown' }: ThemeToggleProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="secondary" size="icon">
+        <Button variant="secondary" size="icon" className={buttonClassName}>
           {theme === 'system' ? (
             <Monitor className="h-[1.2rem] w-[1.2rem]" />
           ) : (
