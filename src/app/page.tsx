@@ -22,7 +22,7 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const isSnappingRef = useRef(false);
   const rafIdRef = useRef<number | null>(null);
-  const DEBUG = false;
+  const DEBUG = true;
   const lastSnapAtRef = useRef<number>(0);
   const lastSeekIndexRef = useRef<number>(-1);
   const [beforeFirst, setBeforeFirst] = useState(true);
@@ -150,6 +150,45 @@ export default function Home() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [FEATURES.length, DEBUG, isDesktop]);
+
+  // IntersectionObserver: update active index based on which feature is crossing viewport center
+  useEffect(() => {
+    if (!isDesktop) return;
+    if (!('IntersectionObserver' in window)) return;
+
+    const observer = new IntersectionObserver(
+      () => {
+        // recompute nearest to center when any observation changes
+        const centerY = window.innerHeight / 2;
+        let nearestIndex = 0;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+        featureRefs.current.forEach((el, idx) => {
+          if (!el) return;
+          const rect = el.getBoundingClientRect();
+          const elCenter = rect.top + rect.height / 2;
+          const distance = Math.abs(elCenter - centerY);
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearestIndex = idx;
+          }
+        });
+        if (!isSnappingRef.current && Date.now() - lastSnapAtRef.current >= 300) {
+          if (nearestIndex !== activeFeatureIndex) {
+            log('io -> index', nearestIndex);
+            setActiveFeatureIndex(nearestIndex);
+          }
+        }
+      },
+      { root: null, threshold: [0, 0.25, 0.5, 0.75, 1] }
+    );
+
+    featureRefs.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDesktop, FEATURES.length]);
 
   // Wheel-driven snapping between items
   useEffect(() => {
@@ -464,113 +503,117 @@ export default function Home() {
         </div>
       </section>
       {/* Desktop Features with bounded sticky column */}
-      <section className="container mx-auto px-4 overflow-visible hidden md:block">
-        <div className="grid grid-cols-2 gap-12 overflow-visible">
-          <div className="flex flex-col">
-            {FEATURES.map((feature, index) => (
-              <article
-                key={feature.id}
-                ref={(el) => {
-                  featureRefs.current[index] = el;
-                }}
-                data-index={index}
-                className="h-[100svh] snap-start"
-              >
-                <div className="h-full flex items-start pt-28">
-                  <div className="mt-4 md:mt-8">
-                    <h3 className="text-3xl sm:text-4xl font-semibold tracking-tight">
-                      {feature.title}
-                    </h3>
-                    {feature.description.map((line, i) => (
-                      <p
-                        key={i}
-                        className={
-                          i === 0
-                            ? 'mt-3 text-muted-foreground text-lg max-w-prose'
-                            : 'mt-1 text-muted-foreground text-lg max-w-prose'
-                        }
-                      >
-                        {line}
-                      </p>
-                    ))}
-                    {index === FEATURES.length - 1 && (
-                      <div className="mt-8">
-                        <Button
-                          onClick={async () => {
-                            setIsSigningIn(true);
-                            try {
-                              await signInWithGoogle();
-                            } catch {
-                              setIsSigningIn(false);
-                            }
-                          }}
-                          size="lg"
-                          disabled={isSigningIn}
+      {isDesktop && (
+        <section className="container mx-auto px-4 overflow-visible">
+          <div className="grid grid-cols-2 gap-12 overflow-visible">
+            <div className="flex flex-col">
+              {FEATURES.map((feature, index) => (
+                <article
+                  key={feature.id}
+                  ref={(el) => {
+                    featureRefs.current[index] = el;
+                  }}
+                  data-index={index}
+                  className="h-[100svh] snap-start"
+                >
+                  <div className="h-full flex items-start pt-28">
+                    <div className="mt-4 md:mt-8">
+                      <h3 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+                        {feature.title}
+                      </h3>
+                      {feature.description.map((line, i) => (
+                        <p
+                          key={i}
+                          className={
+                            i === 0
+                              ? 'mt-3 text-muted-foreground text-lg max-w-prose'
+                              : 'mt-1 text-muted-foreground text-lg max-w-prose'
+                          }
                         >
-                          {isSigningIn ? 'Signing in...' : 'Get started with Google'}
-                        </Button>
-                      </div>
-                    )}
+                          {line}
+                        </p>
+                      ))}
+                      {index === FEATURES.length - 1 && (
+                        <div className="mt-8">
+                          <Button
+                            onClick={async () => {
+                              setIsSigningIn(true);
+                              try {
+                                await signInWithGoogle();
+                              } catch {
+                                setIsSigningIn(false);
+                              }
+                            }}
+                            size="lg"
+                            disabled={isSigningIn}
+                          >
+                            {isSigningIn ? 'Signing in...' : 'Get started with Google'}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {/* Right: Sticky 9:16 video (single reel) */}
-          <div ref={displayRef} className="sticky top-24 w-full max-w-sm mx-auto aspect-[9/16] rounded-2xl border border-border/60 bg-background/40 backdrop-blur-md shadow-xl overflow-hidden">
-            <video
-              ref={videoRef}
-              src="/media/features/features.mp4"
-              className="h-full w-full object-cover"
-              autoPlay={!beforeFirst}
-              muted
-              playsInline
-              preload="auto"
-            />
-            <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/5" />
-          </div>
-        </div>
-      </section>
-
-      {/* Mobile variant: centered player + horizontal carousel */}
-      <section className="container mx-auto px-4 md:hidden">
-        <div className="py-6">
-          <div className="w-full max-w-sm mx-auto aspect-[9/16] rounded-2xl border border-border/60 bg-background/40 backdrop-blur-md shadow-xl overflow-hidden">
-            <video
-              ref={videoRef}
-              src="/media/features/features.mp4"
-              className="h-full w-full object-cover"
-              autoPlay={!beforeFirst}
-              muted
-              playsInline
-              preload="auto"
-            />
-          </div>
-        </div>
-        <div
-          ref={mobileCarouselRef}
-          className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 -mx-4 px-4"
-        >
-          {FEATURES.map((f, i) => (
-            <div
-              key={f.id}
-              ref={(el) => {
-                mobileItemRefs.current[i] = el;
-              }}
-              className="snap-center shrink-0 basis-[85%] rounded-xl border border-border/60 bg-card p-4"
-              onClick={() => setActiveFeatureIndex(i)}
-            >
-              <h4 className="text-xl font-semibold">{f.title}</h4>
-              {f.description.map((line, li) => (
-                <p key={li} className="mt-2 text-muted-foreground">
-                  {line}
-                </p>
+                </article>
               ))}
             </div>
-          ))}
-        </div>
-      </section>
+
+            {/* Right: Sticky 9:16 video (single reel) */}
+            <div ref={displayRef} className="sticky top-24 w-full max-w-sm mx-auto aspect-[9/16] rounded-2xl border border-border/60 bg-background/40 backdrop-blur-md shadow-xl overflow-hidden">
+              <video
+                ref={videoRef}
+                src="/media/features/features.mp4"
+                className="h-full w-full object-cover"
+                autoPlay={!beforeFirst}
+                muted
+                playsInline
+                preload="auto"
+              />
+              <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/5" />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Mobile variant: centered player + horizontal carousel */}
+      {!isDesktop && (
+        <section className="container mx-auto px-4">
+          <div className="py-6">
+            <div className="w-full max-w-sm mx-auto aspect-[9/16] rounded-2xl border border-border/60 bg-background/40 backdrop-blur-md shadow-xl overflow-hidden">
+              <video
+                ref={videoRef}
+                src="/media/features/features.mp4"
+                className="h-full w-full object-cover"
+                autoPlay={!beforeFirst}
+                muted
+                playsInline
+                preload="auto"
+              />
+            </div>
+          </div>
+          <div
+            ref={mobileCarouselRef}
+            className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 -mx-4 px-4"
+          >
+            {FEATURES.map((f, i) => (
+              <div
+                key={f.id}
+                ref={(el) => {
+                  mobileItemRefs.current[i] = el;
+                }}
+                className="snap-center shrink-0 basis-[85%] rounded-xl border border-border/60 bg-card p-4"
+                onClick={() => setActiveFeatureIndex(i)}
+              >
+                <h4 className="text-xl font-semibold">{f.title}</h4>
+                {f.description.map((line, li) => (
+                  <p key={li} className="mt-2 text-muted-foreground">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   );
 }
