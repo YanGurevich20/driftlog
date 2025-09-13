@@ -10,6 +10,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { ChevronDown } from 'lucide-react';
 import { useIsDesktop } from '@/hooks/use-media-query';
 import Link from 'next/link';
+import { LANDING_FEATURES, type LandingFeature } from '@/lib/landing-features';
 import { LoadingState } from '@/components/ui/loading-state';
 
 export default function Home() {
@@ -79,54 +80,7 @@ export default function Home() {
   const displayRef = useRef<HTMLDivElement | null>(null);
   const [displayHeight, setDisplayHeight] = useState(0);
 
-  type Feature = {
-    id: string;
-    title: string;
-    description: string[];
-    startTime: number;
-  };
-
-  const FEATURES: Feature[] = useMemo(() => [
-    {
-      id: 'add-entry',
-      title: 'Start logging.',
-      description: ['Add any entry in two clicks.'],
-      startTime: 0,
-    },
-    {
-      id: 'add-budget',
-      title: 'Set boundaries.',
-      description: ["Tell your money who's boss."],
-      startTime: 10,
-    },
-    {
-      id: 'add-other-currency',
-      title: 'Speak fluent money.',
-      description: ['Spend in Rubles, see it in dollars.', 'Or the other way around.'],
-      startTime: 20,
-    },
-    {
-      id: 'add-recurring',
-      title: 'Make it a habit.',
-      description: ['Daily, weekly, monthly—whatever keeps the chaos in check.'],
-      startTime: 32,
-    },
-    {
-      id: 'add-ai-entry',
-      title: 'Type whatever, get structure.',
-      description: ['Write anything you want, let the robots do the thinking'],
-      startTime: 49,
-    },
-    {
-      id: 'add-connection',
-      title: 'Share the pain.',
-      description: [
-        'Connect and sync in real time.',
-        "If you're reading this, just sign in and try for yourself.",
-      ],
-      startTime: 58,
-    },
-  ], []);
+  const FEATURES: LandingFeature[] = useMemo(() => LANDING_FEATURES, []);
 
   useEffect(() => {
     if (!loading && user) {
