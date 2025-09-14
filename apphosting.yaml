@@ -17,7 +17,8 @@ env:
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: drift-log.firebaseapp.com
+    # value: drift-log.firebaseapp.com
+    value: auth.driftlog.work
     availability:
       - BUILD
       - RUNTIME
