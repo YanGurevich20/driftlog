@@ -18,6 +18,7 @@ export const acceptConnectionInvitation = onCall<{ invitationId: string; userId:
   region: "asia-southeast1",
   minInstances: 0,
   timeoutSeconds: 60,
+  enforceAppCheck: true,
 }, async (request): Promise<{ ok: boolean }> => {
   if (!request.auth) throw new HttpsError("unauthenticated", "User must be authenticated");
   

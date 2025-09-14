@@ -53,6 +53,12 @@ env:
       - BUILD
       - RUNTIME
 
+  - variable: NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY
+    value: "6Leg_MgrAAAAACSzHlxHO8tkYBd4W0cMVSRB8ax0"
+    availability:
+      - BUILD
+      - RUNTIME
+
   # For sensitive secrets, store in Cloud Secret Manager and reference here:
   # - variable: MY_SECRET
   #   secret: mySecretRef
