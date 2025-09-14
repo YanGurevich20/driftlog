@@ -64,13 +64,11 @@ const extractJSON = (text: string): string => {
 };
 
 export const processEntry = async (text?: string, file?: File) => {
-  console.log(new Date().toISOString().split('T')[0])
   if (!text && !file) throw new Error('No text or file provided');
   const model = getEntryParserModel();
   const filePart = file ? await fileToGenerativePart(file) : '';
   const result = await model.generateContent([getAnalysisPrompt(text), filePart]);
   const rawText = result.response.text();
   
-  // Extract JSON from potential markdown wrapper
   return extractJSON(rawText);
 }

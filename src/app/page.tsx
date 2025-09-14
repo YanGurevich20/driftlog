@@ -41,7 +41,6 @@ export default function Home() {
   const featureRefs = useRef<(HTMLElement | null)[]>([]);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const isSnappingRef = useRef(false);
-  const rafIdRef = useRef<number | null>(null);
   const DEBUG = false;
   const lastSnapAtRef = useRef<number>(0);
   const lastSeekIndexRef = useRef<number>(-1);
