@@ -1,7 +1,6 @@
 import { collection, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
-import { httpsCallableFromURL } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '@/lib/firebase';
-import { FUNCTIONS_BASE_URL } from '@/lib/config';
 
 export class ConnectionsService {
   static async invite(invitedBy: string, inviterName: string, invitedEmail: string): Promise<string> {
@@ -21,8 +20,7 @@ export class ConnectionsService {
   }
 
   static async accept(invitationId: string, userId: string): Promise<void> {
-    const url = `${FUNCTIONS_BASE_URL}/acceptConnectionInvitation`;
-    const callable = httpsCallableFromURL<{ invitationId: string; userId: string }, { ok: boolean }>(functions, url);
+    const callable = httpsCallable<{ invitationId: string; userId: string }, { ok: boolean }>(functions, 'acceptConnectionInvitation');
     await callable({ invitationId, userId });
   }
 
@@ -35,8 +33,7 @@ export class ConnectionsService {
   }
 
   static async leave(userId: string): Promise<void> {
-    const url = `${FUNCTIONS_BASE_URL}/leaveConnections`;
-    const callable = httpsCallableFromURL<{ userId: string }, { ok: boolean }>(functions, url);
+    const callable = httpsCallable<{ userId: string }, { ok: boolean }>(functions, 'leaveConnections');
     await callable({ userId });
   }
 }
