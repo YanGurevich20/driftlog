@@ -4,7 +4,7 @@ import { defineSecret } from "firebase-functions/params";
 import { getFirestore } from "firebase-admin/firestore";
 import * as admin from "firebase-admin";
 
-const db = getFirestore(admin.app(), "asia-db");
+const db = getFirestore(admin.app());
 const exchangeRateApiKey = defineSecret("EXCHANGE_RATE_API_KEY");
 
 const EXCHANGE_API_URL = "https://v6.exchangerate-api.com/v6";

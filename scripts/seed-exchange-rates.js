@@ -9,8 +9,7 @@ admin.initializeApp({
   projectId: 'drift-log',
 });
 
-// Use named Firestore database (asia-db) to match the app
-const db = getFirestore(admin.app(), 'asia-db');
+const db = getFirestore(admin.app());
 
 // Sample exchange rates for development
 // These don't need to be accurate - just realistic enough for testing

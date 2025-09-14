@@ -142,7 +142,6 @@ Multi-currency expense tracking with real-time collaboration.
 - Local dev setup:
   - Emulators (development only): Auth `9099`, Firestore `8080`, Functions `5001`, Emulator UI `4000`.
   - Functions region: `asia-southeast1`.
-  - Firestore databaseId: `asia-db`.
   - Required env (NEXT_PUBLIC_*): `FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID, FIREBASE_STORAGE_BUCKET, FIREBASE_MESSAGING_SENDER_ID, FIREBASE_APP_ID, MEASUREMENT_ID`.
   - Deploy rules: `firebase deploy --only firestore:rules --project <project>`.
 

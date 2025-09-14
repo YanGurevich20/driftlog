@@ -2,7 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 
-const db = getFirestore(admin.app(), "asia-db");
+const db = getFirestore(admin.app());
 
 // Input validation utilities
 function validateUserId(userId: string): boolean {
