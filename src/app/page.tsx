@@ -10,7 +10,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { useIsDesktop } from '@/hooks/use-media-query';
 import Link from 'next/link';
 import { LANDING_FEATURES, type LandingFeature } from '@/lib/landing-features';
-import { LoadingState } from '@/components/ui/loading-state';
+import { LoadingLogo } from '@/components/ui/loading-logo';
 
 // Wide chevron icon for mobile hero
 function WideChevronDown(props: React.SVGProps<SVGSVGElement>) {
@@ -37,6 +37,7 @@ export default function Home() {
   const { user, loading, signInWithGoogle, needsOnboarding } = useAuth();
   const router = useRouter();
   const [isSigningIn, setIsSigningIn] = useState(false);
+  
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const featureRefs = useRef<(HTMLElement | null)[]>([]);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -100,6 +101,8 @@ export default function Home() {
   const [displayHeight, setDisplayHeight] = useState(0);
 
   const FEATURES: LandingFeature[] = useMemo(() => LANDING_FEATURES, []);
+
+  
 
   useEffect(() => {
     if (!loading && user) {
@@ -392,11 +395,7 @@ export default function Home() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <LoadingState variant="card" className="w-full max-w-md" />
-      </div>
-    );
+    return <LoadingLogo />;
   }
 
   return (

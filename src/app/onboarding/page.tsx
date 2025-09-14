@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -19,7 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { LoadingState } from '@/components/ui/loading-state';
+import { LoadingLogo } from '@/components/ui/loading-logo';
 
 export default function Onboarding() {
   const { user, loading } = useAuth();
@@ -27,12 +27,15 @@ export default function Onboarding() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState(user?.displayName || '');
   const [currency, setCurrency] = useState('USD');
+  
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/');
     }
   }, [user, loading, router]);
+
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,11 +66,7 @@ export default function Onboarding() {
   };
 
   if (loading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <LoadingState variant="card" className="w-full max-w-md" />
-      </div>
-    );
+    return <LoadingLogo />;
   }
 
   return (
