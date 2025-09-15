@@ -22,20 +22,21 @@ import {
 import { LoadingLogo } from '@/components/ui/loading-logo';
 
 export default function Onboarding() {
-  const { user, loading } = useAuth();
+  const { user, loading, needsOnboarding } = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState(user?.displayName || '');
   const [currency, setCurrency] = useState('USD');
-  
+
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/');
+    } else if (!loading && user && !needsOnboarding) {
+      router.push('/dashboard');
     }
-  }, [user, loading, router]);
+  }, [user, loading, needsOnboarding, router]);
 
-  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
